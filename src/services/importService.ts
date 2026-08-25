@@ -352,7 +352,7 @@ export async function buildPreview(files: File[]): Promise<ImportPreview> {
       return;
     }
 
-    let best: { member: HouseMember; score: number; reason: string } | null = null;
+    const candidates: { member: HouseMember; score: number; reason: string }[] = [];
     (existingMembersByHouse.get(existing?.id ?? "") ?? []).forEach((m) => {
       const data = (m.data ?? {}) as Record<string, unknown>;
       const result = identityConfidence(candidate, {
@@ -361,9 +361,9 @@ export async function buildPreview(files: File[]): Promise<ImportPreview> {
         gender: (data["gender"] as string | undefined) ?? null,
         memberId: m.member_id,
       });
-      if (!best || result.score > best.score)
-        best = { member: m, score: result.score, reason: result.reason };
+      candidates.push({ member: m, score: result.score, reason: result.reason });
     });
+    const best = candidates.sort((a, b) => b.score - a.score)[0] ?? null;
 
     const score = best?.score ?? 0;
     const action: PreviewMember["action"] =

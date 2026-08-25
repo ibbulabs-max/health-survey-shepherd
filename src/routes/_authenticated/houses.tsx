@@ -36,7 +36,7 @@ function HousesPage() {
   const { data, isLoading, error, refetch } = useDataset();
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
-  const [limit, setLimit] = useState(appConfig.pagination.defaultPageSize);
+  const [limit, setLimit] = useState<number>(appConfig.pagination.defaultPageSize);
 
   const houses = useMemo(() => {
     const list = data?.houses ?? [];
