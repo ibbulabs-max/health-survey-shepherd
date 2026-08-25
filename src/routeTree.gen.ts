@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
+import { Route as AuthenticatedFollowupsRouteImport } from './routes/_authenticated/followups'
 import { Route as AuthenticatedHousesRouteImport } from './routes/_authenticated/houses'
 import { Route as AuthenticatedMapRouteImport } from './routes/_authenticated/map'
 import { Route as AuthenticatedHousesHouseIdRouteImport } from './routes/_authenticated/houses.$houseId'
@@ -28,6 +29,11 @@ const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
 const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedFollowupsRoute = AuthenticatedFollowupsRouteImport.update({
+  id: '/followups',
+  path: '/followups',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedHousesRoute = AuthenticatedHousesRouteImport.update({
@@ -50,6 +56,7 @@ const AuthenticatedHousesHouseIdRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/followups': typeof AuthenticatedFollowupsRoute
   '/houses': typeof AuthenticatedHousesRouteWithChildren
   '/map': typeof AuthenticatedMapRoute
   '/houses/$houseId': typeof AuthenticatedHousesHouseIdRoute
@@ -57,6 +64,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/followups': typeof AuthenticatedFollowupsRoute
   '/houses': typeof AuthenticatedHousesRouteWithChildren
   '/map': typeof AuthenticatedMapRoute
   '/houses/$houseId': typeof AuthenticatedHousesHouseIdRoute
@@ -66,20 +74,24 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
+  '/_authenticated/followups': typeof AuthenticatedFollowupsRoute
   '/_authenticated/houses': typeof AuthenticatedHousesRouteWithChildren
   '/_authenticated/map': typeof AuthenticatedMapRoute
   '/_authenticated/houses/$houseId': typeof AuthenticatedHousesHouseIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/dashboard' | '/houses' | '/map' | '/houses/$houseId'
+  fullPaths:
+    '/' | '/dashboard' | '/followups' | '/houses' | '/map' | '/houses/$houseId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/dashboard' | '/houses' | '/map' | '/houses/$houseId'
+  to:
+    '/' | '/dashboard' | '/followups' | '/houses' | '/map' | '/houses/$houseId'
   id:
     | '__root__'
     | '/'
     | '/_authenticated'
     | '/_authenticated/dashboard'
+    | '/_authenticated/followups'
     | '/_authenticated/houses'
     | '/_authenticated/map'
     | '/_authenticated/houses/$houseId'
@@ -111,6 +123,13 @@ declare module '@tanstack/react-router' {
       path: '/dashboard'
       fullPath: '/dashboard'
       preLoaderRoute: typeof AuthenticatedDashboardRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/followups': {
+      id: '/_authenticated/followups'
+      path: '/followups'
+      fullPath: '/followups'
+      preLoaderRoute: typeof AuthenticatedFollowupsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/houses': {
@@ -150,12 +169,14 @@ const AuthenticatedHousesRouteWithChildren =
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
+  AuthenticatedFollowupsRoute: typeof AuthenticatedFollowupsRoute
   AuthenticatedHousesRoute: typeof AuthenticatedHousesRouteWithChildren
   AuthenticatedMapRoute: typeof AuthenticatedMapRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
+  AuthenticatedFollowupsRoute: AuthenticatedFollowupsRoute,
   AuthenticatedHousesRoute: AuthenticatedHousesRouteWithChildren,
   AuthenticatedMapRoute: AuthenticatedMapRoute,
 }
