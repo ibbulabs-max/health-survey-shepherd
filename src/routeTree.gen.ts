@@ -15,6 +15,7 @@ import { Route as AuthenticatedAnalyticsRouteImport } from './routes/_authentica
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedFollowupsRouteImport } from './routes/_authenticated/followups'
 import { Route as AuthenticatedHousesRouteImport } from './routes/_authenticated/houses'
+import { Route as AuthenticatedImportRouteImport } from './routes/_authenticated/import'
 import { Route as AuthenticatedMapRouteImport } from './routes/_authenticated/map'
 import { Route as AuthenticatedHousesHouseIdRouteImport } from './routes/_authenticated/houses.$houseId'
 
@@ -47,6 +48,11 @@ const AuthenticatedHousesRoute = AuthenticatedHousesRouteImport.update({
   path: '/houses',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedImportRoute = AuthenticatedImportRouteImport.update({
+  id: '/import',
+  path: '/import',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedMapRoute = AuthenticatedMapRouteImport.update({
   id: '/map',
   path: '/map',
@@ -65,6 +71,7 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/followups': typeof AuthenticatedFollowupsRoute
   '/houses': typeof AuthenticatedHousesRouteWithChildren
+  '/import': typeof AuthenticatedImportRoute
   '/map': typeof AuthenticatedMapRoute
   '/houses/$houseId': typeof AuthenticatedHousesHouseIdRoute
 }
@@ -74,6 +81,7 @@ export interface FileRoutesByTo {
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/followups': typeof AuthenticatedFollowupsRoute
   '/houses': typeof AuthenticatedHousesRouteWithChildren
+  '/import': typeof AuthenticatedImportRoute
   '/map': typeof AuthenticatedMapRoute
   '/houses/$houseId': typeof AuthenticatedHousesHouseIdRoute
 }
@@ -85,6 +93,7 @@ export interface FileRoutesById {
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/followups': typeof AuthenticatedFollowupsRoute
   '/_authenticated/houses': typeof AuthenticatedHousesRouteWithChildren
+  '/_authenticated/import': typeof AuthenticatedImportRoute
   '/_authenticated/map': typeof AuthenticatedMapRoute
   '/_authenticated/houses/$houseId': typeof AuthenticatedHousesHouseIdRoute
 }
@@ -96,6 +105,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/followups'
     | '/houses'
+    | '/import'
     | '/map'
     | '/houses/$houseId'
   fileRoutesByTo: FileRoutesByTo
@@ -105,6 +115,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/followups'
     | '/houses'
+    | '/import'
     | '/map'
     | '/houses/$houseId'
   id:
@@ -115,6 +126,7 @@ export interface FileRouteTypes {
     | '/_authenticated/dashboard'
     | '/_authenticated/followups'
     | '/_authenticated/houses'
+    | '/_authenticated/import'
     | '/_authenticated/map'
     | '/_authenticated/houses/$houseId'
   fileRoutesById: FileRoutesById
@@ -168,6 +180,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedHousesRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/import': {
+      id: '/_authenticated/import'
+      path: '/import'
+      fullPath: '/import'
+      preLoaderRoute: typeof AuthenticatedImportRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/map': {
       id: '/_authenticated/map'
       path: '/map'
@@ -201,6 +220,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedFollowupsRoute: typeof AuthenticatedFollowupsRoute
   AuthenticatedHousesRoute: typeof AuthenticatedHousesRouteWithChildren
+  AuthenticatedImportRoute: typeof AuthenticatedImportRoute
   AuthenticatedMapRoute: typeof AuthenticatedMapRoute
 }
 
@@ -209,6 +229,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedFollowupsRoute: AuthenticatedFollowupsRoute,
   AuthenticatedHousesRoute: AuthenticatedHousesRouteWithChildren,
+  AuthenticatedImportRoute: AuthenticatedImportRoute,
   AuthenticatedMapRoute: AuthenticatedMapRoute,
 }
 
