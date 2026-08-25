@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedHousesRouteImport } from './routes/_authenticated/houses'
+import { Route as AuthenticatedHousesHouseIdRouteImport } from './routes/_authenticated/houses.$houseId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -33,35 +34,45 @@ const AuthenticatedHousesRoute = AuthenticatedHousesRouteImport.update({
   path: '/houses',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedHousesHouseIdRoute =
+  AuthenticatedHousesHouseIdRouteImport.update({
+    id: '/$houseId',
+    path: '/$houseId',
+    getParentRoute: () => AuthenticatedHousesRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
-  '/houses': typeof AuthenticatedHousesRoute
+  '/houses': typeof AuthenticatedHousesRouteWithChildren
+  '/houses/$houseId': typeof AuthenticatedHousesHouseIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
-  '/houses': typeof AuthenticatedHousesRoute
+  '/houses': typeof AuthenticatedHousesRouteWithChildren
+  '/houses/$houseId': typeof AuthenticatedHousesHouseIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
-  '/_authenticated/houses': typeof AuthenticatedHousesRoute
+  '/_authenticated/houses': typeof AuthenticatedHousesRouteWithChildren
+  '/_authenticated/houses/$houseId': typeof AuthenticatedHousesHouseIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/dashboard' | '/houses'
+  fullPaths: '/' | '/dashboard' | '/houses' | '/houses/$houseId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/dashboard' | '/houses'
+  to: '/' | '/dashboard' | '/houses' | '/houses/$houseId'
   id:
     | '__root__'
     | '/'
     | '/_authenticated'
     | '/_authenticated/dashboard'
     | '/_authenticated/houses'
+    | '/_authenticated/houses/$houseId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -99,17 +110,35 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedHousesRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/houses/$houseId': {
+      id: '/_authenticated/houses/$houseId'
+      path: '/$houseId'
+      fullPath: '/houses/$houseId'
+      preLoaderRoute: typeof AuthenticatedHousesHouseIdRouteImport
+      parentRoute: typeof AuthenticatedHousesRoute
+    }
   }
 }
 
+interface AuthenticatedHousesRouteChildren {
+  AuthenticatedHousesHouseIdRoute: typeof AuthenticatedHousesHouseIdRoute
+}
+
+const AuthenticatedHousesRouteChildren: AuthenticatedHousesRouteChildren = {
+  AuthenticatedHousesHouseIdRoute: AuthenticatedHousesHouseIdRoute,
+}
+
+const AuthenticatedHousesRouteWithChildren =
+  AuthenticatedHousesRoute._addFileChildren(AuthenticatedHousesRouteChildren)
+
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
-  AuthenticatedHousesRoute: typeof AuthenticatedHousesRoute
+  AuthenticatedHousesRoute: typeof AuthenticatedHousesRouteWithChildren
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
-  AuthenticatedHousesRoute: AuthenticatedHousesRoute,
+  AuthenticatedHousesRoute: AuthenticatedHousesRouteWithChildren,
 }
 
 const AuthenticatedRouteRouteWithChildren =
