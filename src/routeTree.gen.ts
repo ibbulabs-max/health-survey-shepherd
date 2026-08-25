@@ -18,6 +18,7 @@ import { Route as AuthenticatedHousesRouteImport } from './routes/_authenticated
 import { Route as AuthenticatedImportRouteImport } from './routes/_authenticated/import'
 import { Route as AuthenticatedMapRouteImport } from './routes/_authenticated/map'
 import { Route as AuthenticatedQualityRouteImport } from './routes/_authenticated/quality'
+import { Route as AuthenticatedReportsRouteImport } from './routes/_authenticated/reports'
 import { Route as AuthenticatedHousesHouseIdRouteImport } from './routes/_authenticated/houses.$houseId'
 
 const IndexRoute = IndexRouteImport.update({
@@ -64,6 +65,11 @@ const AuthenticatedQualityRoute = AuthenticatedQualityRouteImport.update({
   path: '/quality',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedReportsRoute = AuthenticatedReportsRouteImport.update({
+  id: '/reports',
+  path: '/reports',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedHousesHouseIdRoute =
   AuthenticatedHousesHouseIdRouteImport.update({
     id: '/$houseId',
@@ -80,6 +86,7 @@ export interface FileRoutesByFullPath {
   '/import': typeof AuthenticatedImportRoute
   '/map': typeof AuthenticatedMapRoute
   '/quality': typeof AuthenticatedQualityRoute
+  '/reports': typeof AuthenticatedReportsRoute
   '/houses/$houseId': typeof AuthenticatedHousesHouseIdRoute
 }
 export interface FileRoutesByTo {
@@ -91,6 +98,7 @@ export interface FileRoutesByTo {
   '/import': typeof AuthenticatedImportRoute
   '/map': typeof AuthenticatedMapRoute
   '/quality': typeof AuthenticatedQualityRoute
+  '/reports': typeof AuthenticatedReportsRoute
   '/houses/$houseId': typeof AuthenticatedHousesHouseIdRoute
 }
 export interface FileRoutesById {
@@ -104,6 +112,7 @@ export interface FileRoutesById {
   '/_authenticated/import': typeof AuthenticatedImportRoute
   '/_authenticated/map': typeof AuthenticatedMapRoute
   '/_authenticated/quality': typeof AuthenticatedQualityRoute
+  '/_authenticated/reports': typeof AuthenticatedReportsRoute
   '/_authenticated/houses/$houseId': typeof AuthenticatedHousesHouseIdRoute
 }
 export interface FileRouteTypes {
@@ -117,6 +126,7 @@ export interface FileRouteTypes {
     | '/import'
     | '/map'
     | '/quality'
+    | '/reports'
     | '/houses/$houseId'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -128,6 +138,7 @@ export interface FileRouteTypes {
     | '/import'
     | '/map'
     | '/quality'
+    | '/reports'
     | '/houses/$houseId'
   id:
     | '__root__'
@@ -140,6 +151,7 @@ export interface FileRouteTypes {
     | '/_authenticated/import'
     | '/_authenticated/map'
     | '/_authenticated/quality'
+    | '/_authenticated/reports'
     | '/_authenticated/houses/$houseId'
   fileRoutesById: FileRoutesById
 }
@@ -213,6 +225,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedQualityRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/reports': {
+      id: '/_authenticated/reports'
+      path: '/reports'
+      fullPath: '/reports'
+      preLoaderRoute: typeof AuthenticatedReportsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/houses/$houseId': {
       id: '/_authenticated/houses/$houseId'
       path: '/$houseId'
@@ -242,6 +261,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedImportRoute: typeof AuthenticatedImportRoute
   AuthenticatedMapRoute: typeof AuthenticatedMapRoute
   AuthenticatedQualityRoute: typeof AuthenticatedQualityRoute
+  AuthenticatedReportsRoute: typeof AuthenticatedReportsRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
@@ -252,6 +272,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedImportRoute: AuthenticatedImportRoute,
   AuthenticatedMapRoute: AuthenticatedMapRoute,
   AuthenticatedQualityRoute: AuthenticatedQualityRoute,
+  AuthenticatedReportsRoute: AuthenticatedReportsRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
