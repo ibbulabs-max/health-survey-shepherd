@@ -17,6 +17,7 @@ import { Route as AuthenticatedFollowupsRouteImport } from './routes/_authentica
 import { Route as AuthenticatedHousesRouteImport } from './routes/_authenticated/houses'
 import { Route as AuthenticatedImportRouteImport } from './routes/_authenticated/import'
 import { Route as AuthenticatedMapRouteImport } from './routes/_authenticated/map'
+import { Route as AuthenticatedQualityRouteImport } from './routes/_authenticated/quality'
 import { Route as AuthenticatedHousesHouseIdRouteImport } from './routes/_authenticated/houses.$houseId'
 
 const IndexRoute = IndexRouteImport.update({
@@ -58,6 +59,11 @@ const AuthenticatedMapRoute = AuthenticatedMapRouteImport.update({
   path: '/map',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedQualityRoute = AuthenticatedQualityRouteImport.update({
+  id: '/quality',
+  path: '/quality',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedHousesHouseIdRoute =
   AuthenticatedHousesHouseIdRouteImport.update({
     id: '/$houseId',
@@ -73,6 +79,7 @@ export interface FileRoutesByFullPath {
   '/houses': typeof AuthenticatedHousesRouteWithChildren
   '/import': typeof AuthenticatedImportRoute
   '/map': typeof AuthenticatedMapRoute
+  '/quality': typeof AuthenticatedQualityRoute
   '/houses/$houseId': typeof AuthenticatedHousesHouseIdRoute
 }
 export interface FileRoutesByTo {
@@ -83,6 +90,7 @@ export interface FileRoutesByTo {
   '/houses': typeof AuthenticatedHousesRouteWithChildren
   '/import': typeof AuthenticatedImportRoute
   '/map': typeof AuthenticatedMapRoute
+  '/quality': typeof AuthenticatedQualityRoute
   '/houses/$houseId': typeof AuthenticatedHousesHouseIdRoute
 }
 export interface FileRoutesById {
@@ -95,6 +103,7 @@ export interface FileRoutesById {
   '/_authenticated/houses': typeof AuthenticatedHousesRouteWithChildren
   '/_authenticated/import': typeof AuthenticatedImportRoute
   '/_authenticated/map': typeof AuthenticatedMapRoute
+  '/_authenticated/quality': typeof AuthenticatedQualityRoute
   '/_authenticated/houses/$houseId': typeof AuthenticatedHousesHouseIdRoute
 }
 export interface FileRouteTypes {
@@ -107,6 +116,7 @@ export interface FileRouteTypes {
     | '/houses'
     | '/import'
     | '/map'
+    | '/quality'
     | '/houses/$houseId'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -117,6 +127,7 @@ export interface FileRouteTypes {
     | '/houses'
     | '/import'
     | '/map'
+    | '/quality'
     | '/houses/$houseId'
   id:
     | '__root__'
@@ -128,6 +139,7 @@ export interface FileRouteTypes {
     | '/_authenticated/houses'
     | '/_authenticated/import'
     | '/_authenticated/map'
+    | '/_authenticated/quality'
     | '/_authenticated/houses/$houseId'
   fileRoutesById: FileRoutesById
 }
@@ -194,6 +206,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedMapRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/quality': {
+      id: '/_authenticated/quality'
+      path: '/quality'
+      fullPath: '/quality'
+      preLoaderRoute: typeof AuthenticatedQualityRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/houses/$houseId': {
       id: '/_authenticated/houses/$houseId'
       path: '/$houseId'
@@ -222,6 +241,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedHousesRoute: typeof AuthenticatedHousesRouteWithChildren
   AuthenticatedImportRoute: typeof AuthenticatedImportRoute
   AuthenticatedMapRoute: typeof AuthenticatedMapRoute
+  AuthenticatedQualityRoute: typeof AuthenticatedQualityRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
@@ -231,6 +251,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedHousesRoute: AuthenticatedHousesRouteWithChildren,
   AuthenticatedImportRoute: AuthenticatedImportRoute,
   AuthenticatedMapRoute: AuthenticatedMapRoute,
+  AuthenticatedQualityRoute: AuthenticatedQualityRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
