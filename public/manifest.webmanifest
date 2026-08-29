@@ -1,0 +1,13 @@
+{
+  "name": "Management App — Ibrahim Labs",
+  "short_name": "Management",
+  "description": "Household mapping, member screening, vitals analytics and follow-up management.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#1668e3",
+  "icons": [
+    { "src": "/app-icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/app-icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

@@ -1,0 +1,209 @@
+@import "tailwindcss" source(none);
+@source "../src";
+@import "tw-animate-css";
+
+/*
+ * Management App design system — premium white + blue healthcare product.
+ * No dark mode. Status colours (green/orange/red) are reserved for risk only.
+ * All colours are oklch semantic tokens; never hardcode colours in components.
+ */
+
+@theme inline {
+  --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Sora", "Plus Jakarta Sans", ui-sans-serif, sans-serif;
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 8px);
+  --radius-2xl: calc(var(--radius) + 16px);
+  --radius-3xl: calc(var(--radius) + 24px);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-surface-muted: var(--surface-muted);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-soft: var(--primary-soft);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-ring-offset-background: var(--background);
+
+  --color-risk-low: var(--risk-low);
+  --color-risk-low-soft: var(--risk-low-soft);
+  --color-risk-moderate: var(--risk-moderate);
+  --color-risk-moderate-soft: var(--risk-moderate-soft);
+  --color-risk-high: var(--risk-high);
+  --color-risk-high-soft: var(--risk-high-soft);
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
+
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  --shadow-card: 0 4px 20px -2px oklch(0.55 0.09 258 / 0.05), 0 2px 8px -1px oklch(0.55 0.09 258 / 0.03);
+  --shadow-float: 0 12px 32px -4px oklch(0.55 0.09 258 / 0.08), 0 4px 12px -2px oklch(0.55 0.09 258 / 0.04);
+  --shadow-nav: 0 -4px 24px -2px oklch(0.55 0.09 258 / 0.06);
+}
+
+:root {
+  --radius: 1rem;
+
+  --background: oklch(0.985 0.004 250);
+  --foreground: oklch(0.21 0.03 258);
+  --surface: oklch(1 0 0);
+  --surface-muted: oklch(0.968 0.008 252);
+
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.21 0.03 258);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.21 0.03 258);
+
+  --primary: oklch(0.55 0.19 259);
+  --primary-foreground: oklch(0.99 0.005 250);
+  --primary-soft: oklch(0.955 0.028 255);
+
+  --secondary: oklch(0.962 0.012 252);
+  --secondary-foreground: oklch(0.32 0.04 258);
+
+  --muted: oklch(0.962 0.012 252);
+  --muted-foreground: oklch(0.53 0.03 256);
+
+  --accent: oklch(0.947 0.03 254);
+  --accent-foreground: oklch(0.4 0.13 259);
+
+  --destructive: oklch(0.58 0.21 25);
+  --destructive-foreground: oklch(0.99 0.005 250);
+
+  --border: oklch(0.925 0.012 255);
+  --input: oklch(0.915 0.014 255);
+  --ring: oklch(0.62 0.16 259);
+
+  --risk-low: oklch(0.6 0.14 155);
+  --risk-low-soft: oklch(0.95 0.05 155);
+  --risk-moderate: oklch(0.72 0.16 68);
+  --risk-moderate-soft: oklch(0.96 0.055 78);
+  --risk-high: oklch(0.58 0.21 25);
+  --risk-high-soft: oklch(0.955 0.035 25);
+  --info: oklch(0.55 0.19 259);
+  --info-soft: oklch(0.955 0.028 255);
+
+  --chart-1: oklch(0.55 0.19 259);
+  --chart-2: oklch(0.68 0.13 210);
+  --chart-3: oklch(0.6 0.14 155);
+  --chart-4: oklch(0.72 0.16 68);
+  --chart-5: oklch(0.58 0.21 25);
+
+  --sidebar: oklch(1 0 0);
+  --sidebar-foreground: oklch(0.21 0.03 258);
+  --sidebar-primary: oklch(0.55 0.19 259);
+  --sidebar-primary-foreground: oklch(0.99 0.005 250);
+  --sidebar-accent: oklch(0.955 0.028 255);
+  --sidebar-accent-foreground: oklch(0.4 0.13 259);
+  --sidebar-border: oklch(0.925 0.012 255);
+  --sidebar-ring: oklch(0.62 0.16 259);
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+
+  html {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
+    letter-spacing: -0.02em;
+  }
+
+  input[type="number"]::-webkit-inner-spin-button {
+    appearance: none;
+  }
+}
+
+@utility card-surface {
+  background-color: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-card);
+}
+
+@utility ios-glass {
+  background-color: color-mix(in oklch, var(--color-card) 60%, transparent);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid color-mix(in oklch, var(--color-border) 40%, transparent);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-float);
+}
+
+@utility ios-glass-panel {
+  background-color: color-mix(in oklch, var(--color-surface) 70%, transparent);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-top: 1px solid color-mix(in oklch, var(--color-border) 50%, transparent);
+  box-shadow: var(--shadow-nav);
+}
+
+@utility ios-glass-button {
+  background-color: color-mix(in oklch, var(--color-primary-soft) 80%, transparent);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid color-mix(in oklch, var(--color-primary) 10%, transparent);
+}
+
+@utility safe-bottom {
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 0.5rem);
+}
+
+@utility safe-top {
+  padding-top: calc(env(safe-area-inset-top, 0px) + 0.5rem);
+}
+
+@utility touch-target {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+/* Leaflet container must inherit rounded surfaces */
+.leaflet-container {
+  font-family: var(--font-sans);
+  background: var(--color-surface-muted);
+  z-index: 0;
+}

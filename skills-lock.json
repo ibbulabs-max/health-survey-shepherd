@@ -1,0 +1,89 @@
+{
+  "version": 1,
+  "skills": {
+    "agent-browser": {
+      "source": "BuilderIO/builder-agent-skills",
+      "sourceType": "github",
+      "skillPath": "agent-browser/SKILL.md",
+      "computedHash": "a91b76c38f9034dde6e098ee935e9827d5227e7b330f55eea4aef3c5cb344b6c"
+    },
+    "design-system": {
+      "source": "nextlevelbuilder/ui-ux-pro-max-skill",
+      "sourceType": "github",
+      "skillPath": ".claude/skills/design-system/SKILL.md",
+      "computedHash": "5a3dbae4a3c2ad9f96323d9bfae926b3c21bb1e3b066aa067906f577a2ff2545"
+    },
+    "grill-me": {
+      "source": "BuilderIO/builder-agent-skills",
+      "sourceType": "github",
+      "skillPath": "grill-me/SKILL.md",
+      "computedHash": "c8b0565b423f309e1248b95df44206e7ce61b84607bd2473e37ffdc9b329f604"
+    },
+    "hallmark": {
+      "source": "BuilderIO/builder-agent-skills",
+      "sourceType": "github",
+      "skillPath": "hallmark/SKILL.md",
+      "computedHash": "1c79627c4bde60f9d8c21aa01750956cc5356a1cff6ae4a8271524e809d7873c"
+    },
+    "ios-design-agent-skill": {
+      "source": "vermont42/iOS-Design-Agent-Skill",
+      "sourceType": "github",
+      "skillPath": "ios-design-agent-skill/SKILL.md",
+      "computedHash": "358f1ec6c9e94959fcb2ca2117d8a0a0e5131c5505defece29e1f442b1f1c475"
+    },
+    "ios-native": {
+      "source": "BuilderIO/builder-agent-skills",
+      "sourceType": "github",
+      "skillPath": "ios-native/SKILL.md",
+      "computedHash": "2f3fb1e211845f18fea2f46e62f02084880b616abb5130f6266aee9e67f33548"
+    },
+    "mobile-testing": {
+      "source": "BuilderIO/builder-agent-skills",
+      "sourceType": "github",
+      "skillPath": "mobile-testing/SKILL.md",
+      "computedHash": "25a451e75cdc29c8fc2bf3c43a447ea371e3049ee49d8d377305d5611399d710"
+    },
+    "playwright-cli": {
+      "source": "BuilderIO/builder-agent-skills",
+      "sourceType": "github",
+      "skillPath": "playwright/SKILL.md",
+      "computedHash": "6dcc64b1fa7a5dab929b4855400fde7d19333cc6be07add5cd74112be49703f3"
+    },
+    "rules-reviewer": {
+      "source": "BuilderIO/builder-agent-skills",
+      "sourceType": "github",
+      "skillPath": "rules-reviewer/SKILL.md",
+      "computedHash": "74131dc91ce2bfa17f0f742ac4c3e0fea595f240aadbcd9478193dc77d55cfd2"
+    },
+    "skill-creator": {
+      "source": "BuilderIO/builder-agent-skills",
+      "sourceType": "github",
+      "skillPath": "skill-creator/SKILL.md",
+      "computedHash": "b317baffab595777c031dd73668d6dd9c032e4bdfe84d5b08fba5aa09d160b01"
+    },
+    "supabase": {
+      "source": "supabase/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/supabase/SKILL.md",
+      "computedHash": "a6260582f48df8ba53380bb9b9e870ed2ae5fe147799e90ed783b8aa25167d50"
+    },
+    "supabase-postgres-best-practices": {
+      "source": "supabase/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/supabase-postgres-best-practices/SKILL.md",
+      "computedHash": "128fac78002d916c8ca908245d398e634f540d8bcf20915b2b2359aeb18eba59"
+    },
+    "ui-styling": {
+      "source": "nextlevelbuilder/ui-ux-pro-max-skill",
+      "sourceType": "github",
+      "skillPath": ".claude/skills/ui-styling/SKILL.md",
+      "computedHash": "e10b225db04fdfd893fdda2b9ed893c315f9dee5693494743d57b02066e96a51"
+    },
+    "ui-ux-pro-max": {
+      "source": "nextlevelbuilder/ui-ux-pro-max-skill",
+      "sourceType": "github",
+      "skillPath": ".claude/skills/ui-ux-pro-max/SKILL.md",
+      "computedHash": "d1de8ff8d228cd4204bf06eb959ef4317d5b927908d9f42765971e33e80c8a7e"
+    }
+  }
+}
