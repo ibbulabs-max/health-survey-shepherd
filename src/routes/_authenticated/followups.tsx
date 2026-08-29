@@ -268,9 +268,9 @@ function FollowUpsPage() {
       completed: [],
     };
     for (const e of enriched) {
-      // 30+ Eligibility Check (Age 29 is NOT eligible, 30+ IS eligible)
+      // 29+ Eligibility Check (Age 28 is NOT eligible, 29+ IS eligible)
       const age = e.member?.age;
-      const isEligible = age != null && age >= 30;
+      const isEligible = age != null && age >= 29;
 
       const s = followUpStatus(e.followUp.status, e.followUp.due_date);
       if (s === "completed" || s === "missed") {
@@ -314,6 +314,24 @@ function FollowUpsPage() {
   const applyFilters = useCallback(
     (items: EnrichedFollowUp[]): EnrichedFollowUp[] => {
       let filtered = items;
+
+      // Role-based filtering
+      if (!isAdmin && user) {
+        if (role === "supervisor") {
+          filtered = filtered.filter(
+            (e) =>
+              e.house?.house?.supervisor_id === user.id ||
+              e.house?.house?.assigned_csw_id === user.id ||
+              e.followUp.created_by === user.id
+          );
+        } else if (role === "chw") {
+          filtered = filtered.filter(
+            (e) =>
+              e.house?.house?.assigned_csw_id === user.id ||
+              e.followUp.created_by === user.id
+          );
+        }
+      }
 
       // Calendar date filter
       if (selectedCalDate) {
@@ -1199,14 +1217,25 @@ function FollowUpCard({
         </div>
       </div>
 
-      {/* Reason for Follow-up */}
-      {(f.reason || (f.status && f.status !== "pending")) && (
-        <div className="pl-2">
-           <span className="inline-block px-2.5 py-1 rounded-md bg-secondary text-secondary-foreground text-xs font-medium">
-              {f.reason ? f.reason : `Status: ${f.status}`}
-           </span>
-        </div>
-      )}
+      {/* Reason for Follow-up & History */}
+      <div className="pl-2 space-y-2">
+        {(f.reason || (f.status && f.status !== "pending")) && (
+          <div>
+            <span className="inline-block px-2.5 py-1 rounded-md bg-secondary text-secondary-foreground text-xs font-medium">
+                {f.reason ? f.reason : `Status: ${f.status}`}
+            </span>
+          </div>
+        )}
+        {member?.conditions && member.conditions.length > 0 && (
+          <div className="flex flex-wrap gap-1">
+            {member.conditions.map((c, i) => (
+              <span key={i} className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-muted/60 text-muted-foreground uppercase tracking-wider">
+                {c}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
 
       {/* Divider */}
       <div className="h-px bg-border/40 ml-2" />
@@ -1214,7 +1243,7 @@ function FollowUpCard({
       {/* Critical Dates Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pl-2">
         <div className="flex flex-col bg-surface-muted/50 p-2.5 rounded-xl border border-border/40">
-          <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Assessment</span>
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Survey Date</span>
           <span className="text-sm font-medium text-foreground mt-0.5 truncate">{assessmentDate}</span>
         </div>
         <div className="flex flex-col bg-surface-muted/50 p-2.5 rounded-xl border border-border/40">

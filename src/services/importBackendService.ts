@@ -209,10 +209,10 @@ export const commitImportChunk = createServerFn({ method: "POST" })
                 .single();
               const finalData = (currentMember?.data ?? {}) as Record<string, any>;
               const age = numberOrNull(finalData["age"] ?? member.fields["age"]);
-              const isEligible = age != null && age >= 30;
+              const isEligible = age != null && age >= 29;
 
               if (isEligible) {
-                // Check for existing completed follow-ups to base the next date on
+                // Check for existing completed follow-ups in DB to base the next date on
                 const { data: completedFollowUps } = await adminClient
                   .from(tables.followUps)
                   .select("due_date, updated_at")
@@ -221,31 +221,45 @@ export const commitImportChunk = createServerFn({ method: "POST" })
                   .order("updated_at", { ascending: false })
                   .limit(1);
                   
-                const lastCompleted = completedFollowUps?.[0];
-                const followUpCountStr = member.fields["follow_ups"];
-                const parsedCount = numberOrNull(followUpCountStr);
+                const lastCompletedDb = completedFollowUps?.[0];
+                const followUpHistoryStr = String(member.fields["follow_ups"] || "");
+                
+                let latestHistoryDate: Date | null = null;
+                if (followUpHistoryStr) {
+                  const parts = followUpHistoryStr.split(/[\n,;]/);
+                  const dates: Date[] = [];
+                  for (const part of parts) {
+                    if (part.toUpperCase().includes('COMPLETED') || part.includes('|')) {
+                      const dateStr = part.split('|')[0].trim();
+                      const d = new Date(dateStr);
+                      if (!isNaN(d.getTime())) {
+                        dates.push(d);
+                      }
+                    }
+                  }
+                  if (dates.length > 0) {
+                    dates.sort((a, b) => b.getTime() - a.getTime());
+                    latestHistoryDate = dates[0];
+                  }
+                }
                 
                 let baseDateForNext = surveyDate;
                 
-                if (lastCompleted && lastCompleted.updated_at) {
-                  baseDateForNext = new Date(lastCompleted.updated_at);
-                } else if (parsedCount && parsedCount > 0) {
-                   // If excel says they completed N follow-ups but we don't have them in DB, 
-                   // we project the base date for the Nth completion.
-                   const { followUpConfig } = await import("@/config/followups");
-                   const interval = followUpConfig.intervalDays[risk];
-                   const simulatedLastCompletion = new Date(surveyDate);
-                   simulatedLastCompletion.setDate(simulatedLastCompletion.getDate() + (parsedCount * interval));
-                   baseDateForNext = simulatedLastCompletion;
+                if (lastCompletedDb && lastCompletedDb.updated_at) {
+                  const dbDate = new Date(lastCompletedDb.updated_at);
+                  baseDateForNext = (latestHistoryDate && latestHistoryDate > dbDate) ? latestHistoryDate : dbDate;
+                } else if (latestHistoryDate) {
+                  baseDateForNext = latestHistoryDate;
                 }
 
-                // Check if a pending follow-up already exists that is far in the future
+                // Check if a pending follow-up already exists
                 const { data: existingPending } = await adminClient.from(tables.followUps)
                   .select("id, due_date")
                   .eq("member_uuid", memberUuid)
                   .eq("status", "pending")
                   .maybeSingle();
 
+                const { nextDueDate } = await import("@/config/followups");
                 const nextTargetDate = nextDueDate(baseDateForNext, risk);
                 const nextTargetDateStr = nextTargetDate.toISOString().split('T')[0];
 
@@ -257,10 +271,14 @@ export const commitImportChunk = createServerFn({ method: "POST" })
                      reason: `Imported screening ${risk} risk follow-up`,
                      updated_at: new Date().toISOString()
                    }).eq("id", existingPending.id);
-                   // We don't increment followUpsScheduled since it was just updated
+                   
+                   await adminClient.from(tables.tasks).update({
+                     due_date: nextTargetDateStr,
+                     updated_at: new Date().toISOString()
+                   }).eq("follow_up_id", existingPending.id);
                 } else {
                    // Insert new pending follow-up
-                   await adminClient.from(tables.followUps).insert({
+                   const { data: insertedFup } = await adminClient.from(tables.followUps).insert({
                      house_uuid: houseUuid,
                      member_uuid: memberUuid,
                      due_date: nextTargetDateStr,
@@ -268,7 +286,19 @@ export const commitImportChunk = createServerFn({ method: "POST" })
                      risk_level: risk,
                      status: "pending",
                      created_by: userId,
-                   });
+                   }).select("id").single();
+                   
+                   if (insertedFup) {
+                     await adminClient.from(tables.tasks).insert({
+                       house_uuid: houseUuid,
+                       member_uuid: memberUuid,
+                       follow_up_id: insertedFup.id,
+                       task_type: "follow_up",
+                       status: "pending",
+                       due_date: nextTargetDateStr,
+                       created_by: userId,
+                     });
+                   }
                    followUpsScheduled += 1;
                 }
               }

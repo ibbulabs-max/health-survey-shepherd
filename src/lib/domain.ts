@@ -107,7 +107,7 @@ export interface MemberView {
   dataIssues: string[];
 }
 
-const ELIGIBLE_AGE = 30;
+const ELIGIBLE_AGE = 29;
 
 export function buildMemberView(
   member: HouseMember,

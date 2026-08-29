@@ -36,6 +36,7 @@ export const tables = {
   houseMembers: "house_members",
   memberAssessments: "member_assessments",
   followUps: "follow_ups",
+  tasks: "tasks",
   pins: "pins",
   importBatches: "import_batches",
   importConflicts: "import_conflicts",

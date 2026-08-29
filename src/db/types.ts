@@ -204,3 +204,18 @@ export interface ActivityLog {
   details: Json | null;
   created_at: string | null;
 }
+
+export interface Task {
+  id: string;
+  house_uuid: string | null;
+  member_uuid: string | null;
+  follow_up_id: string | null;
+  task_type: string | null;
+  status: string | null;
+  due_date: string | null;
+  assigned_to: string | null;
+  created_by: string | null;
+  completed_at: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+}

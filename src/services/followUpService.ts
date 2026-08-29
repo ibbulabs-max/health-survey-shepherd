@@ -44,6 +44,18 @@ export async function scheduleFollowUp(input: ScheduleFollowUpInput) {
     .single();
   if (error) throw error;
   await logActivity("followup.scheduled", { id: data.id, due_date: data.due_date });
+  
+  // Create task for this follow-up
+  await supabase.from(tables.tasks).insert({
+    house_uuid: input.houseUuid,
+    member_uuid: input.memberUuid,
+    follow_up_id: data.id,
+    task_type: "follow_up",
+    status: "pending",
+    due_date: data.due_date,
+    created_by: input.createdBy ?? auth.user?.id ?? null,
+  });
+
   return data as FollowUp;
 }
 
@@ -70,6 +82,12 @@ export async function completeFollowUp(params: {
     .update({ status: "completed", notes: notes ?? null, updated_at: new Date().toISOString() })
     .eq("id", id);
   if (error) throw error;
+  
+  // Update task status
+  await supabase
+    .from(tables.tasks)
+    .update({ status: "completed", completed_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+    .eq("follow_up_id", id);
   
   let currentRisk = current.risk_level as RiskLevel;
 
@@ -125,10 +143,10 @@ export async function completeFollowUp(params: {
     }
   }
 
-  // 4. Check eligibility - Age >= 30
+  // 4. Check eligibility - Age >= 29
   const memberData = (current.house_members as any)?.data as Record<string, unknown> | undefined;
   const age = memberData?.["age"] != null ? Number(memberData["age"]) : null;
-  const isEligibleVal = age != null && age >= 30;
+  const isEligibleVal = isEligible(age);
   
   // 5. Calculate next follow-up
   if (isEligibleVal && current.house_uuid && current.member_uuid && currentRisk) {
@@ -145,7 +163,7 @@ export async function completeFollowUp(params: {
       const intervals = useSettings.getState().followUpIntervals;
       const nextDate = nextDueDate(new Date(), currentRisk, intervals, holidays);
       
-      await supabase.from(tables.followUps).insert({
+      const { data: newFup } = await supabase.from(tables.followUps).insert({
         house_uuid: current.house_uuid,
         member_uuid: current.member_uuid,
         due_date: toDateKey(nextDate),
@@ -153,7 +171,19 @@ export async function completeFollowUp(params: {
         risk_level: currentRisk,
         status: "pending",
         created_by: current.created_by,
-      });
+      }).select("id").single();
+      
+      if (newFup) {
+        await supabase.from(tables.tasks).insert({
+          house_uuid: current.house_uuid,
+          member_uuid: current.member_uuid,
+          follow_up_id: newFup.id,
+          task_type: "follow_up",
+          status: "pending",
+          due_date: toDateKey(nextDate),
+          created_by: current.created_by,
+        });
+      }
     }
   }
   
@@ -175,6 +205,15 @@ export async function postponeFollowUp(id: string, date: Date, notes?: string, h
     })
     .eq("id", id);
   if (error) throw error;
+  
+  await supabase
+    .from(tables.tasks)
+    .update({
+      due_date: toDateKey(toWorkingDay(date, followUpConfig.workingDays, holidays)),
+      updated_at: new Date().toISOString(),
+    })
+    .eq("follow_up_id", id);
+
   await logActivity("followup.postponed", { id, due_date: toDateKey(toWorkingDay(date, followUpConfig.workingDays, holidays)) });
 }
 
@@ -187,6 +226,12 @@ export async function markFollowUpMissed(id: string, notes?: string) {
     .update({ status: "missed", notes: notes ?? null, updated_at: new Date().toISOString() })
     .eq("id", id);
   if (error) throw error;
+
+  await supabase
+    .from(tables.tasks)
+    .update({ status: "missed", updated_at: new Date().toISOString() })
+    .eq("follow_up_id", id);
+
   await logActivity("followup.missed", { id });
 }
 
@@ -222,10 +267,10 @@ export function planWorkload(count: number, dailyTarget = followUpConfig.default
 }
 
 /**
- * Checks if a member is eligible for follow‑up (age >= 30).
+ * Checks if a member is eligible for follow‑up (age >= 29).
  */
 export function isEligible(age: number | null): boolean {
-  return age != null && age >= 30;
+  return age != null && age >= 29;
 }
 
 /** Returns interval days for a given risk level. */
@@ -264,6 +309,11 @@ export async function createOrUpdatePendingFollowUp(params: {
         updated_at: new Date().toISOString(),
       })
       .eq("id", existing.data.id);
+      
+    await supabase.from(tables.tasks).update({
+      due_date: toDateKey(dueDate),
+      updated_at: new Date().toISOString()
+    }).eq("follow_up_id", existing.data.id);
   } else {
     await scheduleFollowUp({
       houseUuid,
@@ -373,7 +423,7 @@ export async function updateLastFollowUpDate(memberUuid: string, lastDateStr: st
   const finalDate = toWorkingDay(targetDate, followUpConfig.workingDays, holidays);
 
   // 4. Create the new pending follow-up
-  await supabase.from(tables.followUps).insert({
+  const { data: insertedFup } = await supabase.from(tables.followUps).insert({
     member_uuid: memberUuid,
     house_uuid: member?.house_uuid ?? null,
     risk_level: riskLevel,
@@ -383,7 +433,19 @@ export async function updateLastFollowUpDate(memberUuid: string, lastDateStr: st
     notes: "Auto-scheduled from manual last follow-up update",
     created_by: userId,
     updated_at: new Date().toISOString(),
-  });
+  }).select("id").single();
+  
+  if (insertedFup) {
+    await supabase.from(tables.tasks).insert({
+      house_uuid: member?.house_uuid ?? null,
+      member_uuid: memberUuid,
+      follow_up_id: insertedFup.id,
+      task_type: "follow_up",
+      status: "pending",
+      due_date: toDateKey(finalDate),
+      created_by: userId,
+    });
+  }
 
   await logActivity("followup.manual_update", { memberUuid, lastDateStr, nextDueDate: toDateKey(finalDate) });
 }
