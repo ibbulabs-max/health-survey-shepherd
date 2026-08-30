@@ -25,11 +25,7 @@ export interface Dataset {
 
 const PAGE = 1000;
 
-async function fetchAll<T>(
-  table: string,
-  select: string,
-  order = "created_at",
-): Promise<T[]> {
+async function fetchAll<T>(table: string, select: string, order = "created_at"): Promise<T[]> {
   const rows: T[] = [];
   for (let from = 0; ; from += PAGE) {
     const { data, error } = await supabase
@@ -53,6 +49,78 @@ export async function loadDataset(): Promise<Dataset> {
     fetchAll<FollowUp>(tables.followUps, "*"),
   ]);
 
+  // Load health threshold settings from DB so eligibility and risk are consistent.
+  let minEligibleAge: number | undefined = undefined;
+  let thresholds: Parameters<typeof buildMemberView>[4] = undefined;
+  try {
+    const { data: auth } = await supabase.auth.getUser();
+    const userId = auth.user?.id;
+    let targetSupervisorId: string | null = null;
+
+    if (userId) {
+      const { data: r } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", userId)
+        .maybeSingle();
+      const role = r?.role;
+
+      if (role === "supervisor") {
+        targetSupervisorId = userId;
+      } else if (role === "survey_user") {
+        const { data: teamData } = await supabase
+          .from("team_memberships")
+          .select("supervisor_id")
+          .eq("csw_id", userId)
+          .eq("status", "active")
+          .limit(1)
+          .maybeSingle();
+        targetSupervisorId = teamData?.supervisor_id ?? null;
+      }
+    }
+
+    let query = supabase.from("health_threshold_settings").select("*");
+    if (targetSupervisorId) {
+      query = query.or(`supervisor_id.is.null,supervisor_id.eq.${targetSupervisorId}`);
+    } else {
+      query = query.is("supervisor_id", null);
+    }
+
+    // Order nulls first so supervisor override is the last row applied
+    const { data, error } = await query.order("supervisor_id", {
+      ascending: true,
+      nullsFirst: true,
+    });
+
+    let settings: any = {};
+    if (data && data.length > 0) {
+      for (const row of data) {
+        settings = { ...settings, ...row };
+      }
+    }
+
+    if (Object.keys(settings).length > 0) {
+      if (typeof settings.minimum_eligible_age === "number") {
+        minEligibleAge = settings.minimum_eligible_age;
+      }
+      thresholds = {
+        bp: {
+          high: { systolic: settings.systolic_high_min, diastolic: settings.diastolic_high_min },
+          moderate: {
+            systolic: settings.systolic_moderate_min,
+            diastolic: settings.diastolic_moderate_min,
+          },
+        },
+        sugar: {
+          high: settings.sugar_high_min,
+          moderate: settings.sugar_moderate_min,
+        },
+      };
+    }
+  } catch (e) {
+    console.warn("Failed to load health threshold settings, falling back to defaults:", e);
+  }
+
   const latestAssessment = new Map<string, MemberAssessment>();
   assessments.forEach((a) => {
     if (!a.member_uuid) return;
@@ -64,7 +132,13 @@ export async function loadDataset(): Promise<Dataset> {
 
   const houseById = new Map(houses.map((h) => [h.id, h]));
   const memberViews = members.map((m) =>
-    buildMemberView(m, latestAssessment.get(m.id) ?? null, houseById.get(m.house_uuid ?? "")),
+    buildMemberView(
+      m,
+      latestAssessment.get(m.id) ?? null,
+      houseById.get(m.house_uuid ?? ""),
+      minEligibleAge,
+      thresholds,
+    ),
   );
 
   const membersByHouse = new Map<string, MemberView[]>();

@@ -13,11 +13,7 @@ export interface MemberSlotListProps {
   onMembersChange: (members: CreateHouseMemberInput[]) => void;
 }
 
-export function MemberSlotList({
-  houseId,
-  members,
-  onMembersChange,
-}: MemberSlotListProps) {
+export function MemberSlotList({ houseId, members, onMembersChange }: MemberSlotListProps) {
   const handleUpdateMember = (index: number, updates: Partial<CreateHouseMemberInput>) => {
     const updated = [...members];
     const current = updated[index];
@@ -86,7 +82,7 @@ export function MemberSlotList({
               key={index}
               className={cn(
                 "card-surface p-4 rounded-2xl border transition-all space-y-3.5 relative",
-                is30Plus ? "border-primary/30 bg-primary-soft/10" : "border-border/70"
+                is30Plus ? "border-primary/30 bg-primary-soft/10" : "border-border/70",
               )}
             >
               {/* Member Card Header */}
@@ -95,7 +91,7 @@ export function MemberSlotList({
                   <div
                     className={cn(
                       "size-7 rounded-xl flex items-center justify-center text-xs font-bold font-mono",
-                      is30Plus ? "bg-primary text-white" : "bg-surface-muted text-muted-foreground"
+                      is30Plus ? "bg-primary text-white" : "bg-surface-muted text-muted-foreground",
                     )}
                   >
                     #{index + 1}
@@ -176,13 +172,22 @@ export function MemberSlotList({
                     }}
                     className="justify-start bg-surface-muted p-0.5 rounded-xl border border-border/50 h-10 w-full"
                   >
-                    <ToggleGroupItem value="Male" className="rounded-lg flex-1 text-xs font-semibold">
+                    <ToggleGroupItem
+                      value="Male"
+                      className="rounded-lg flex-1 text-xs font-semibold"
+                    >
                       Male
                     </ToggleGroupItem>
-                    <ToggleGroupItem value="Female" className="rounded-lg flex-1 text-xs font-semibold">
+                    <ToggleGroupItem
+                      value="Female"
+                      className="rounded-lg flex-1 text-xs font-semibold"
+                    >
                       Female
                     </ToggleGroupItem>
-                    <ToggleGroupItem value="Other" className="rounded-lg flex-1 text-xs font-semibold">
+                    <ToggleGroupItem
+                      value="Other"
+                      className="rounded-lg flex-1 text-xs font-semibold"
+                    >
                       Other
                     </ToggleGroupItem>
                   </ToggleGroup>

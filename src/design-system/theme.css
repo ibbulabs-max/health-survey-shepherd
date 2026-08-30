@@ -21,17 +21,17 @@
   --spacing-2: 0.5rem;
   --spacing-3: 0.75rem;
   --spacing-4: 1rem;
-  --font-sans: 'Inter', system-ui, sans-serif;
+  --font-sans: "Inter", system-ui, sans-serif;
 }
 
 /* Light theme */
-[data-theme='light'] {
+[data-theme="light"] {
   --color-background: hsl(0, 0%, 100%);
   --color-foreground: hsl(222, 47%, 11%);
 }
 
 /* Dark theme */
-[data-theme='dark'] {
+[data-theme="dark"] {
   --color-primary: hsl(220, 90%, 66%);
   --color-background: hsl(222, 47%, 11%);
   --color-foreground: hsl(0, 0%, 100%);
@@ -40,8 +40,18 @@
 }
 
 /* Global utilities */
-.bg-background { background-color: var(--color-background); }
-.text-foreground { color: var(--color-foreground); }
-.border-border { border-color: var(--color-border); }
-.rounded-xl { border-radius: var(--radius); }
-.p-4 { padding: var(--spacing-4); }
+.bg-background {
+  background-color: var(--color-background);
+}
+.text-foreground {
+  color: var(--color-foreground);
+}
+.border-border {
+  border-color: var(--color-border);
+}
+.rounded-xl {
+  border-radius: var(--radius);
+}
+.p-4 {
+  padding: var(--spacing-4);
+}

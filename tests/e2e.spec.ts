@@ -19,13 +19,15 @@ test.describe("Management App E2E Flow", () => {
     await expect(page.getByRole("heading", { name: /Management App/i })).toBeVisible();
     await page.getByPlaceholder("e.g. admin").fill("e2eadmin");
     await page.locator('input[inputmode="numeric"]').fill(ADMIN_PIN);
-    
+
     // Verify dashboard loads
     await expect(page.getByText(/Hello, E2E/i)).toBeVisible({ timeout: 10000 });
 
     // 2. Navigation works
     await page.getByRole("link", { name: "Users", exact: true }).first().click();
-    await expect(page.getByRole("heading", { name: "Users & Roles" })).toBeVisible({ timeout: 15000 });
+    await expect(page.getByRole("heading", { name: "Users & Roles" })).toBeVisible({
+      timeout: 15000,
+    });
 
     // 3. Smart Import
     if (await page.getByRole("button", { name: "More" }).isVisible()) {
@@ -37,11 +39,11 @@ test.describe("Management App E2E Flow", () => {
     const fileInput = await page.$('input[type="file"]');
     // Using the previously created test_import.csv
     await fileInput?.setInputFiles(path.join(__dirname, "../test_import.csv"));
-    
+
     await expect(page.getByText("rows").first()).toBeVisible({ timeout: 10000 });
     // Approve and import
     await page.getByRole("button", { name: "Approve and import" }).click();
-    
+
     await expect(page.getByText(/Imported/i).first()).toBeVisible({ timeout: 10000 });
 
     // 4. Verification (Analytics, Dashboard, Follow-ups, Map)

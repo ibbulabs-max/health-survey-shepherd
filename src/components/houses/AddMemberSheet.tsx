@@ -3,10 +3,23 @@ import { useMutation } from "@tanstack/react-query";
 import { UserPlus, X } from "lucide-react";
 import { toast } from "sonner";
 
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetDescription } from "@/components/ui/sheet";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+  SheetDescription,
+} from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 
 import { tables } from "@/config/database";
@@ -37,7 +50,8 @@ export function AddMemberSheet({ houseUuid, houseId, currentMembers30Plus }: Add
       if (!age || isNaN(Number(age))) throw new Error("Valid age is required");
       if (!gender) throw new Error("Gender is required");
 
-      const newMemberId = is30Plus && houseId ? generateMemberId(houseId, currentMembers30Plus + 1) : null;
+      const newMemberId =
+        is30Plus && houseId ? generateMemberId(houseId, currentMembers30Plus + 1) : null;
 
       const { data, error } = await supabase
         .from(tables.houseMembers)
@@ -50,7 +64,7 @@ export function AddMemberSheet({ houseUuid, houseId, currentMembers30Plus }: Add
             age: parseInt(age, 10),
             gender,
             eligible: is30Plus,
-            house_id: houseId
+            house_id: houseId,
           },
           uploaded_by: user?.id,
           uploaded_at: new Date().toISOString(),
@@ -69,7 +83,7 @@ export function AddMemberSheet({ houseUuid, houseId, currentMembers30Plus }: Add
       setGender("");
       void refresh();
     },
-    onError: (e) => toast.error(e instanceof Error ? e.message : "Failed to add member")
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Failed to add member"),
   });
 
   return (
@@ -80,13 +94,19 @@ export function AddMemberSheet({ houseUuid, houseId, currentMembers30Plus }: Add
           Add Member
         </Button>
       </SheetTrigger>
-      <SheetContent side="bottom" className="rounded-t-3xl h-[85vh] sm:h-auto sm:max-h-[85vh] sm:rounded-l-3xl sm:rounded-tr-none sm:top-0 sm:right-0 sm:bottom-0 sm:w-96 sm:max-w-md">
+      <SheetContent
+        side="bottom"
+        className="rounded-t-3xl h-[85vh] sm:h-auto sm:max-h-[85vh] sm:rounded-l-3xl sm:rounded-tr-none sm:top-0 sm:right-0 sm:bottom-0 sm:w-96 sm:max-w-md"
+      >
         <SheetHeader className="text-left mb-6 relative">
           <div className="flex items-start justify-between">
             <div>
-              <SheetTitle className="font-display text-xl font-bold">Add Household Member</SheetTitle>
+              <SheetTitle className="font-display text-xl font-bold">
+                Add Household Member
+              </SheetTitle>
               <SheetDescription className="mt-1">
-                Enter details for the new member. Members 30 and older will automatically be assigned a unique Member ID.
+                Enter details for the new member. Members 30 and older will automatically be
+                assigned a unique Member ID.
               </SheetDescription>
             </div>
             <Button
@@ -147,7 +167,8 @@ export function AddMemberSheet({ houseUuid, houseId, currentMembers30Plus }: Add
                 Eligible for Screening (30+)
               </p>
               <p className="text-xs text-primary/70 mt-1">
-                This member will automatically be assigned an ID like {generateMemberId(houseId, currentMembers30Plus + 1)}
+                This member will automatically be assigned an ID like{" "}
+                {generateMemberId(houseId, currentMembers30Plus + 1)}
               </p>
             </div>
           ) : age && !is30Plus ? (
@@ -156,7 +177,8 @@ export function AddMemberSheet({ houseUuid, houseId, currentMembers30Plus }: Add
                 Under 30
               </p>
               <p className="text-xs text-muted-foreground mt-1">
-                This member is not eligible for regular screening and will not receive a dedicated ID.
+                This member is not eligible for regular screening and will not receive a dedicated
+                ID.
               </p>
             </div>
           ) : null}

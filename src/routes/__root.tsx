@@ -83,7 +83,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { charSet: "utf-8" },
       {
         name: "viewport",
-        content: "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0, viewport-fit=cover",
+        content:
+          "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0, viewport-fit=cover",
       },
       { name: "author", content: "Ibrahim Labs" },
       { name: "theme-color", content: appConfig.themeColor },
@@ -94,7 +95,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     ],
     links: [
       { rel: "stylesheet", href: appCss },
-{ rel: "stylesheet", href: themeCss },
+      { rel: "stylesheet", href: themeCss },
       { rel: "icon", href: "/favicon.png", type: "image/png" },
       { rel: "manifest", href: "/manifest.webmanifest" },
       { rel: "apple-touch-icon", href: "/app-icon-192.png" },

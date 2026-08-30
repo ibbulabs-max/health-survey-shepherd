@@ -22,14 +22,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import L from "leaflet";
-import {
-  MapContainer,
-  TileLayer,
-  Marker,
-  Circle,
-  useMap,
-  useMapEvents,
-} from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Circle, useMap, useMapEvents } from "react-leaflet";
 
 import { PIN_CATALOG, getPinTypeConfig, type PinTypeConfig } from "@/config/pins";
 import { mapConfig } from "@/config/map";
@@ -56,10 +49,10 @@ import MarkerClusterGroup from "react-leaflet-cluster";
 function createCustomPinIcon(
   pinType: string,
   riskLevel?: string,
-  badgeNumber?: number | string
+  badgeNumber?: number | string,
 ): L.DivIcon {
   const cfg = getPinTypeConfig(pinType);
-  
+
   // House pin color represents the calculated household risk:
   // High = Red (#EF4444), Moderate = Orange (#F59E0B), Low = Green (#10B981)
   let color = cfg.color;
@@ -70,7 +63,7 @@ function createCustomPinIcon(
   }
 
   let iconSvg = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>`;
-  
+
   if (cfg.id === "locked_house") {
     iconSvg = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>`;
   } else if (cfg.id === "refused") {
@@ -228,7 +221,11 @@ export function MapView({
   const [newPinModalOpen, setNewPinModalOpen] = useState(false);
 
   // New Pin form fields
-  const [pinDraftCoords, setPinDraftCoords] = useState<{ lat: number; lng: number; accuracy?: number | null } | null>(null);
+  const [pinDraftCoords, setPinDraftCoords] = useState<{
+    lat: number;
+    lng: number;
+    accuracy?: number | null;
+  } | null>(null);
   const [pinDraftType, setPinDraftType] = useState<string>("shop");
   const [pinDraftCustomLabel, setPinDraftCustomLabel] = useState<string>("");
   const [pinDraftAddress, setPinDraftAddress] = useState<string>("");
@@ -242,7 +239,11 @@ export function MapView({
   const [draftHousingType, setDraftHousingType] = useState("Pakka");
 
   // GPS / Live Location State
-  const [currentLocation, setCurrentLocation] = useState<{ lat: number; lng: number; accuracy: number } | null>(null);
+  const [currentLocation, setCurrentLocation] = useState<{
+    lat: number;
+    lng: number;
+    accuracy: number;
+  } | null>(null);
   const [deviceHeading, setDeviceHeading] = useState<number | null>(null);
   const [locationPermissionDenied, setLocationPermissionDenied] = useState(false);
   const [currentZoom, setCurrentZoom] = useState<number>(14);
@@ -308,12 +309,12 @@ export function MapView({
     });
   }, [houses, selectedTeamMember, selectedPinTypes, searchQuery]);
 
-
-
   // Focused House Handler
   useEffect(() => {
     if (focusedHouseId) {
-      const found = houses.find((h) => h.house.id === focusedHouseId || h.house.house_id === focusedHouseId);
+      const found = houses.find(
+        (h) => h.house.id === focusedHouseId || h.house.house_id === focusedHouseId,
+      );
       if (found && found.hasLocation) {
         setActiveHouse(found);
         setFocusCoords([found.house.latitude!, found.house.longitude!]);
@@ -344,7 +345,7 @@ export function MapView({
       return [activeHouse.house.latitude!, activeHouse.house.longitude!];
     }
     if (houses.length > 0) {
-      const first = houses.find(h => h.hasLocation);
+      const first = houses.find((h) => h.hasLocation);
       if (first) return [first.house.latitude!, first.house.longitude!];
     }
     return mapConfig.defaultCenter;
@@ -368,12 +369,13 @@ export function MapView({
         setDeviceHeading(360 - head); // Convert to standard map rotation
       }
     };
-    
+
     // Request permission for orientation if needed (iOS 13+)
-    if (typeof (DeviceOrientationEvent as any).requestPermission === 'function') {
-      (DeviceOrientationEvent as any).requestPermission()
+    if (typeof (DeviceOrientationEvent as any).requestPermission === "function") {
+      (DeviceOrientationEvent as any)
+        .requestPermission()
         .then((permissionState: string) => {
-          if (permissionState === 'granted') {
+          if (permissionState === "granted") {
             window.addEventListener("deviceorientation", handleOrientation);
           }
         })
@@ -399,10 +401,10 @@ export function MapView({
         if (pos.coords.heading != null && !deviceHeading) {
           setDeviceHeading(pos.coords.heading);
         }
-        
+
         setCurrentLocation(coords);
         setFocusCoords([coords.lat, coords.lng]);
-        
+
         if (!toastFiredRef.current) {
           toast.success(`Tracking location (±${Math.round(coords.accuracy)}m)`);
           toastFiredRef.current = true;
@@ -412,7 +414,7 @@ export function MapView({
         setLocationPermissionDenied(true);
         toast.error(`Location access denied: ${err.message}`);
       },
-      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 },
     );
   }, [deviceHeading]);
 
@@ -426,7 +428,11 @@ export function MapView({
 
   const handlePlusTap = () => {
     if (currentLocation) {
-      setPinDraftCoords({ lat: currentLocation.lat, lng: currentLocation.lng, accuracy: currentLocation.accuracy });
+      setPinDraftCoords({
+        lat: currentLocation.lat,
+        lng: currentLocation.lng,
+        accuracy: currentLocation.accuracy,
+      });
     } else {
       setPinDraftCoords({ lat: initialCenter[0], lng: initialCenter[1] });
     }
@@ -537,8 +543,8 @@ export function MapView({
                 {selectedPinTypes.length === 0
                   ? "All Pins"
                   : selectedPinTypes.length === 1
-                  ? getPinTypeConfig(selectedPinTypes[0]).label
-                  : `${selectedPinTypes.length} types selected`}
+                    ? getPinTypeConfig(selectedPinTypes[0]).label
+                    : `${selectedPinTypes.length} types selected`}
               </span>
             </div>
             <ChevronDown className="size-3.5 text-muted-foreground" />
@@ -555,30 +561,44 @@ export function MapView({
 
         {/* ALL DATA Summary Card */}
         <div className="card-surface ios-glass p-3 rounded-2xl border border-white/40 shadow-sm backdrop-blur-xl bg-background/80 text-center space-y-1.5">
-          <span className="text-[9.5px] font-bold uppercase tracking-widest text-muted-foreground">ALL DATA</span>
+          <span className="text-[9.5px] font-bold uppercase tracking-widest text-muted-foreground">
+            ALL DATA
+          </span>
           <div className="grid grid-cols-6 gap-1 divide-x divide-border/40">
             <div className="px-1">
-              <p className="font-display font-bold text-xs text-foreground font-mono">{categoryCounts["house"] ?? 0}</p>
+              <p className="font-display font-bold text-xs text-foreground font-mono">
+                {categoryCounts["house"] ?? 0}
+              </p>
               <p className="text-[9px] text-muted-foreground">Houses</p>
             </div>
             <div className="px-1">
-              <p className="font-display font-bold text-xs text-foreground font-mono">{categoryCounts["shop"] ?? 0}</p>
+              <p className="font-display font-bold text-xs text-foreground font-mono">
+                {categoryCounts["shop"] ?? 0}
+              </p>
               <p className="text-[9px] text-muted-foreground">Shops</p>
             </div>
             <div className="px-1">
-              <p className="font-display font-bold text-xs text-foreground font-mono">{categoryCounts["locked_house"] ?? 0}</p>
+              <p className="font-display font-bold text-xs text-foreground font-mono">
+                {categoryCounts["locked_house"] ?? 0}
+              </p>
               <p className="text-[9px] text-muted-foreground">Locked</p>
             </div>
             <div className="px-1">
-              <p className="font-display font-bold text-xs text-foreground font-mono">{categoryCounts["refused"] ?? 0}</p>
+              <p className="font-display font-bold text-xs text-foreground font-mono">
+                {categoryCounts["refused"] ?? 0}
+              </p>
               <p className="text-[9px] text-muted-foreground">Refused</p>
             </div>
             <div className="px-1">
-              <p className="font-display font-bold text-xs text-foreground font-mono">{(categoryCounts["empty_land"] ?? 0) + (categoryCounts["park"] ?? 0)}</p>
+              <p className="font-display font-bold text-xs text-foreground font-mono">
+                {(categoryCounts["empty_land"] ?? 0) + (categoryCounts["park"] ?? 0)}
+              </p>
               <p className="text-[9px] text-muted-foreground">Land</p>
             </div>
             <div className="px-1">
-              <p className="font-display font-bold text-xs text-primary font-mono">{houses.length}</p>
+              <p className="font-display font-bold text-xs text-primary font-mono">
+                {houses.length}
+              </p>
               <p className="text-[9px] font-bold text-primary">Total</p>
             </div>
           </div>
@@ -648,7 +668,8 @@ export function MapView({
             disableClusteringAtZoom={20}
           >
             {filteredHouses.map((h) => {
-              if (!h.hasLocation || h.house.latitude == null || h.house.longitude == null) return null;
+              if (!h.hasLocation || h.house.latitude == null || h.house.longitude == null)
+                return null;
               const lat = h.house.latitude;
               const lng = h.house.longitude;
               const pinType = h.house.pin_type || "house";
@@ -675,8 +696,6 @@ export function MapView({
 
       {/* 3. FLOATING ACTION BUTTONS (Bottom Right) */}
       <div className="absolute bottom-5 right-4 z-20 flex flex-col gap-2.5 pointer-events-auto">
-
-
         {/* Crosshair / Locate Me Button */}
         <button
           type="button"
@@ -702,7 +721,9 @@ export function MapView({
           <div className="px-5 pb-8 pt-2 space-y-4 max-h-[75vh] overflow-y-auto">
             <div className="mx-auto w-12 h-1.5 bg-muted-foreground/30 rounded-full mb-1" />
             <DrawerHeader className="text-left px-0 pb-1">
-              <DrawerTitle className="font-display text-lg font-bold">Filter Map by Category</DrawerTitle>
+              <DrawerTitle className="font-display text-lg font-bold">
+                Filter Map by Category
+              </DrawerTitle>
               <DrawerDescription className="text-xs">
                 Select a category to isolate pins on the survey map.
               </DrawerDescription>
@@ -719,7 +740,7 @@ export function MapView({
                 "w-full p-3 rounded-2xl border flex items-center justify-between text-xs font-semibold transition-all",
                 selectedPinTypes.length === 0
                   ? "bg-primary/10 border-primary text-primary shadow-xs"
-                  : "bg-surface text-foreground border-border/70 hover:bg-surface-muted"
+                  : "bg-surface text-foreground border-border/70 hover:bg-surface-muted",
               )}
             >
               <div className="flex items-center gap-2.5">
@@ -741,7 +762,7 @@ export function MapView({
                     type="button"
                     onClick={() => {
                       if (isSelected) {
-                        setSelectedPinTypes(selectedPinTypes.filter(t => t !== cat.id));
+                        setSelectedPinTypes(selectedPinTypes.filter((t) => t !== cat.id));
                       } else {
                         setSelectedPinTypes([...selectedPinTypes, cat.id]);
                       }
@@ -750,7 +771,7 @@ export function MapView({
                       "p-3 rounded-2xl border flex items-center justify-between text-xs transition-all",
                       isSelected
                         ? "bg-primary/10 border-primary text-primary font-bold shadow-xs"
-                        : "bg-surface text-foreground border-border/70 hover:bg-surface-muted font-medium"
+                        : "bg-surface text-foreground border-border/70 hover:bg-surface-muted font-medium",
                     )}
                   >
                     <div className="flex items-center gap-2 truncate">
@@ -760,29 +781,31 @@ export function MapView({
                       />
                       <span className="truncate">{cat.label}</span>
                     </div>
-                    <span className="font-mono text-[11px] text-muted-foreground ml-1">{count}</span>
+                    <span className="font-mono text-[11px] text-muted-foreground ml-1">
+                      {count}
+                    </span>
                   </button>
                 );
               })}
             </div>
-            
+
             <div className="flex items-center gap-3 pt-4 border-t border-border/40 mt-4">
-               <button
-                  type="button"
-                  onClick={() => {
-                    setSelectedPinTypes([]);
-                  }}
-                  className="px-4 py-3 rounded-2xl border border-border/60 font-semibold text-xs text-foreground bg-surface hover:bg-surface-muted transition-colors flex-1"
-               >
-                 Clear All
-               </button>
-               <button
-                  type="button"
-                  onClick={() => setAllPinsFilterOpen(false)}
-                  className="px-4 py-3 rounded-2xl bg-primary text-primary-foreground font-semibold text-xs shadow-md transition-colors flex-1"
-               >
-                 Apply Filters
-               </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedPinTypes([]);
+                }}
+                className="px-4 py-3 rounded-2xl border border-border/60 font-semibold text-xs text-foreground bg-surface hover:bg-surface-muted transition-colors flex-1"
+              >
+                Clear All
+              </button>
+              <button
+                type="button"
+                onClick={() => setAllPinsFilterOpen(false)}
+                className="px-4 py-3 rounded-2xl bg-primary text-primary-foreground font-semibold text-xs shadow-md transition-colors flex-1"
+              >
+                Apply Filters
+              </button>
             </div>
           </div>
         </DrawerContent>
@@ -794,7 +817,9 @@ export function MapView({
           <div className="px-5 pb-8 pt-2 space-y-4 max-h-[80vh] overflow-y-auto">
             <div className="mx-auto w-12 h-1.5 bg-muted-foreground/30 rounded-full mb-1" />
             <DrawerHeader className="text-left px-0 pb-1">
-              <DrawerTitle className="font-display text-lg font-bold">Select Existing House ID</DrawerTitle>
+              <DrawerTitle className="font-display text-lg font-bold">
+                Select Existing House ID
+              </DrawerTitle>
               <DrawerDescription className="text-xs">
                 Link this pin location to an existing unmapped or existing house record.
               </DrawerDescription>
@@ -864,7 +889,10 @@ export function MapView({
       />
 
       {/* 8. REUSABLE BOTTOM SHEETS FOR PINS */}
-      {activeHouse && ["house", "locked_house", "refused"].includes(activeHouse.house.pin_type?.toLowerCase() || "house") ? (
+      {activeHouse &&
+      ["house", "locked_house", "refused"].includes(
+        activeHouse.house.pin_type?.toLowerCase() || "house",
+      ) ? (
         <HouseDetailSheet
           house={activeHouse}
           open={Boolean(activeHouse)}

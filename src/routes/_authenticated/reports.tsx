@@ -133,18 +133,25 @@ function ReportsPage() {
 
   const [rollbackFile, setRollbackFile] = useState("");
   const { can } = useAuth();
-  
+
   const handleRollback = async () => {
     if (!rollbackFile) return;
-    if (!confirm(`Are you sure you want to delete all records where the ONLY source is '${rollbackFile}'? This cannot be undone.`)) return;
-    
+    if (
+      !confirm(
+        `Are you sure you want to delete all records where the ONLY source is '${rollbackFile}'? This cannot be undone.`,
+      )
+    )
+      return;
+
     setBusy(true);
     try {
       // dynamically import to avoid breaking non-admin bundles if possible, or just import it at top
       const { deleteImportBatch } = await import("@/services/importBackendService");
       // Note: backend expects batchId, passing filename here will fail if backend expects UUID, but fixing TS error for now
       const result = await deleteImportBatch({ data: { batchId: rollbackFile } as any });
-      toast.success(`Rollback complete: ${result.housesDeleted} houses and ${result.membersDeleted} members deleted.`);
+      toast.success(
+        `Rollback complete: ${result.housesDeleted} houses and ${result.membersDeleted} members deleted.`,
+      );
       setRollbackFile("");
       await refetch();
     } catch (e) {
@@ -211,25 +218,33 @@ function ReportsPage() {
       {can("manage_users") && (
         <div className="card-surface p-5 border border-destructive/20">
           <div className="flex items-center gap-2 mb-2">
-            <p className="font-display text-base font-semibold text-destructive">Safe Data Deletion (Rollback)</p>
-            <span className="text-[10px] uppercase font-bold text-destructive bg-destructive/10 px-2 py-0.5 rounded-md">Admin Only</span>
+            <p className="font-display text-base font-semibold text-destructive">
+              Safe Data Deletion (Rollback)
+            </p>
+            <span className="text-[10px] uppercase font-bold text-destructive bg-destructive/10 px-2 py-0.5 rounded-md">
+              Admin Only
+            </span>
           </div>
           <p className="text-xs text-muted-foreground mb-4 max-w-2xl">
-            If an imported CSV had severe mapping errors, you can enter the exact original filename below to delete all records that were created *exclusively* from that file. Records merged with existing data will not be deleted, but the file reference will be removed.
+            If an imported CSV had severe mapping errors, you can enter the exact original filename
+            below to delete all records that were created *exclusively* from that file. Records
+            merged with existing data will not be deleted, but the file reference will be removed.
           </p>
           <div className="flex gap-3 items-end max-w-md">
             <div className="flex-1 space-y-2">
-              <label className="text-xs font-semibold text-foreground">Original Import Filename</label>
-              <input 
-                type="text" 
+              <label className="text-xs font-semibold text-foreground">
+                Original Import Filename
+              </label>
+              <input
+                type="text"
                 placeholder="e.g. ward_3_data.csv"
                 className="w-full h-10 px-3 rounded-lg border border-border bg-background text-sm"
                 value={rollbackFile}
                 onChange={(e) => setRollbackFile(e.target.value)}
               />
             </div>
-            <Button 
-              variant="destructive" 
+            <Button
+              variant="destructive"
               className="h-10 px-6 rounded-lg font-semibold"
               onClick={handleRollback}
               disabled={busy || !rollbackFile}

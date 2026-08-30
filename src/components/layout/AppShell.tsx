@@ -34,7 +34,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   React.useEffect(() => {
     useSettings.getState().loadSettings();
   }, []);
-  
+
   const { user, role, can, signOut } = useAuth();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const router = useRouter();
@@ -62,8 +62,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   } else {
     tabs.push({ to: "/users" }, { to: "/map" }, { to: "/analytics" });
   }
-  const tabPaths = tabs.map(t => t.to);
-  const moreItems = visible.filter((item) => !tabPaths.includes(item.to) || (item.to === "/assessments" && role === "survey_user"));
+  const tabPaths = tabs.map((t) => t.to);
+  const moreItems = visible.filter(
+    (item) => !tabPaths.includes(item.to) || (item.to === "/assessments" && role === "survey_user"),
+  );
 
   return (
     <div className="min-h-screen bg-background">
@@ -91,7 +93,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
           <nav className="mt-6 flex flex-1 flex-col gap-1 overflow-y-auto pr-1">
             {visible.map((item) => {
-              const active = pathname === item.to || (item.to !== "/dashboard" && pathname.startsWith(item.to));
+              const active =
+                pathname === item.to || (item.to !== "/dashboard" && pathname.startsWith(item.to));
               return (
                 <Link
                   key={item.to}
@@ -107,10 +110,20 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     />
                   )}
                   <item.icon
-                    className={cn("size-4.5 z-10 transition-colors", active ? "text-primary" : "text-muted-foreground group-hover:text-foreground")}
+                    className={cn(
+                      "size-4.5 z-10 transition-colors",
+                      active ? "text-primary" : "text-muted-foreground group-hover:text-foreground",
+                    )}
                     strokeWidth={active ? 2.3 : 1.9}
                   />
-                  <span className={cn("z-10 transition-colors", active ? "text-primary font-semibold" : "text-muted-foreground group-hover:text-foreground")}>
+                  <span
+                    className={cn(
+                      "z-10 transition-colors",
+                      active
+                        ? "text-primary font-semibold"
+                        : "text-muted-foreground group-hover:text-foreground",
+                    )}
+                  >
                     {item.label}
                   </span>
                 </Link>
@@ -140,8 +153,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <header className="sticky top-0 z-30 border-b border-border ios-glass-panel lg:hidden">
             <div className="flex items-center justify-between px-4 py-3 safe-top">
               <div>
-                <p className="font-display text-base font-bold text-foreground">{appConfig.shortName}</p>
-                <p className="text-[11px] text-muted-foreground">{role ? roleLabels[role] : "No role"}</p>
+                <p className="font-display text-base font-bold text-foreground">
+                  {appConfig.shortName}
+                </p>
+                <p className="text-[11px] text-muted-foreground">
+                  {role ? roleLabels[role] : "No role"}
+                </p>
               </div>
               <div className="flex items-center gap-2">
                 {role === "survey_user" && (
@@ -190,7 +207,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   if (role === "survey_user") {
                     mobileTabs.push({ to: "/map", label: "Map", icon: Map });
                     mobileTabs.push({ to: "/followups", label: "Tasks", icon: CalendarCheck });
-                    mobileTabs.push({ to: "/assessments", label: "Health", icon: Activity }); 
+                    mobileTabs.push({ to: "/assessments", label: "Health", icon: Activity });
                   } else if (role === "supervisor") {
                     mobileTabs.push({ to: "/team", label: "Team", icon: Users });
                     mobileTabs.push({ to: "/map", label: "Map", icon: Map });
@@ -204,7 +221,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   return (
                     <>
                       {mobileTabs.map((tab, idx) => {
-                        const active = pathname.startsWith(tab.to) && (tab.to !== "/houses" || pathname !== "/survey/new");
+                        const active =
+                          pathname.startsWith(tab.to) &&
+                          (tab.to !== "/houses" || pathname !== "/survey/new");
                         return (
                           <Link
                             key={tab.to}
@@ -224,10 +243,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                               className="relative z-10 flex flex-col items-center gap-0.5"
                             >
                               <tab.icon
-                                className={cn("size-5 transition-colors duration-300", active ? "text-primary" : "text-muted-foreground")}
+                                className={cn(
+                                  "size-5 transition-colors duration-300",
+                                  active ? "text-primary" : "text-muted-foreground",
+                                )}
                                 strokeWidth={active ? 2.5 : 1.8}
                               />
-                              <span className={cn("text-[9px] font-semibold transition-colors duration-300", active ? "text-primary" : "text-muted-foreground")}>
+                              <span
+                                className={cn(
+                                  "text-[9px] font-semibold transition-colors duration-300",
+                                  active ? "text-primary" : "text-muted-foreground",
+                                )}
+                              >
                                 {tab.label}
                               </span>
                             </motion.div>
@@ -243,12 +270,23 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   onClick={() => setMoreDrawerOpen(true)}
                   className="relative flex flex-col items-center justify-center w-14 h-12 outline-none tap-highlight-transparent"
                 >
-                  <motion.div whileTap={{ scale: 0.85 }} className="relative z-10 flex flex-col items-center gap-0.5">
+                  <motion.div
+                    whileTap={{ scale: 0.85 }}
+                    className="relative z-10 flex flex-col items-center gap-0.5"
+                  >
                     <MoreHorizontal
-                      className={cn("size-5 transition-colors duration-300", moreDrawerOpen ? "text-primary" : "text-muted-foreground")}
+                      className={cn(
+                        "size-5 transition-colors duration-300",
+                        moreDrawerOpen ? "text-primary" : "text-muted-foreground",
+                      )}
                       strokeWidth={moreDrawerOpen ? 2.5 : 1.8}
                     />
-                    <span className={cn("text-[9px] font-semibold transition-colors duration-300", moreDrawerOpen ? "text-primary" : "text-muted-foreground")}>
+                    <span
+                      className={cn(
+                        "text-[9px] font-semibold transition-colors duration-300",
+                        moreDrawerOpen ? "text-primary" : "text-muted-foreground",
+                      )}
+                    >
                       More
                     </span>
                   </motion.div>
@@ -280,10 +318,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     "p-4 rounded-[20px] border flex flex-col gap-3 transition-all outline-none",
                     pathname.startsWith(item.to)
                       ? "bg-primary/10 border-primary/30 text-primary"
-                      : "bg-surface/60 text-foreground border-border/50 active:bg-surface-muted"
+                      : "bg-surface/60 text-foreground border-border/50 active:bg-surface-muted",
                   )}
                 >
-                  <div className={cn("size-10 rounded-2xl flex items-center justify-center shrink-0", pathname.startsWith(item.to) ? "bg-primary text-primary-foreground shadow-md" : "bg-surface-muted text-muted-foreground")}>
+                  <div
+                    className={cn(
+                      "size-10 rounded-2xl flex items-center justify-center shrink-0",
+                      pathname.startsWith(item.to)
+                        ? "bg-primary text-primary-foreground shadow-md"
+                        : "bg-surface-muted text-muted-foreground",
+                    )}
+                  >
                     <item.icon className="size-5" strokeWidth={2} />
                   </div>
                   <span className="text-sm font-semibold truncate">{item.label}</span>

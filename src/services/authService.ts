@@ -65,21 +65,21 @@ export async function autoSignInQA() {
   if (!import.meta.env.DEV) return;
   const qaRole = localStorage.getItem("QA_ROLE") || (import.meta.env as any).VITE_QA_ROLE;
   if (!qaRole) return;
-  
+
   const { data } = await supabase.auth.getSession();
   if (data.session) return;
 
   const qaUsers: Record<string, string> = {
     admin: (import.meta.env as any).VITE_QA_ADMIN_USER || "admin-placeholder",
     supervisor: (import.meta.env as any).VITE_QA_SUP_USER || "sup-placeholder",
-    chw: (import.meta.env as any).VITE_QA_CHW_USER || "chw-placeholder"
+    chw: (import.meta.env as any).VITE_QA_CHW_USER || "chw-placeholder",
   };
   const targetUser = qaUsers[qaRole.toLowerCase()];
   if (targetUser) {
     try {
       await signInWithPin(targetUser, (import.meta.env as any).VITE_QA_PASSWORD || "000000");
       console.log(`[QA] Automatically signed in as ${targetUser}`);
-    } catch(e) {
+    } catch (e) {
       console.error("[QA] Auto sign-in failed", e);
     }
   }

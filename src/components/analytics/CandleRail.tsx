@@ -27,17 +27,21 @@ export function CandleRail({
     <div
       className={cn(
         "bg-surface rounded-2xl border border-border/70 shadow-xs p-4 flex flex-col justify-between min-h-[220px] transition-all",
-        className
+        className,
       )}
     >
       {/* Card Header */}
       <div className="flex items-center justify-between gap-2 mb-2">
         <div className="flex items-center gap-1.5 min-w-0">
           <h3 className="font-display text-[13px] font-bold tracking-wider uppercase text-foreground truncate">
-            {title} {unit && <span className="text-muted-foreground font-medium lowercase">({unit})</span>}
+            {title}{" "}
+            {unit && <span className="text-muted-foreground font-medium lowercase">({unit})</span>}
           </h3>
           {infoTooltip && (
-            <span title={infoTooltip} className="text-muted-foreground/60 hover:text-muted-foreground transition-colors cursor-help">
+            <span
+              title={infoTooltip}
+              className="text-muted-foreground/60 hover:text-muted-foreground transition-colors cursor-help"
+            >
               <Info className="size-3.5" />
             </span>
           )}

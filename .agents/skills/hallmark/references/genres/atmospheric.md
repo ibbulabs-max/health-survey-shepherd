@@ -4,7 +4,7 @@ For the AI-creative product page. Dark canvas with warm radial blooms, confident
 
 ## When to pick it
 
-Brief mentions any of: *AI tool, generative, music, video, image, voice, late-night, atmospheric, dark mode, expressive, creative tool, model playground, vibe-coded, dreamlike, nocturnal*. Also pick when the user names a *mood* that requires darkness (e.g. "moody", "cinematic", "after hours").
+Brief mentions any of: _AI tool, generative, music, video, image, voice, late-night, atmospheric, dark mode, expressive, creative tool, model playground, vibe-coded, dreamlike, nocturnal_. Also pick when the user names a _mood_ that requires darkness (e.g. "moody", "cinematic", "after hours").
 
 ## Themes that belong
 
@@ -17,7 +17,7 @@ Brief mentions any of: *AI tool, generative, music, video, image, voice, late-ni
 - **Accent** — single warm hue (orange / amber / red / pink). Used in radial-gradient blooms on the canvas, on focus rings, on small tags. Never on display text (that's gate 5 universal — gradient text stays banned).
 - **Layout** — centred or near-centred heroes. The canvas itself is the design; the type sits on top of an atmospheric ground.
 - **Motion** — fade-in only. No slide, no bounce. The atmosphere does the work.
-- **Copy tone** — direct, slightly poetic, specific. *"Make a house song about quitting your job."* is the calibration.
+- **Copy tone** — direct, slightly poetic, specific. _"Make a house song about quitting your job."_ is the calibration.
 
 ## What this genre allows
 
@@ -33,16 +33,16 @@ Brief mentions any of: *AI tool, generative, music, video, image, voice, late-ni
 - **Italic serif body** — atmospheric stays sans top-to-bottom.
 - **Hairlines** — atmospheric uses elevated cards (`paper-2`, `paper-3`) instead of hairline-on-paper.
 - **Multiple accent hues** — one warm bloom + one secondary (pink/red) is the maximum. No teal-and-amber juggling.
-- **Glassmorphism** — banned. Atmospheric is *atmospheric*, not glass.
+- **Glassmorphism** — banned. Atmospheric is _atmospheric_, not glass.
 - **Gradient text** — gate 5 universal. Stays banned.
 
 ## Voice fixtures
 
-- *"Built for the dark."*
-- *"The page should feel like a place you could sit in."*
-- *"A canvas, then a tool."*
-- *"Generate, refine, ship — between Tuesday and Wednesday."*
-- *"The instrument is dark. The output is yours."*
+- _"Built for the dark."_
+- _"The page should feel like a place you could sit in."_
+- _"A canvas, then a tool."_
+- _"Generate, refine, ship — between Tuesday and Wednesday."_
+- _"The instrument is dark. The output is yours."_
 
 ## Nav and footer voice
 

@@ -45,7 +45,7 @@ export const Route = createFileRoute("/_authenticated/users")({
 function UsersPage() {
   const { can, user } = useAuth();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  
+
   // New User Form State
   const [newUserId, setNewUserId] = useState("");
   const [newFullName, setNewFullName] = useState("");
@@ -72,8 +72,10 @@ function UsersPage() {
           pin: "123456", // Default pin per requirements (user_metadata must_change_pin=true)
           fullName: newFullName,
           role: newRole,
-          ...(newRole === "survey_user" && newSupervisorId ? { supervisorId: newSupervisorId } : {}),
-        }
+          ...(newRole === "survey_user" && newSupervisorId
+            ? { supervisorId: newSupervisorId }
+            : {}),
+        },
       });
     },
     onSuccess: () => {
@@ -87,15 +89,26 @@ function UsersPage() {
     },
     onError: (e) => {
       toast.error(e instanceof Error ? e.message : "Failed to create user.");
-    }
+    },
   });
 
   if (!can("manage_users")) {
-    return <EmptyState title="Restricted" description="Only administrators can view the team directory." />;
+    return (
+      <EmptyState
+        title="Restricted"
+        description="Only administrators can view the team directory."
+      />
+    );
   }
-  
+
   if (query.isLoading) return <LoadingState label="Loading team…" />;
-  if (query.error) return <ErrorState message={query.error instanceof Error ? query.error.message : "Unknown error"} onRetry={() => void query.refetch()} />;
+  if (query.error)
+    return (
+      <ErrorState
+        message={query.error instanceof Error ? query.error.message : "Unknown error"}
+        onRetry={() => void query.refetch()}
+      />
+    );
 
   const supervisors = (query.data ?? []).filter((u) => u.roles.includes("supervisor"));
 
@@ -176,10 +189,17 @@ function UsersPage() {
               )}
             </div>
             <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setIsDialogOpen(false)} disabled={createUserMutation.isPending}>
+              <Button
+                variant="outline"
+                onClick={() => setIsDialogOpen(false)}
+                disabled={createUserMutation.isPending}
+              >
                 Cancel
               </Button>
-              <Button onClick={() => createUserMutation.mutate()} disabled={createUserMutation.isPending}>
+              <Button
+                onClick={() => createUserMutation.mutate()}
+                disabled={createUserMutation.isPending}
+              >
                 {createUserMutation.isPending ? "Creating..." : "Create User"}
               </Button>
             </div>
@@ -192,7 +212,10 @@ function UsersPage() {
       ) : (
         <div className="grid gap-2">
           {(query.data ?? []).map(({ profile, roles }) => (
-            <div key={profile.id} className="card-surface flex items-center justify-between gap-3 p-4">
+            <div
+              key={profile.id}
+              className="card-surface flex items-center justify-between gap-3 p-4"
+            >
               <div className="min-w-0">
                 <p className="truncate font-medium">{profile.full_name ?? profile.username}</p>
                 <p className="truncate text-xs text-muted-foreground">

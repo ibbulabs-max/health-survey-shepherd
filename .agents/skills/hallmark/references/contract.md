@@ -14,7 +14,7 @@ When producing new work:
 
 ## Scope and limits
 
-Hallmark is a *taste* skill. It will not:
+Hallmark is a _taste_ skill. It will not:
 
 - Invent product copy. If the user hasn't given you the words, ask.
 - Pick a brand identity. It will follow one you give it.

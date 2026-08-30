@@ -17,11 +17,11 @@ export interface CreateHouseMemberInput {
 
 export interface CreateHouseInput {
   block: string; // e.g. "B1"
-  lane: string;  // e.g. "L1"
+  lane: string; // e.g. "L1"
   serialNo: string; // e.g. "001"
   housingType: "Pakka" | "Semi-Pakka" | "Kachcha" | string; // e.g. "Pakka" -> "P"
   houseId: string; // e.g. "B1-L1-001-P"
-  
+
   // Location & Pin
   latitude?: number | null;
   longitude?: number | null;
@@ -31,16 +31,16 @@ export interface CreateHouseInput {
   locationSource?: string | null;
   pinType?: string; // e.g. "house", "shop", "school"
   customType?: string | null;
-  
+
   // Availability
   availability: "AVAILABLE" | "NOT_AVAILABLE";
   unavailableReason?: string | null;
-  
+
   // Household Details
   monthlyIncome?: number | null;
   earningMembers?: number | null;
   totalMembers?: number | null;
-  
+
   // Members
   members: CreateHouseMemberInput[];
 }
@@ -70,7 +70,7 @@ export function buildCanonicalHouseId(
   block: string,
   lane: string,
   serialNo: string,
-  housingType: string
+  housingType: string,
 ): string {
   const b = block.trim().toUpperCase();
   const l = lane.trim().toUpperCase();
@@ -82,7 +82,11 @@ export function buildCanonicalHouseId(
 /**
  * Calculates next available 3-digit serial number for a given Block + Lane.
  */
-export function calculateNextSerial(existingHouseIds: string[], block: string, lane: string): string {
+export function calculateNextSerial(
+  existingHouseIds: string[],
+  block: string,
+  lane: string,
+): string {
   const b = block.trim().toUpperCase();
   const l = lane.trim().toUpperCase();
   const prefix = `${b}-${l}-`;
@@ -211,7 +215,7 @@ export async function createHouseWithDetails(input: CreateHouseInput) {
   if (sessionUser?.role !== "survey_user") {
     throw new Error("Unauthorized: Only CHW (Survey Users) can create new surveys.");
   }
-  
+
   if (!userId) {
     throw new Error("You must be logged in to create a house.");
   }
@@ -253,7 +257,7 @@ const createHouseInputSchema = z.object({
   earningMembers: z.number().nullable().optional(),
   totalMembers: z.number().nullable().optional(),
   members: z.array(createHouseMemberSchema),
-  userId: z.string()
+  userId: z.string(),
 });
 
 export const commitCreateHouse = createServerFn({ method: "POST" })
@@ -281,7 +285,9 @@ export const commitCreateHouse = createServerFn({ method: "POST" })
       .maybeSingle();
 
     if (existingHouse) {
-      return { error: `House ID "${input.houseId}" already exists. Please choose a different serial number.` };
+      return {
+        error: `House ID "${input.houseId}" already exists. Please choose a different serial number.`,
+      };
     }
 
     const hasLocation = input.latitude != null && input.longitude != null;
@@ -292,7 +298,8 @@ export const commitCreateHouse = createServerFn({ method: "POST" })
       house_number: input.serialNo,
       address: input.address ?? input.locationName ?? null,
       owner_name: input.members[0]?.name ?? null,
-      status: input.availability === "AVAILABLE" ? "active" : (input.unavailableReason || "unavailable"),
+      status:
+        input.availability === "AVAILABLE" ? "active" : input.unavailableReason || "unavailable",
       latitude: input.latitude ?? null,
       longitude: input.longitude ?? null,
       accuracy: input.accuracy ?? null,
@@ -517,7 +524,12 @@ export async function createStandalonePin(input: {
     .single();
 
   if (error) throw error;
-  await logActivity("pin.created", { id: data.id, pin_type: input.pinType, lat: input.latitude, lng: input.longitude });
+  await logActivity("pin.created", {
+    id: data.id,
+    pin_type: input.pinType,
+    lat: input.latitude,
+    lng: input.longitude,
+  });
   return data;
 }
 
@@ -567,7 +579,12 @@ export async function linkExistingHouseLocation(input: {
     .single();
 
   if (error) throw error;
-  await logActivity("house.location_linked", { house_uuid: input.houseUuid, pin_type: input.pinType, lat: input.latitude, lng: input.longitude });
+  await logActivity("house.location_linked", {
+    house_uuid: input.houseUuid,
+    pin_type: input.pinType,
+    lat: input.latitude,
+    lng: input.longitude,
+  });
   return data;
 }
 
@@ -579,12 +596,12 @@ export async function transferHouse(houseUuid: string, newUserId: string | null)
   if (sessionUser?.role !== "admin" && sessionUser?.role !== "supervisor") {
     throw new Error("Unauthorized: Only Admins or Supervisors can transfer houses.");
   }
-  
+
   const { error } = await supabase
     .from(tables.houses)
     .update({ mapped_by: newUserId, updated_at: new Date().toISOString() })
     .eq("id", houseUuid);
-    
+
   if (error) throw error;
   await logActivity("house.transferred", { house_uuid: houseUuid, new_user_id: newUserId });
 }
@@ -597,12 +614,12 @@ export async function bulkTransferHouses(houseUuids: string[], newUserId: string
   if (sessionUser?.role !== "admin" && sessionUser?.role !== "supervisor") {
     throw new Error("Unauthorized: Only Admins or Supervisors can transfer houses.");
   }
-  
+
   const { error } = await supabase
     .from(tables.houses)
     .update({ mapped_by: newUserId, updated_at: new Date().toISOString() })
     .in("id", houseUuids);
-    
+
   if (error) throw error;
   await logActivity("house.bulk_transferred", { house_uuids: houseUuids, new_user_id: newUserId });
 }
@@ -615,13 +632,10 @@ export async function deleteHouse(houseUuid: string) {
   if (sessionUser?.role !== "admin") {
     throw new Error("Unauthorized: Only Admins can delete houses.");
   }
-  
+
   // Note: relies on ON DELETE CASCADE in Supabase schema for related records (members, assessments).
-  const { error } = await supabase
-    .from(tables.houses)
-    .delete()
-    .eq("id", houseUuid);
-    
+  const { error } = await supabase.from(tables.houses).delete().eq("id", houseUuid);
+
   if (error) throw error;
   await logActivity("house.deleted", { house_uuid: houseUuid });
 }
@@ -634,12 +648,9 @@ export async function bulkDeleteHouses(houseUuids: string[]) {
   if (sessionUser?.role !== "admin") {
     throw new Error("Unauthorized: Only Admins can delete houses.");
   }
-  
-  const { error } = await supabase
-    .from(tables.houses)
-    .delete()
-    .in("id", houseUuids);
-    
+
+  const { error } = await supabase.from(tables.houses).delete().in("id", houseUuids);
+
   if (error) throw error;
   await logActivity("house.bulk_deleted", { house_uuids: houseUuids });
 }

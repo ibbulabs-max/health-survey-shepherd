@@ -7,34 +7,68 @@ import { PageHeader } from "@/components/common/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { appConfig } from "@/config/app";
 import { followUpConfig } from "@/config/followups";
 import { riskConfig, type RiskLevel } from "@/config/risk";
 import { roleLabels } from "@/config/roles";
 import { useAuth } from "@/hooks/useAuth";
-import { useSettings } from "@/hooks/useSettings";
 import { PIN_LENGTH } from "@/services/authService";
-import { fetchHolidays, createHoliday, deleteHoliday, type Holiday } from "@/services/holidayService";
+import {
+  fetchHolidays,
+  createHoliday,
+  deleteHoliday,
+  type Holiday,
+} from "@/services/holidayService";
 
 export const Route = createFileRoute("/_authenticated/settings")({
   ssr: false,
   head: () => ({
-    meta: [
-      { title: "Settings — Management App by Ibrahim Labs" },
-    ],
+    meta: [{ title: "Settings — Management App by Ibrahim Labs" }],
   }),
   component: SettingsPage,
 });
 
 function SettingsPage() {
   const { user, role, isAdmin, changePin, signOut } = useAuth();
-  const { followUpIntervals, updateInterval } = useSettings();
   const [pin, setPin] = useState("");
   const [busy, setBusy] = useState(false);
 
-  const [intervals, setIntervals] = useState(followUpIntervals);
-  
+  const [thresholds, setThresholds] = useState<any | null>(null);
+
+  // Load DB-backed thresholds for Admin UI
+  useEffect(() => {
+    (async () => {
+      try {
+        const { getHealthThresholds } = await import("@/services/settingsServerFns");
+        const resp = await getHealthThresholds({ data: { userId: user?.userId, role } });
+        if (resp?.settings) setThresholds(resp.settings);
+      } catch (e) {
+        console.warn("Could not load health thresholds:", e);
+      }
+    })();
+  }, []);
+
   const canManageHolidays = role === "admin" || role === "supervisor";
+
+  const vitals = thresholds?.vitals_config ?? {
+    bloodPressure: true,
+    bloodSugar: true,
+    weight: true,
+    height: true,
+    bmi: true,
+    pulse: true,
+    spo2: true,
+    temperature: true,
+  };
+
+  const setVital = (key: string, val: boolean) => {
+    if (!thresholds) return;
+    setThresholds({
+      ...thresholds,
+      vitals_config: { ...vitals, [key]: val },
+    });
+  };
 
   const submitPin = async () => {
     setBusy(true);
@@ -47,13 +81,6 @@ function SettingsPage() {
     } finally {
       setBusy(false);
     }
-  };
-
-  const submitIntervals = () => {
-    updateInterval("high", intervals.high);
-    updateInterval("moderate", intervals.moderate);
-    updateInterval("low", intervals.low);
-    toast.success("Follow-up rules updated globally.");
   };
 
   return (
@@ -121,65 +148,441 @@ function SettingsPage() {
             <p className="text-xs text-muted-foreground mb-4">
               Defined centrally in configuration and applied everywhere in the app.
             </p>
-            
-            <div className="space-y-4 mb-6">
-              <h3 className="text-sm font-semibold text-foreground">Clinical Thresholds</h3>
-              <dl className="space-y-2 text-sm bg-surface-muted p-3 rounded-xl border border-border/50">
-                <Row label="High BP" value={`≥ ${riskConfig.bp.high.systolic}/${riskConfig.bp.high.diastolic} mmHg`} />
-                <Row label="Raised BP" value={`≥ ${riskConfig.bp.moderate.systolic}/${riskConfig.bp.moderate.diastolic} mmHg`} />
-                <Row label="High sugar" value={`≥ ${riskConfig.sugar.high} mg/dL`} />
-                <Row label="Raised sugar" value={`≥ ${riskConfig.sugar.moderate} mg/dL`} />
-              </dl>
+
+            <div className="space-y-4 mb-4">
+              <h3 className="text-sm font-semibold text-foreground">
+                Vitals & Clinical Measurements
+              </h3>
+              {thresholds ? (
+                <div className="grid gap-4">
+                  <div className="grid grid-cols-[1fr_120px] items-center gap-3 bg-surface-muted p-3 rounded-xl border border-border/50">
+                    <Label className="text-sm font-semibold">Minimum eligible age</Label>
+                    <Input
+                      type="number"
+                      value={thresholds.minimum_eligible_age}
+                      onChange={(e) =>
+                        setThresholds({
+                          ...thresholds,
+                          minimum_eligible_age:
+                            e.target.value === "" ? "" : parseInt(e.target.value, 10),
+                        })
+                      }
+                      className="h-9 bg-background"
+                    />
+                  </div>
+
+                  {/* Blood Pressure */}
+                  <div className="space-y-3 border border-border/50 p-3 rounded-xl">
+                    <div className="flex items-center justify-between pb-2 border-b border-border/50">
+                      <Label className="text-sm font-bold">Blood Pressure</Label>
+                      <Switch
+                        checked={vitals.bloodPressure}
+                        onCheckedChange={(v) => setVital("bloodPressure", v)}
+                      />
+                    </div>
+                    {vitals.bloodPressure && (
+                      <div className="grid md:grid-cols-2 gap-4">
+                        {/* Systolic */}
+                        <div className="space-y-3">
+                          <Label className="text-xs font-semibold text-muted-foreground uppercase">
+                            Systolic (mmHg)
+                          </Label>
+                          <div className="grid gap-2">
+                            <div className="flex items-center justify-between gap-2">
+                              <Label className="text-xs text-muted-foreground">Normal (≤)</Label>
+                              <Input
+                                type="number"
+                                value={thresholds.systolic_normal_max}
+                                onChange={(e) =>
+                                  setThresholds({
+                                    ...thresholds,
+                                    systolic_normal_max:
+                                      e.target.value === "" ? "" : parseInt(e.target.value, 10),
+                                  })
+                                }
+                                className="h-8 w-24 text-right"
+                              />
+                            </div>
+                            <div className="flex items-center justify-between gap-2">
+                              <Label className="text-xs text-amber-600 font-semibold">
+                                Moderate Risk (≥)
+                              </Label>
+                              <Input
+                                type="number"
+                                value={thresholds.systolic_moderate_min}
+                                onChange={(e) =>
+                                  setThresholds({
+                                    ...thresholds,
+                                    systolic_moderate_min:
+                                      e.target.value === "" ? "" : parseInt(e.target.value, 10),
+                                  })
+                                }
+                                className="h-8 w-24 text-right"
+                              />
+                            </div>
+                            <div className="flex items-center justify-between gap-2">
+                              <Label className="text-xs text-destructive font-semibold">
+                                High Risk (≥)
+                              </Label>
+                              <Input
+                                type="number"
+                                value={thresholds.systolic_high_min}
+                                onChange={(e) =>
+                                  setThresholds({
+                                    ...thresholds,
+                                    systolic_high_min:
+                                      e.target.value === "" ? "" : parseInt(e.target.value, 10),
+                                  })
+                                }
+                                className="h-8 w-24 text-right"
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Diastolic */}
+                        <div className="space-y-3">
+                          <Label className="text-xs font-semibold text-muted-foreground uppercase">
+                            Diastolic (mmHg)
+                          </Label>
+                          <div className="grid gap-2">
+                            <div className="flex items-center justify-between gap-2">
+                              <Label className="text-xs text-muted-foreground">Normal (≤)</Label>
+                              <Input
+                                type="number"
+                                value={thresholds.diastolic_normal_max}
+                                onChange={(e) =>
+                                  setThresholds({
+                                    ...thresholds,
+                                    diastolic_normal_max:
+                                      e.target.value === "" ? "" : parseInt(e.target.value, 10),
+                                  })
+                                }
+                                className="h-8 w-24 text-right"
+                              />
+                            </div>
+                            <div className="flex items-center justify-between gap-2">
+                              <Label className="text-xs text-amber-600 font-semibold">
+                                Moderate Risk (≥)
+                              </Label>
+                              <Input
+                                type="number"
+                                value={thresholds.diastolic_moderate_min}
+                                onChange={(e) =>
+                                  setThresholds({
+                                    ...thresholds,
+                                    diastolic_moderate_min:
+                                      e.target.value === "" ? "" : parseInt(e.target.value, 10),
+                                  })
+                                }
+                                className="h-8 w-24 text-right"
+                              />
+                            </div>
+                            <div className="flex items-center justify-between gap-2">
+                              <Label className="text-xs text-destructive font-semibold">
+                                High Risk (≥)
+                              </Label>
+                              <Input
+                                type="number"
+                                value={thresholds.diastolic_high_min}
+                                onChange={(e) =>
+                                  setThresholds({
+                                    ...thresholds,
+                                    diastolic_high_min:
+                                      e.target.value === "" ? "" : parseInt(e.target.value, 10),
+                                  })
+                                }
+                                className="h-8 w-24 text-right"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Blood Sugar */}
+                  <div className="space-y-3 border border-border/50 p-3 rounded-xl">
+                    <div className="flex items-center justify-between pb-2 border-b border-border/50">
+                      <Label className="text-sm font-bold">Blood Sugar (Random)</Label>
+                      <Switch
+                        checked={vitals.bloodSugar}
+                        onCheckedChange={(v) => setVital("bloodSugar", v)}
+                      />
+                    </div>
+                    {vitals.bloodSugar && (
+                      <div className="grid md:grid-cols-2 gap-4">
+                        <div className="grid gap-2">
+                          <div className="flex items-center justify-between gap-2">
+                            <Label className="text-xs text-muted-foreground">Normal (≤)</Label>
+                            <Input
+                              type="number"
+                              value={thresholds.sugar_normal_max}
+                              onChange={(e) =>
+                                setThresholds({
+                                  ...thresholds,
+                                  sugar_normal_max:
+                                    e.target.value === "" ? "" : parseInt(e.target.value, 10),
+                                })
+                              }
+                              className="h-8 w-24 text-right"
+                            />
+                          </div>
+                          <div className="flex items-center justify-between gap-2">
+                            <Label className="text-xs text-amber-600 font-semibold">
+                              Moderate Min (≥)
+                            </Label>
+                            <Input
+                              type="number"
+                              value={thresholds.sugar_moderate_min}
+                              onChange={(e) =>
+                                setThresholds({
+                                  ...thresholds,
+                                  sugar_moderate_min:
+                                    e.target.value === "" ? "" : parseInt(e.target.value, 10),
+                                })
+                              }
+                              className="h-8 w-24 text-right"
+                            />
+                          </div>
+                        </div>
+                        <div className="grid gap-2">
+                          <div className="flex items-center justify-between gap-2">
+                            <Label className="text-xs text-amber-600 font-semibold">
+                              Moderate Max (≤)
+                            </Label>
+                            <Input
+                              type="number"
+                              value={thresholds.sugar_moderate_max}
+                              onChange={(e) =>
+                                setThresholds({
+                                  ...thresholds,
+                                  sugar_moderate_max:
+                                    e.target.value === "" ? "" : parseInt(e.target.value, 10),
+                                })
+                              }
+                              className="h-8 w-24 text-right"
+                            />
+                          </div>
+                          <div className="flex items-center justify-between gap-2">
+                            <Label className="text-xs text-destructive font-semibold">
+                              High Risk (≥)
+                            </Label>
+                            <Input
+                              type="number"
+                              value={thresholds.sugar_high_min}
+                              onChange={(e) =>
+                                setThresholds({
+                                  ...thresholds,
+                                  sugar_high_min:
+                                    e.target.value === "" ? "" : parseInt(e.target.value, 10),
+                                })
+                              }
+                              className="h-8 w-24 text-right"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Body Measurements */}
+                  <div className="space-y-3 border border-border/50 p-3 rounded-xl">
+                    <Label className="text-sm font-bold block pb-2 border-b border-border/50">
+                      Body Measurements
+                    </Label>
+                    <div className="space-y-3 pt-1">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-xs text-foreground">Weight</Label>
+                        <Switch
+                          checked={vitals.weight}
+                          onCheckedChange={(v) => setVital("weight", v)}
+                        />
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <Label className="text-xs text-foreground">Height</Label>
+                        <Switch
+                          checked={vitals.height}
+                          onCheckedChange={(v) => setVital("height", v)}
+                        />
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <Label className="text-xs text-foreground">BMI</Label>
+                        <Switch checked={vitals.bmi} onCheckedChange={(v) => setVital("bmi", v)} />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Other Vitals */}
+                  <div className="space-y-3 border border-border/50 p-3 rounded-xl">
+                    <Label className="text-sm font-bold block pb-2 border-b border-border/50">
+                      Other Vitals
+                    </Label>
+                    <div className="space-y-3 pt-1">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-xs text-foreground">Pulse</Label>
+                        <Switch
+                          checked={vitals.pulse}
+                          onCheckedChange={(v) => setVital("pulse", v)}
+                        />
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <Label className="text-xs text-foreground">SpO₂</Label>
+                        <Switch
+                          checked={vitals.spo2}
+                          onCheckedChange={(v) => setVital("spo2", v)}
+                        />
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <Label className="text-xs text-foreground">Temperature</Label>
+                        <Switch
+                          checked={vitals.temperature}
+                          onCheckedChange={(v) => setVital("temperature", v)}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground">Loading settings…</p>
+              )}
             </div>
 
             <div className="space-y-4">
               <h3 className="text-sm font-semibold text-foreground flex items-center justify-between">
                 <span>Follow-up Intervals (Days)</span>
-                {!isAdmin && <span className="text-[10px] uppercase font-bold text-muted-foreground bg-surface-muted px-2 py-0.5 rounded-md border border-border/50">Admin Only</span>}
+                {!isAdmin && (
+                  <span className="text-[10px] uppercase font-bold text-muted-foreground bg-surface-muted px-2 py-0.5 rounded-md border border-border/50">
+                    Admin Only
+                  </span>
+                )}
               </h3>
-              <div className="grid gap-3">
-                <div className="grid grid-cols-[1fr_80px] items-center gap-3">
-                  <Label className="text-sm text-destructive font-semibold">High Risk</Label>
-                  <Input 
-                    type="number" 
-                    value={intervals.high}
-                    onChange={e => setIntervals({ ...intervals, high: parseInt(e.target.value) || 0 })}
-                    disabled={!isAdmin}
+              {thresholds ? (
+                <div className="grid gap-3">
+                  <div className="grid grid-cols-[1fr_80px] items-center gap-3">
+                    <Label className="text-sm text-destructive font-semibold">High Risk</Label>
+                    <Input
+                      type="number"
+                      value={thresholds.interval_high}
+                      onChange={(e) =>
+                        setThresholds({
+                          ...thresholds,
+                          interval_high: e.target.value === "" ? "" : parseInt(e.target.value, 10),
+                        })
+                      }
+                      disabled={!isAdmin}
+                      className="h-9 rounded-lg"
+                    />
+                  </div>
+                  <div className="grid grid-cols-[1fr_80px] items-center gap-3">
+                    <Label className="text-sm text-amber-600 font-semibold">Moderate Risk</Label>
+                    <Input
+                      type="number"
+                      value={thresholds.interval_moderate}
+                      onChange={(e) =>
+                        setThresholds({
+                          ...thresholds,
+                          interval_moderate:
+                            e.target.value === "" ? "" : parseInt(e.target.value, 10),
+                        })
+                      }
+                      disabled={!isAdmin}
+                      className="h-9 rounded-lg"
+                    />
+                  </div>
+                  <div className="grid grid-cols-[1fr_80px] items-center gap-3">
+                    <Label className="text-sm text-green-600 font-semibold">Low Risk</Label>
+                    <Input
+                      type="number"
+                      value={thresholds.interval_low}
+                      onChange={(e) =>
+                        setThresholds({
+                          ...thresholds,
+                          interval_low: e.target.value === "" ? "" : parseInt(e.target.value, 10),
+                        })
+                      }
+                      disabled={!isAdmin}
+                      className="h-9 rounded-lg"
+                    />
+                  </div>
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground">Loading intervals…</p>
+              )}
+            </div>
+
+            {thresholds && (
+              <div className="mt-8 space-y-4">
+                <h3 className="text-sm font-semibold text-foreground border-b border-border/50 pb-2">
+                  Working Configuration
+                </h3>
+                <div className="grid grid-cols-[1fr_auto] items-center gap-3">
+                  <Label className="text-sm">Working days</Label>
+                  <span className="text-sm text-muted-foreground">Mon-Sat (No Sundays)</span>
+                </div>
+                <div className="grid grid-cols-[1fr_120px] items-center gap-3">
+                  <Label className="text-sm">Work Start Time</Label>
+                  <Input
+                    type="time"
+                    value={thresholds.working_hours?.start ?? "09:00"}
+                    onChange={(e) =>
+                      setThresholds({
+                        ...thresholds,
+                        working_hours: { ...thresholds.working_hours, start: e.target.value },
+                      })
+                    }
+                    disabled={!isAdmin && role !== "supervisor"}
                     className="h-9 rounded-lg"
                   />
                 </div>
-                <div className="grid grid-cols-[1fr_80px] items-center gap-3">
-                  <Label className="text-sm text-amber-600 font-semibold">Moderate Risk</Label>
-                  <Input 
-                    type="number" 
-                    value={intervals.moderate}
-                    onChange={e => setIntervals({ ...intervals, moderate: parseInt(e.target.value) || 0 })}
-                    disabled={!isAdmin}
-                    className="h-9 rounded-lg"
-                  />
-                </div>
-                <div className="grid grid-cols-[1fr_80px] items-center gap-3">
-                  <Label className="text-sm text-green-600 font-semibold">Low Risk</Label>
-                  <Input 
-                    type="number" 
-                    value={intervals.low}
-                    onChange={e => setIntervals({ ...intervals, low: parseInt(e.target.value) || 0 })}
-                    disabled={!isAdmin}
+                <div className="grid grid-cols-[1fr_120px] items-center gap-3">
+                  <Label className="text-sm">Work End Time</Label>
+                  <Input
+                    type="time"
+                    value={thresholds.working_hours?.end ?? "17:00"}
+                    onChange={(e) =>
+                      setThresholds({
+                        ...thresholds,
+                        working_hours: { ...thresholds.working_hours, end: e.target.value },
+                      })
+                    }
+                    disabled={!isAdmin && role !== "supervisor"}
                     className="h-9 rounded-lg"
                   />
                 </div>
               </div>
-              
-              {isAdmin && (
-                <Button variant="secondary" className="w-full mt-2 font-semibold" onClick={submitIntervals}>
-                  Save Intervals
-                </Button>
-              )}
-            </div>
-            
-            <div className="mt-6 space-y-2 text-sm text-muted-foreground">
-              <Row label="Working days" value="Mon-Sat (No Sundays)" />
-              <Row label="Working hours" value={`${followUpConfig.workingHours.start} – ${followUpConfig.workingHours.end}`} />
+            )}
+
+            <div className="flex gap-2 mt-3">
+              <Button
+                variant="secondary"
+                onClick={async () => {
+                  try {
+                    const anyEmpty = Object.values(thresholds).some((v) => v === "");
+                    if (anyEmpty) {
+                      toast.error("Please fill in all numeric fields.");
+                      return;
+                    }
+
+                    // Basic client-side validation
+                    if (thresholds.systolic_normal_max >= thresholds.systolic_moderate_min)
+                      throw new Error("Systolic normal must be < moderate min");
+                    if (thresholds.diastolic_normal_max >= thresholds.diastolic_moderate_min)
+                      throw new Error("Diastolic normal must be < moderate min");
+                    if (thresholds.sugar_normal_max >= thresholds.sugar_moderate_min)
+                      throw new Error("Sugar normal must be < moderate min");
+                    const { putHealthThresholds } = await import("@/services/settingsServerFns");
+                    await putHealthThresholds({
+                      data: { changedBy: user?.userId ?? "admin", role, updates: thresholds },
+                    });
+                    toast.success("Settings saved.");
+                  } catch (err) {
+                    toast.error(err instanceof Error ? err.message : "Could not save settings");
+                  }
+                }}
+              >
+                Save Changes
+              </Button>
             </div>
           </section>
 
@@ -187,10 +590,13 @@ function SettingsPage() {
             <section className="card-surface p-5 rounded-2xl shadow-xs border border-border/70">
               <div className="flex items-center gap-2 border-b border-border/50 pb-3 mb-4">
                 <CalendarDays className="size-5 text-primary" />
-                <h2 className="font-display text-base font-bold text-foreground">Holiday Management</h2>
+                <h2 className="font-display text-base font-bold text-foreground">
+                  Holiday Management
+                </h2>
               </div>
               <p className="text-xs text-muted-foreground mb-4">
-                Define non-working days. Scheduled follow-ups falling on these days will shift forward.
+                Define non-working days. Scheduled follow-ups falling on these days will shift
+                forward.
               </p>
               <HolidayManager />
             </section>
@@ -209,7 +615,7 @@ function HolidayManager() {
   const [adding, setAdding] = useState(false);
 
   useEffect(() => {
-    fetchHolidays().then(data => {
+    fetchHolidays().then((data) => {
       setHolidays(data);
       setLoading(false);
     });
@@ -235,7 +641,7 @@ function HolidayManager() {
   const handleDelete = async (id: string) => {
     try {
       await deleteHoliday(id);
-      setHolidays(holidays.filter(h => h.id !== id));
+      setHolidays(holidays.filter((h) => h.id !== id));
       toast.success("Holiday removed.");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Could not remove holiday");
@@ -248,15 +654,37 @@ function HolidayManager() {
         <div className="grid grid-cols-2 gap-2">
           <div className="space-y-1">
             <Label className="text-xs">Date</Label>
-            <Input type="date" required value={date} onChange={e => setDate(e.target.value)} className="h-9" />
+            <Input
+              type="date"
+              required
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              className="h-9"
+            />
           </div>
           <div className="space-y-1">
             <Label className="text-xs">Name (Optional)</Label>
-            <Input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Eid al-Fitr" className="h-9" />
+            <Input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="e.g. Eid al-Fitr"
+              className="h-9"
+            />
           </div>
         </div>
-        <Button type="submit" disabled={adding || !date} className="w-full font-semibold h-9" size="sm">
-          {adding ? "Adding..." : <><Plus className="size-4 mr-2" /> Add Holiday</>}
+        <Button
+          type="submit"
+          disabled={adding || !date}
+          className="w-full font-semibold h-9"
+          size="sm"
+        >
+          {adding ? (
+            "Adding..."
+          ) : (
+            <>
+              <Plus className="size-4 mr-2" /> Add Holiday
+            </>
+          )}
         </Button>
       </form>
 
@@ -268,13 +696,22 @@ function HolidayManager() {
           <p className="text-xs text-muted-foreground">No holidays found.</p>
         ) : (
           <ul className="space-y-2 max-h-60 overflow-y-auto pr-1">
-            {holidays.map(h => (
-              <li key={h.id} className="flex items-center justify-between bg-surface-muted px-3 py-2 rounded-xl text-sm border border-border/40">
+            {holidays.map((h) => (
+              <li
+                key={h.id}
+                className="flex items-center justify-between bg-surface-muted px-3 py-2 rounded-xl text-sm border border-border/40"
+              >
                 <div className="flex flex-col">
-                  <span className="font-semibold text-foreground">{new Date(h.holiday_date + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</span>
+                  <span className="font-semibold text-foreground">
+                    {new Date(h.holiday_date + "T12:00:00").toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                      year: "numeric",
+                    })}
+                  </span>
                   {h.name && <span className="text-[10px] text-muted-foreground">{h.name}</span>}
                 </div>
-                <button 
+                <button
                   onClick={() => handleDelete(h.id)}
                   className="p-1.5 text-destructive/70 hover:text-destructive hover:bg-destructive/10 rounded-md transition-colors"
                   aria-label="Delete holiday"
@@ -298,4 +735,3 @@ function Row({ label, value }: { label: string; value: string }) {
     </div>
   );
 }
-

@@ -129,12 +129,14 @@ maestro --version
 ```
 
 Platform prerequisites:
+
 - iOS: Xcode + at least one iOS Simulator runtime.
 - Android: Android SDK, an emulator AVD, `adb` on PATH.
 
 ## 2. Build the Apps
 
 iOS (simulator build):
+
 ```bash
 cd ios-app
 xcodebuild -project movie-rater.xcodeproj \
@@ -143,18 +145,22 @@ xcodebuild -project movie-rater.xcodeproj \
   -configuration Debug \
   -derivedDataPath build
 ```
+
 Resulting `.app`: `ios-app/build/Build/Products/Debug-iphonesimulator/movie-rater.app`
 
 Android (debug APK):
+
 ```bash
 cd android-app
 ./gradlew :app:assembleDebug
 ```
+
 Resulting `.apk`: `android-app/app/build/outputs/apk/debug/app-debug.apk`
 
 ## 3. Boot a Simulator/Emulator and Install
 
 iOS:
+
 ```bash
 xcrun simctl boot "iPhone 15" || true
 open -a Simulator
@@ -162,6 +168,7 @@ xcrun simctl install booted <path-to>.app
 ```
 
 Android:
+
 ```bash
 emulator -list-avds
 emulator -avd <AvdName> &
@@ -178,6 +185,7 @@ maestro test maestro/                   # run all flows
 ```
 
 Useful flags:
+
 - `--format junit --output report.xml` for CI.
 - `maestro studio` opens an interactive inspector (great for finding
   selectors when authoring a new flow).
@@ -186,6 +194,7 @@ Useful flags:
 ## 5. Create a New Test Flow
 
 Directory layout to follow:
+
 ```
 maestro/
   ios/        # iOS-specific entry flows
@@ -194,8 +203,9 @@ maestro/
 ```
 
 Minimum flow shape:
+
 ```yaml
-appId: com.example.movierater   # iOS bundle id or Android package
+appId: com.example.movierater # iOS bundle id or Android package
 ---
 - launchApp:
     clearState: true
@@ -206,6 +216,7 @@ appId: com.example.movierater   # iOS bundle id or Android package
 ```
 
 Authoring steps:
+
 1. Open `maestro studio` against a running app to discover selectors.
 2. Prefer `id:` selectors backed by stable accessibility identifiers.
 3. If identifiers are missing, add them in app code:
@@ -220,6 +231,7 @@ Authoring steps:
 ## 6. Reporting Back
 
 After running tests, surface to the user:
+
 - The flow file(s) executed.
 - Pass/fail summary and the failing step if any.
 - Paths to screenshots, recordings, and `~/.maestro/tests/<run>/` logs.

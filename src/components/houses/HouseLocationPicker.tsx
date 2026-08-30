@@ -93,7 +93,7 @@ export function HouseLocationPicker({
         setIsLocating(false);
         toast.error(`Could not obtain GPS location: ${err.message}`);
       },
-      { enableHighAccuracy: true, timeout: 15000 }
+      { enableHighAccuracy: true, timeout: 15000 },
     );
   };
 
@@ -116,7 +116,9 @@ export function HouseLocationPicker({
       {/* Top House ID Header */}
       <div className="card-surface ios-glass p-4 rounded-2xl border border-primary/20 bg-primary-soft/30 flex items-center justify-between">
         <div>
-          <span className="text-[10px] font-bold uppercase tracking-widest text-primary">House Location & Pin</span>
+          <span className="text-[10px] font-bold uppercase tracking-widest text-primary">
+            House Location & Pin
+          </span>
           <p className="font-display font-bold text-xl text-foreground mt-0.5">{houseId}</p>
         </div>
         <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-surface text-xs font-semibold border border-border">
@@ -164,7 +166,9 @@ export function HouseLocationPicker({
           </div>
           <div>
             <span className="text-[10px] text-muted-foreground block uppercase">Accuracy</span>
-            <span className="font-mono font-semibold">{accuracy ? `±${Math.round(accuracy)}m` : "GPS"}</span>
+            <span className="font-mono font-semibold">
+              {accuracy ? `±${Math.round(accuracy)}m` : "GPS"}
+            </span>
           </div>
         </div>
       )}
@@ -215,7 +219,7 @@ export function HouseLocationPicker({
                 "px-3 py-1 rounded-full text-xs font-medium border transition-colors shrink-0",
                 selectedCategory === c.id
                   ? "bg-primary text-primary-foreground border-primary shadow-xs"
-                  : "bg-surface text-muted-foreground border-border hover:bg-surface-muted"
+                  : "bg-surface text-muted-foreground border-border hover:bg-surface-muted",
               )}
             >
               {c.label}
@@ -236,7 +240,7 @@ export function HouseLocationPicker({
                   "p-2.5 rounded-xl border text-left flex items-center gap-2.5 transition-all relative",
                   active
                     ? "bg-primary/10 border-primary text-primary shadow-xs ring-1 ring-primary/30"
-                    : "bg-surface text-foreground border-border/70 hover:bg-surface-muted"
+                    : "bg-surface text-foreground border-border/70 hover:bg-surface-muted",
                 )}
               >
                 <div

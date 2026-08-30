@@ -22,7 +22,7 @@ export function useTeamTree() {
           supabase.from(tables.profiles).select("*").order("full_name"),
           supabase.from(tables.userRoles).select("user_id, role"),
         ]);
-        
+
         const roleMap = new Map<string, string[]>();
         (roleRows ?? []).forEach((r: any) => {
           if (!r.user_id) return;
@@ -47,15 +47,15 @@ export function useTeamTree() {
           .select("csw_id")
           .eq("supervisor_id", user.id)
           .eq("status", "active");
-          
+
         const cswIds = (memberships ?? []).map((m: any) => m.csw_id);
         if (!cswIds.length) return { supervisors: [user.profile!], csws: [] };
-        
+
         const { data: profiles } = await supabase
           .from(tables.profiles)
           .select("*")
           .in("id", cswIds);
-          
+
         return { supervisors: [user.profile!], csws: (profiles ?? []) as Profile[] };
       }
 

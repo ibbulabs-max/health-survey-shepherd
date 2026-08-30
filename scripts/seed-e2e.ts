@@ -9,7 +9,7 @@ if (!SERVICE_ROLE_KEY) {
 }
 
 const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
-  auth: { autoRefreshToken: false, persistSession: false }
+  auth: { autoRefreshToken: false, persistSession: false },
 });
 
 async function seed() {
@@ -24,7 +24,7 @@ async function seed() {
     process.exit(1);
   }
 
-  const existing = users.users.find(u => u.email === email);
+  const existing = users.users.find((u) => u.email === email);
   let userId = existing?.id;
 
   if (!existing) {
@@ -33,7 +33,7 @@ async function seed() {
       email,
       password: pin,
       email_confirm: true,
-      user_metadata: { must_change_pin: false }
+      user_metadata: { must_change_pin: false },
     });
     if (error || !data.user) {
       console.error("Failed to create user:", error);

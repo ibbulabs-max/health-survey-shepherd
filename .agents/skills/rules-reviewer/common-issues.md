@@ -7,6 +7,7 @@ Use this resource for detailed diagnostic patterns and fixes for common rules fi
 ### 1. File Too Large
 
 **Symptoms:**
+
 - AI ignores some rules
 - Inconsistent code generation
 - AI seems to "forget" instructions
@@ -14,12 +15,14 @@ Use this resource for detailed diagnostic patterns and fixes for common rules fi
 **Detection:** Check line count and character count of each file.
 
 **Thresholds:**
+
 - **Critical**: > 200 lines or > 6,000 characters
 - **Warning**: 150-200 lines or 5,000-6,000 characters
 
 **Impact:** Large files consume AI context window, leaving less room for understanding your actual code. The AI may ignore rules that appear later in the file.
 
 **Fix:** Split into multiple focused files:
+
 ```
 # Before: .builderrules (400 lines)
 
@@ -36,6 +39,7 @@ Use this resource for detailed diagnostic patterns and fixes for common rules fi
 ### 2. Too Many `alwaysApply` Rules
 
 **Symptoms:**
+
 - AI performance degradation
 - Rules contradicting each other
 - Context window exhaustion
@@ -47,13 +51,13 @@ Use this resource for detailed diagnostic patterns and fixes for common rules fi
 **Impact:** Every `alwaysApply: true` file is loaded for every request, consuming context that could be used for code understanding.
 
 **Fix:** Convert to glob-scoped rules:
+
 ```yaml
 # Before - applies to everything
 ---
 description: Component rules
 alwaysApply: true
 ---
-
 # After - scoped to relevant files only
 ---
 description: Component rules
@@ -66,11 +70,12 @@ globs:
 
 ---
 
-### 3. Missing Frontmatter *(`.mdc` files only)*
+### 3. Missing Frontmatter _(`.mdc` files only)_
 
 > **Note:** `agents.md` does not require frontmatter. This issue applies only to `.builder/rules/*.mdc` files.
 
 **Symptoms:**
+
 - Rules not being applied correctly
 - No scoping of rules
 - Missing context for AI
@@ -80,6 +85,7 @@ globs:
 **Impact:** Without frontmatter, the AI doesn't know when to apply rules or what they're for.
 
 **Fix:** Add proper frontmatter to every `.mdc` file:
+
 ```yaml
 ---
 description: Clear, concise description of rule purpose
@@ -94,6 +100,7 @@ alwaysApply: false
 ### 4. Missing `description` Field
 
 **Symptoms:**
+
 - Unclear rule purpose
 - Difficulty maintaining rules
 - AI may misapply rules
@@ -103,13 +110,13 @@ alwaysApply: false
 **Impact:** Both humans and AI need context about what each rule file covers.
 
 **Fix:**
+
 ```yaml
 # Before
 ---
 globs:
   - "**/*.tsx"
 ---
-
 # After
 ---
 description: React component structure and organization patterns
@@ -123,6 +130,7 @@ globs:
 ### 5. Wrong File Naming
 
 **Symptoms:**
+
 - Rules not being detected
 - Configuration errors
 - Silent failures
@@ -130,9 +138,10 @@ globs:
 **Detection:** Look for common naming mistakes.
 
 **Common mistakes:**
-| Wrong | Correct |
-|-------|---------|
-| `.builderrule` | `.builderrules` |
+
+| Wrong                   | Correct                  |
+| ----------------------- | ------------------------ |
+| `.builderrule`          | `.builderrules`          |
 | `.builder/rules/foo.md` | `.builder/rules/foo.mdc` |
 
 > **Note:** `AGENTS.md` and `agents.md` are both valid — agents file matching is case-insensitive.
@@ -146,6 +155,7 @@ globs:
 ### 6. Agent-Rules Content in Plain `.md` Files
 
 **Symptoms:**
+
 - AI ignores project conventions despite documentation existing
 - Rules are written but not picked up by the rules system
 - Project has `AGENTS.md`, `CODING_STANDARDS.md`, `SCAFFOLDING_CHECKLIST.md`, or similar files at the root
@@ -166,7 +176,6 @@ globs:
   - "src/components/**/*.tsx"
 alwaysApply: false
 ---
-
 ## Component Rules
 - Place in `src/components/{feature}/{ComponentName}.tsx`
 - Use PascalCase for component names
@@ -174,6 +183,7 @@ alwaysApply: false
 ```
 
 **Migration steps:**
+
 1. Identify the domains covered by the `.md` file (components, API, styling, etc.)
 2. Create one `.mdc` file per domain in `.builder/rules/`
 3. Add frontmatter with `description` and `globs` scoped to relevant files
@@ -185,6 +195,7 @@ alwaysApply: false
 ### 7. Rules Contain Only Generic Advice
 
 **Symptoms:**
+
 - Rules file is large but AI still generates inconsistent code
 - Rules say things like "write clean code", "follow best practices", "use meaningful names"
 - Rules explain how the language/framework works rather than project specifics
@@ -192,8 +203,10 @@ alwaysApply: false
 **Detection:** Review each rule. Ask: "Would this appear in a generic blog post or framework docs?" If yes, it's generic and should be cut.
 
 **Examples of generic rules to cut:**
+
 ```markdown
 # Generic — agent already knows this, cut it:
+
 - Use functional components in React
 - Handle errors with try/catch
 - Use TypeScript for type safety
@@ -203,8 +216,10 @@ alwaysApply: false
 ```
 
 **Examples of specific rules to keep:**
+
 ```markdown
 # Specific — agent needs this, keep it:
+
 - Components go in `src/features/{feature}/components/{Name}/`
 - Always create a `.types.ts` file alongside each component
 - Export from the barrel at `src/components/index.ts`
@@ -221,11 +236,13 @@ alwaysApply: false
 ### 9. Vague Rules
 
 **Symptoms:**
+
 - Inconsistent code generation
 - AI interprets rules differently each time
 - Generated code doesn't match expectations
 
 **Detection:** Look for patterns like:
+
 - "Write good code"
 - "Follow best practices"
 - "Use clean architecture"
@@ -234,20 +251,25 @@ alwaysApply: false
 **Impact:** Vague rules give AI no actionable guidance. The AI must guess what you mean, leading to inconsistent results.
 
 **Fix:** Make specific and actionable:
+
 ```markdown
 # Before - vague
+
 Write clean, maintainable code.
 Follow best practices for React.
 Use good naming conventions.
 
 # After - specific
+
 ## Component Structure
+
 - Use functional components with TypeScript
 - Define props interface above component
 - Export component as default export
 - Use named exports for types and utilities
 
 ## Naming Conventions
+
 - Components: PascalCase (`UserProfile.tsx`)
 - Hooks: camelCase with use prefix (`useAuth.ts`)
 - Utils: camelCase (`formatDate.ts`)
@@ -259,11 +281,13 @@ Use good naming conventions.
 ### 10. Verbose Rules
 
 **Symptoms:**
+
 - File exceeds size limits
 - Key rules buried in prose
 - AI may skip important points
 
 **Detection:**
+
 - Paragraphs instead of bullets
 - Rules embedded in explanatory text
 - Multiple sentences per rule
@@ -271,8 +295,10 @@ Use good naming conventions.
 **Impact:** Verbose text wastes context space and makes rules harder for AI to parse.
 
 **Fix:**
+
 ```markdown
 # Before - verbose
+
 When you are creating a new component, you should always make sure
 that you are following the team's established patterns for component
 creation, which includes making sure that the component is placed in
@@ -281,7 +307,9 @@ and follows all of the styling guidelines that have been established
 by the team over the course of the project's development.
 
 # After - concise
+
 New components:
+
 - Place in `src/components/{feature}/{ComponentName}.tsx`
 - Use PascalCase for component names
 - Follow established styling guidelines
@@ -292,25 +320,31 @@ New components:
 ### 11. Conflicting Rules
 
 **Symptoms:**
+
 - AI produces contradictory code
 - Inconsistent patterns across generations
 - AI seems "confused"
 
 **Detection:** Review for conflicts like:
+
 - Different naming conventions in different files
 - Contradictory tech stack declarations
 - Overlapping but inconsistent globs
 
 **Example conflicts:**
+
 ```markdown
 # In .builderrules
+
 Use named exports for all components.
 
 # In component-structure.mdc
+
 Export components as default export.
 ```
 
 **Fix:**
+
 1. Review all rules files for consistency
 2. Establish single source of truth for each concern
 3. Use more specific globs to separate concerns
@@ -323,6 +357,7 @@ Export components as default export.
 ### 12. No Code Examples
 
 **Symptoms:**
+
 - AI interprets patterns differently
 - Structural conventions not followed
 - Format inconsistencies
@@ -332,21 +367,24 @@ Export components as default export.
 **Impact:** Examples provide unambiguous reference. Without them, AI must guess at implementation details.
 
 **Fix:**
+
 ```markdown
 # Before - no example
+
 Components should have prop validation using TypeScript interfaces.
 
 # After - with example
+
 Components should have prop validation using TypeScript interfaces:
 
 \`\`\`typescript
 interface UserCardProps {
-  user: User;
-  onSelect?: (userId: string) => void;
+user: User;
+onSelect?: (userId: string) => void;
 }
 
 export function UserCard({ user, onSelect }: UserCardProps) {
-  // ...
+// ...
 }
 \`\`\`
 ```
@@ -356,11 +394,13 @@ export function UserCard({ user, onSelect }: UserCardProps) {
 ### 13. Overly Broad Globs
 
 **Symptoms:**
+
 - Rules applied to wrong files
 - Unnecessary context consumption
 - Conflicting rules on same files
 
 **Detection:**
+
 ```yaml
 # Too broad
 globs:
@@ -373,6 +413,7 @@ globs:
 ```
 
 **Fix:** Make globs as specific as possible:
+
 - Target specific directories
 - Target specific file extensions
 - Exclude test files if not relevant
@@ -383,6 +424,7 @@ globs:
 ### 14. Duplicate Information
 
 **Symptoms:**
+
 - Same rules in multiple files
 - Inconsistency when one copy is updated
 - Wasted context space
@@ -392,6 +434,7 @@ globs:
 **Impact:** Duplication wastes context and creates maintenance burden. Updates may miss copies.
 
 **Fix:**
+
 1. Identify duplicate content
 2. Keep in most appropriate location
 3. Remove from other locations
@@ -401,12 +444,12 @@ globs:
 
 ## Severity Reference
 
-| Severity | Action Required | Examples |
-|----------|-----------------|----------|
-| **Critical** | Fix immediately | File > 200 lines, > 5 alwaysApply, wrong file names |
-| **High** | Fix soon | Missing frontmatter, vague rules, missing description |
-| **Medium** | Plan to fix | Verbose rules, no examples, broad globs |
-| **Low** | Consider fixing | Minor organization issues, style inconsistencies |
+| Severity     | Action Required | Examples                                              |
+| ------------ | --------------- | ----------------------------------------------------- |
+| **Critical** | Fix immediately | File > 200 lines, > 5 alwaysApply, wrong file names   |
+| **High**     | Fix soon        | Missing frontmatter, vague rules, missing description |
+| **Medium**   | Plan to fix     | Verbose rules, no examples, broad globs               |
+| **Low**      | Consider fixing | Minor organization issues, style inconsistencies      |
 
 ---
 

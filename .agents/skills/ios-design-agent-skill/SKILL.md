@@ -28,6 +28,7 @@ Great iOS apps have a point of view. They don't just display content. They creat
 San Francisco is not one font — it's four: `.default`, `.serif`, `.rounded`, and `.monospaced`. These design axes are your secret weapon. They provide typographic contrast without custom fonts, maintain Dynamic Type compatibility, and incur zero bundle-size cost.
 
 **What to evaluate:**
+
 - Is there typographic contrast between content types? For example, linguistic content in `.serif`, scores in `.rounded`, and code in `.monospaced`.
 - Are font weights used to create visual hierarchy beyond just size? (`.ultraLight` through `.black`)
 - Are small-caps (`.smallCaps()`) used for structural labels like section headers?
@@ -35,6 +36,7 @@ San Francisco is not one font — it's four: `.default`, `.serif`, `.rounded`, a
 - Does the title treatment distinguish this screen from system chrome?
 
 **SwiftUI tools:**
+
 ```swift
 .font(.title.bold())
 .fontDesign(.serif)         // Literary, editorial feel
@@ -46,6 +48,7 @@ San Francisco is not one font — it's four: `.default`, `.serif`, `.rounded`, a
 ```
 
 **Red flags:**
+
 - Every text element uses `.body` or default sizing
 - Headers use the same font design as body text
 - Numbers in dynamic displays (scores, timers) use proportional spacing
@@ -57,6 +60,7 @@ San Francisco is not one font — it's four: `.default`, `.serif`, `.rounded`, a
 A cohesive color system tells a story. Every color should earn its place through semantic meaning, not decoration.
 
 **What to evaluate:**
+
 - Does the color palette serve the app's domain? (Educational apps: highlight/neutral/error. Creative apps: broader palette.)
 - Are there surface-level color variations? (`Color(.secondarySystemBackground)` for cards, `Color(.tertiarySystemBackground)` for nested surfaces)
 - Are subtle opacity variations defined as named assets rather than scattered `.opacity()` calls?
@@ -64,6 +68,7 @@ A cohesive color system tells a story. Every color should earn its place through
 - Are system colors used where Apple already solved the problem? (`Color(.secondaryLabel)`, `Color(.separator)`)
 
 **SwiftUI tools:**
+
 ```swift
 Color(.secondarySystemBackground) // Card surfaces
 Color(.tertiarySystemBackground)  // Nested card surfaces
@@ -76,6 +81,7 @@ Color(.separator)                 // Structural dividers
 ```
 
 **Red flags:**
+
 - Only 2–3 colors in the entire app
 - Same background color on every screen
 - Hardcoded colors instead of semantic system colors
@@ -88,6 +94,7 @@ Color(.separator)                 // Structural dividers
 Space is a design material. The distance between elements communicates relationships, and the framing of content creates focus.
 
 **What to evaluate:**
+
 - Are related elements grouped in cards? (`RoundedRectangle` backgrounds with consistent corner radii)
 - Is there a spacing scale? (8pt base with multiples: 4, 8, 16, 24, 32)
 - Are accent bars or borders used to reinforce grouping? (Leading-edge accent bars on sections)
@@ -96,6 +103,7 @@ Space is a design material. The distance between elements communicates relations
 - Do cards have consistent internal padding and external margins?
 
 **SwiftUI tools:**
+
 ```swift
 // Card treatment
 .padding()
@@ -123,6 +131,7 @@ ContentUnavailableView("No Results", systemImage: "magnifyingglass")
 ```
 
 **Red flags:**
+
 - Content stretches full-width on iPad
 - No visual grouping — all elements float on the same surface
 - Large empty areas with no structural purpose
@@ -136,6 +145,7 @@ ContentUnavailableView("No Results", systemImage: "magnifyingglass")
 iOS provides richer motion primitives than any web framework. Haptics, symbol effects, phase animators, and scroll transitions are all declarative, accessible (respecting `.accessibilityReduceMotion`), and performant.
 
 **What to evaluate:**
+
 - Do interactive moments have haptic feedback? (`.sensoryFeedback()`)
 - Do success/error states have visual confirmation? (Checkmarks, shakes, color flashes)
 - Are SF Symbol animations used? (`.symbolEffect(.bounce)`, `.symbolEffect(.pulse)`)
@@ -144,6 +154,7 @@ iOS provides richer motion primitives than any web framework. Haptics, symbol ef
 - Is the start-button animation proportional? (2.5x scale is jarring; prefer `.symbolEffect`)
 
 **SwiftUI tools:**
+
 ```swift
 // Haptic feedback
 .sensoryFeedback(.success, trigger: successCount)
@@ -174,6 +185,7 @@ PhaseAnimator([false, true]) { value, phase in
 ```
 
 **Red flags:**
+
 - No haptic feedback anywhere
 - Actions complete with no visual confirmation
 - Jarring scale animations (>1.5x)
@@ -187,6 +199,7 @@ PhaseAnimator([false, true]) { value, phase in
 Depth cues transform flat screens into layered spaces. On iOS, the system provides elevation through backgrounds, materials, and shadows — use them.
 
 **What to evaluate:**
+
 - Do cards sit on a visually distinct surface from the background?
 - Are shadows used sparingly for elevation? (`.shadow(radius: 1)` for subtle lift)
 - Are gradient overlays used for decorative warmth? (`LinearGradient` accent washes)
@@ -194,6 +207,7 @@ Depth cues transform flat screens into layered spaces. On iOS, the system provid
 - Is there visual layering? (Background → surface → content → overlay)
 
 **SwiftUI tools:**
+
 ```swift
 // Surface hierarchy
 Color(.systemBackground)           // Base layer
@@ -225,6 +239,7 @@ LinearGradient(
 ```
 
 **Red flags:**
+
 - Every screen uses the same flat background
 - No visual hierarchy between background and content surfaces
 - Decorative elements (dividers, separators) are plain `Divider()` with no personality

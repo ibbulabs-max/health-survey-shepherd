@@ -102,7 +102,9 @@ function QualityPage() {
               </div>
               <div className="flex flex-col items-end gap-2">
                 <RiskBadge level={m.risk} />
-                <span className="text-[10px] text-primary font-medium hover:underline">Fix Issue &rarr;</span>
+                <span className="text-[10px] text-primary font-medium hover:underline">
+                  Fix Issue &rarr;
+                </span>
               </div>
             </Link>
           ))}

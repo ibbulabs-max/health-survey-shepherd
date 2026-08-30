@@ -41,7 +41,7 @@ export const importConfig = {
     physical_activity: ["physicalactivity", "activity", "exercise"],
     screening_date: ["screeningdate", "surveydate", "date", "assessmentdate"],
     surveyor: ["surveyor", "csw", "chw", "collectedby", "worker", "healthworker"],
-    
+
     // New Extended Admin / House Fields
     consent_status: ["consentstatus", "consent"],
     monthly_income: ["monthlyincome", "income"],
@@ -57,7 +57,7 @@ export const importConfig = {
     state: ["state"],
     pin_code: ["pincode", "zipcode", "postalcode"],
     gps_accuracy: ["gpsaccuracy", "accuracy"],
-    
+
     // New Extended Assessment Fields
     assessment_basis: ["assessmentbasis", "basis"],
     clinical_risk: ["clinicalrisk", "risk", "risklevel"],
@@ -68,14 +68,14 @@ export const importConfig = {
     pulse: ["pulse", "heartrate"],
     spo2: ["spo2", "oxygen"],
     screening_comments: ["screeningcomments", "comments", "notes"],
-    
+
     // Follow-ups and Referrals
     follow_ups: ["followups", "followup", "nextfollowup"],
     referrals: ["referrals", "referral", "referralcount"],
-    
+
     // Member Details
     occupation: ["occupation", "job", "profession"],
-    eligible: ["eligible", "eligible30"]
+    eligible: ["eligible", "eligible30"],
   } as Record<string, string[]>,
   conditionVocabulary: [
     "Hypertension",
@@ -90,5 +90,4 @@ export const importConfig = {
   ],
 } as const;
 
-export const normaliseHeader = (header: string) =>
-  header.toLowerCase().replace(/[^a-z0-9]/g, "");
+export const normaliseHeader = (header: string) => header.toLowerCase().replace(/[^a-z0-9]/g, "");

@@ -43,12 +43,30 @@ export async function saveScreening(input: ScreeningInput) {
     throw new Error("Unauthorized: Only CHW (Survey Users) can save assessments.");
   }
 
-  const risk = calculateRisk({
-    systolic: input.systolic,
-    diastolic: input.diastolic,
-    bloodSugar: input.bloodSugar,
-    conditions: input.knownHistory,
-  });
+  const risk = calculateRisk(
+    {
+      systolic: input.systolic,
+      diastolic: input.diastolic,
+      bloodSugar: input.bloodSugar,
+      conditions: input.knownHistory,
+    },
+    // Server-side: prefer DB-configured thresholds
+    await (async () => {
+      try {
+        const { getHealthThresholdSettings } = await import("@/services/settingsService");
+        const s = await getHealthThresholdSettings();
+        return {
+          bp: {
+            high: { systolic: s.systolic_high_min, diastolic: s.diastolic_high_min },
+            moderate: { systolic: s.systolic_moderate_min, diastolic: s.diastolic_moderate_min },
+          },
+          sugar: { high: s.sugar_high_min, moderate: s.sugar_moderate_min },
+        };
+      } catch (e) {
+        return undefined;
+      }
+    })(),
+  );
 
   const bmi =
     input.heightCm && input.weightKg
@@ -79,7 +97,9 @@ export async function saveScreening(input: ScreeningInput) {
     risk_reasons: risk.reasons as unknown as Json,
     extra: (input.extra ?? {}) as Json,
     assessed_by: auth.user?.id ?? null,
-    assessed_at: input.surveyDate ? new Date(input.surveyDate).toISOString() : new Date().toISOString(),
+    assessed_at: input.surveyDate
+      ? new Date(input.surveyDate).toISOString()
+      : new Date().toISOString(),
   };
 
   const { data, error } = await supabase
@@ -90,11 +110,20 @@ export async function saveScreening(input: ScreeningInput) {
   if (error) throw error;
 
   await logActivity("screening.saved", { member_uuid: input.memberUuid, risk: risk.level });
-  
+
   // Auto-close any pending follow-ups for this member
+  // Mark existing pending follow-ups as completed and record the assessment time
+  const completionIso = input.surveyDate
+    ? new Date(input.surveyDate).toISOString()
+    : new Date().toISOString();
   await supabase
     .from(tables.followUps)
-    .update({ status: "completed", notes: "Automatically completed by new survey", updated_at: new Date().toISOString() })
+    .update({
+      status: "completed",
+      notes: "Automatically completed by new survey",
+      updated_at: completionIso,
+      completed_at: completionIso,
+    })
     .eq("member_uuid", input.memberUuid)
     .eq("status", "pending");
 

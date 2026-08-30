@@ -27,16 +27,8 @@ export const Route = createFileRoute("/_authenticated/analytics")({
 });
 
 function AnalyticsPage() {
-  const {
-    analytics,
-    filters,
-    setFilter,
-    clearFilter,
-    clearAllFilters,
-    isLoading,
-    error,
-    refetch,
-  } = useAnalytics();
+  const { analytics, filters, setFilter, clearFilter, clearAllFilters, isLoading, error, refetch } =
+    useAnalytics();
 
   const { role, isAdmin } = useAuth();
   const { data: teamTree } = useTeamTree();
@@ -97,7 +89,13 @@ function AnalyticsPage() {
 
           <div className="flex items-center gap-3 self-start sm:self-auto">
             <span className="text-xs text-muted-foreground hidden sm:inline">
-              Last Sync: {new Date().toLocaleDateString("en-US", { day: "numeric", month: "short", year: "numeric" })}, 10:30 AM
+              Last Sync:{" "}
+              {new Date().toLocaleDateString("en-US", {
+                day: "numeric",
+                month: "short",
+                year: "numeric",
+              })}
+              , 10:30 AM
             </span>
             <button
               type="button"
@@ -121,9 +119,7 @@ function AnalyticsPage() {
                 <select
                   aria-label="Filter scope"
                   value={filters.scope}
-                  onChange={(e) =>
-                    setFilter("scope", e.target.value as any)
-                  }
+                  onChange={(e) => setFilter("scope", e.target.value as any)}
                   className="bg-surface text-xs font-semibold px-3 py-2 pr-8 rounded-xl border border-border/70 shadow-xs appearance-none outline-none focus:border-primary text-foreground cursor-pointer"
                 >
                   {isAdmin && <option value="all">All Areas</option>}
@@ -265,7 +261,7 @@ function AnalyticsPage() {
         <main
           className={cn(
             "space-y-4 transition-all duration-300",
-            showRightPanel ? "xl:col-span-8" : "xl:col-span-12"
+            showRightPanel ? "xl:col-span-8" : "xl:col-span-12",
           )}
         >
           {/* ----------------- ROW 1: AGE + GENDER + RISK ----------------- */}
@@ -629,7 +625,7 @@ function AnalyticsPage() {
                   onClick={() => handleCandleClick("dataQuality", "missing_bp")}
                   className={cn(
                     "p-2 rounded-xl bg-surface-muted/50 hover:bg-surface-muted text-center transition-colors border border-border/40",
-                    filters.dataQuality === "missing_bp" && "ring-1 ring-primary"
+                    filters.dataQuality === "missing_bp" && "ring-1 ring-primary",
                   )}
                 >
                   <p className="text-[10px] text-muted-foreground truncate">Missing BP</p>
@@ -643,7 +639,7 @@ function AnalyticsPage() {
                   onClick={() => handleCandleClick("dataQuality", "missing_sugar")}
                   className={cn(
                     "p-2 rounded-xl bg-surface-muted/50 hover:bg-surface-muted text-center transition-colors border border-border/40",
-                    filters.dataQuality === "missing_sugar" && "ring-1 ring-primary"
+                    filters.dataQuality === "missing_sugar" && "ring-1 ring-primary",
                   )}
                 >
                   <p className="text-[10px] text-muted-foreground truncate">Missing Sugar</p>
@@ -657,7 +653,7 @@ function AnalyticsPage() {
                   onClick={() => handleCandleClick("dataQuality", "missing_age")}
                   className={cn(
                     "p-2 rounded-xl bg-surface-muted/50 hover:bg-surface-muted text-center transition-colors border border-border/40",
-                    filters.dataQuality === "missing_age" && "ring-1 ring-primary"
+                    filters.dataQuality === "missing_age" && "ring-1 ring-primary",
                   )}
                 >
                   <p className="text-[10px] text-muted-foreground truncate">Missing Age</p>
@@ -671,7 +667,7 @@ function AnalyticsPage() {
                   onClick={() => handleCandleClick("dataQuality", "missing_gender")}
                   className={cn(
                     "p-2 rounded-xl bg-surface-muted/50 hover:bg-surface-muted text-center transition-colors border border-border/40",
-                    filters.dataQuality === "missing_gender" && "ring-1 ring-primary"
+                    filters.dataQuality === "missing_gender" && "ring-1 ring-primary",
                   )}
                 >
                   <p className="text-[10px] text-muted-foreground truncate">Missing Gender</p>
@@ -685,7 +681,7 @@ function AnalyticsPage() {
                   onClick={() => handleCandleClick("dataQuality", "invalid")}
                   className={cn(
                     "p-2 rounded-xl bg-surface-muted/50 hover:bg-surface-muted text-center transition-colors border border-border/40",
-                    filters.dataQuality === "invalid" && "ring-1 ring-primary"
+                    filters.dataQuality === "invalid" && "ring-1 ring-primary",
                   )}
                 >
                   <p className="text-[10px] text-muted-foreground truncate">Invalid Records</p>
@@ -699,7 +695,7 @@ function AnalyticsPage() {
                   onClick={() => handleCandleClick("dataQuality", "duplicate")}
                   className={cn(
                     "p-2 rounded-xl bg-surface-muted/50 hover:bg-surface-muted text-center transition-colors border border-border/40",
-                    filters.dataQuality === "duplicate" && "ring-1 ring-primary"
+                    filters.dataQuality === "duplicate" && "ring-1 ring-primary",
                   )}
                 >
                   <p className="text-[10px] text-muted-foreground truncate">Duplicate Records</p>

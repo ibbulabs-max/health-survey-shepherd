@@ -73,7 +73,7 @@ function CreateHousePage() {
   const isCHW = role === "survey_user";
 
   const [currentStep, setCurrentStep] = useState(
-    searchParams.houseId ? 6 : searchParams.mode === "new" ? 1 : searchParams.step ?? 0
+    searchParams.houseId ? 6 : searchParams.mode === "new" ? 1 : (searchParams.step ?? 0),
   );
   const [activeAssessmentMemberId, setActiveAssessmentMemberId] = useState<string | null>(null);
   const [completedMemberIds, setCompletedMemberIds] = useState<string[]>([]);
@@ -123,16 +123,19 @@ function CreateHousePage() {
 
   const filteredHouses = useMemo(() => {
     if (!houseSearch) return [];
-    return (data?.houses ?? []).filter(h => 
-      h.house.house_id?.toLowerCase().includes(houseSearch.toLowerCase()) || 
-      h.house.id.toLowerCase().includes(houseSearch.toLowerCase())
-    ).slice(0, 5);
+    return (data?.houses ?? [])
+      .filter(
+        (h) =>
+          h.house.house_id?.toLowerCase().includes(houseSearch.toLowerCase()) ||
+          h.house.id.toLowerCase().includes(houseSearch.toLowerCase()),
+      )
+      .slice(0, 5);
   }, [data, houseSearch]);
 
   React.useEffect(() => {
     if (searchParams.houseId && data?.houses) {
       const foundHouse = data.houses.find(
-        (h) => h.house.id === searchParams.houseId || h.house.house_id === searchParams.houseId
+        (h) => h.house.id === searchParams.houseId || h.house.house_id === searchParams.houseId,
       );
       if (foundHouse) {
         setCreatedHouseUuid(foundHouse.house.id);
@@ -147,7 +150,7 @@ function CreateHousePage() {
   // When step 6 is active and we add members, we need to refresh the createdMembersList from data.houses
   React.useEffect(() => {
     if (currentStep === 6 && createdHouseUuid && data?.houses) {
-      const foundHouse = data.houses.find(h => h.house.id === createdHouseUuid);
+      const foundHouse = data.houses.find((h) => h.house.id === createdHouseUuid);
       if (foundHouse) {
         if ((foundHouse.members?.length || 0) !== createdMembersList.length) {
           setCreatedMembersList(foundHouse.members || []);
@@ -156,7 +159,8 @@ function CreateHousePage() {
     }
   }, [data?.houses, createdHouseUuid, currentStep, createdMembersList.length]);
 
-  const activeHouseId = data?.houses?.find(h => h.house.id === createdHouseUuid)?.house.house_id ?? houseId;
+  const activeHouseId =
+    data?.houses?.find((h) => h.house.id === createdHouseUuid)?.house.house_id ?? houseId;
 
   // Sync member slots count with total members input
   const handleTotalMembersChange = (count: number) => {
@@ -295,9 +299,15 @@ function CreateHousePage() {
         </button>
         <div className="text-center">
           <h1 className="font-display font-bold text-base truncate">
-            {currentStep === 6 ? "30+ Health Hub" : currentStep === 0 ? "Select Mode" : "Create House"}
+            {currentStep === 6
+              ? "30+ Health Hub"
+              : currentStep === 0
+                ? "Select Mode"
+                : "Create House"}
           </h1>
-          <p className="text-[10px] text-muted-foreground font-mono font-semibold">{currentStep === 6 ? activeHouseId : houseId}</p>
+          <p className="text-[10px] text-muted-foreground font-mono font-semibold">
+            {currentStep === 6 ? activeHouseId : houseId}
+          </p>
         </div>
         <div className="w-16 text-right">
           <span className="text-xs text-muted-foreground font-medium">
@@ -325,17 +335,19 @@ function CreateHousePage() {
                 Create a new house or select an existing one to begin.
               </p>
             </div>
-            
-            <Button 
+
+            <Button
               className="w-full h-14 rounded-2xl text-base font-semibold shadow-md bg-primary text-white flex items-center justify-center gap-2"
               onClick={() => setCurrentStep(1)}
             >
               <Home className="size-5" /> Create New House
             </Button>
-            
+
             <div className="relative flex items-center py-2">
               <div className="flex-grow border-t border-border"></div>
-              <span className="flex-shrink-0 mx-4 text-muted-foreground text-xs font-semibold uppercase tracking-wider">OR</span>
+              <span className="flex-shrink-0 mx-4 text-muted-foreground text-xs font-semibold uppercase tracking-wider">
+                OR
+              </span>
               <div className="flex-grow border-t border-border"></div>
             </div>
 
@@ -364,7 +376,9 @@ function CreateHousePage() {
                     >
                       <div>
                         <p className="font-bold text-sm">{h.house.house_id}</p>
-                        <p className="text-xs text-muted-foreground">{h.members?.length || 0} Members</p>
+                        <p className="text-xs text-muted-foreground">
+                          {h.members?.length || 0} Members
+                        </p>
                       </div>
                       <ArrowRight className="size-4 text-muted-foreground" />
                     </button>
@@ -372,7 +386,9 @@ function CreateHousePage() {
                 </div>
               )}
               {houseSearch && filteredHouses.length === 0 && (
-                <p className="text-xs text-muted-foreground text-center py-4">No houses found matching "{houseSearch}"</p>
+                <p className="text-xs text-muted-foreground text-center py-4">
+                  No houses found matching "{houseSearch}"
+                </p>
               )}
             </div>
           </div>
@@ -382,7 +398,9 @@ function CreateHousePage() {
         {currentStep === 1 && (
           <div className="space-y-4">
             <div>
-              <h2 className="font-display text-xl font-bold text-foreground">Step 1: House Identification</h2>
+              <h2 className="font-display text-xl font-bold text-foreground">
+                Step 1: House Identification
+              </h2>
               <p className="text-xs text-muted-foreground mt-0.5">
                 Configure Block, Lane, Serial Number, and Housing Type.
               </p>
@@ -406,7 +424,9 @@ function CreateHousePage() {
         {currentStep === 2 && (
           <div className="space-y-4">
             <div>
-              <h2 className="font-display text-xl font-bold text-foreground">Step 2: House Location & Map Pin</h2>
+              <h2 className="font-display text-xl font-bold text-foreground">
+                Step 2: House Location & Map Pin
+              </h2>
               <p className="text-xs text-muted-foreground mt-0.5">
                 Pin GPS coordinates and choose the feature type for this house.
               </p>
@@ -436,8 +456,12 @@ function CreateHousePage() {
         {currentStep === 3 && (
           <div className="space-y-5">
             <div>
-              <h2 className="font-display text-xl font-bold text-foreground">Step 3: Survey Availability</h2>
-              <p className="text-xs text-muted-foreground mt-0.5">Is this household currently available for survey?</p>
+              <h2 className="font-display text-xl font-bold text-foreground">
+                Step 3: Survey Availability
+              </h2>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Is this household currently available for survey?
+              </p>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -448,13 +472,15 @@ function CreateHousePage() {
                   "p-4 rounded-2xl border text-left flex items-start gap-3 transition-all",
                   availability === "AVAILABLE"
                     ? "bg-emerald-500/10 border-emerald-500 ring-2 ring-emerald-500/20 text-foreground"
-                    : "bg-surface text-muted-foreground border-border/70 hover:bg-surface-muted"
+                    : "bg-surface text-muted-foreground border-border/70 hover:bg-surface-muted",
                 )}
               >
                 <div
                   className={cn(
                     "size-8 rounded-full flex items-center justify-center shrink-0",
-                    availability === "AVAILABLE" ? "bg-emerald-500 text-white" : "bg-surface-muted text-muted-foreground"
+                    availability === "AVAILABLE"
+                      ? "bg-emerald-500 text-white"
+                      : "bg-surface-muted text-muted-foreground",
                   )}
                 >
                   <Check className="size-4 stroke-[3]" />
@@ -474,13 +500,15 @@ function CreateHousePage() {
                   "p-4 rounded-2xl border text-left flex items-start gap-3 transition-all",
                   availability === "NOT_AVAILABLE"
                     ? "bg-rose-500/10 border-rose-500 ring-2 ring-rose-500/20 text-foreground"
-                    : "bg-surface text-muted-foreground border-border/70 hover:bg-surface-muted"
+                    : "bg-surface text-muted-foreground border-border/70 hover:bg-surface-muted",
                 )}
               >
                 <div
                   className={cn(
                     "size-8 rounded-full flex items-center justify-center shrink-0",
-                    availability === "NOT_AVAILABLE" ? "bg-rose-500 text-white" : "bg-surface-muted text-muted-foreground"
+                    availability === "NOT_AVAILABLE"
+                      ? "bg-rose-500 text-white"
+                      : "bg-surface-muted text-muted-foreground",
                   )}
                 >
                   <CheckCircle2 className="size-4 stroke-[2]" />
@@ -510,7 +538,7 @@ function CreateHousePage() {
                         "p-2.5 rounded-xl border text-xs font-semibold transition-all",
                         unavailableReason === reason
                           ? "bg-rose-500 text-white border-rose-500 shadow-xs"
-                          : "bg-surface text-foreground border-border hover:bg-surface-muted"
+                          : "bg-surface text-foreground border-border hover:bg-surface-muted",
                       )}
                     >
                       {reason}
@@ -536,8 +564,12 @@ function CreateHousePage() {
         {currentStep === 4 && (
           <div className="space-y-5">
             <div>
-              <h2 className="font-display text-xl font-bold text-foreground">Step 4: Household Details</h2>
-              <p className="text-xs text-muted-foreground mt-0.5">Income and family size details.</p>
+              <h2 className="font-display text-xl font-bold text-foreground">
+                Step 4: Household Details
+              </h2>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Income and family size details.
+              </p>
             </div>
 
             <div className="card-surface p-5 rounded-2xl border border-border/70 space-y-4">
@@ -578,14 +610,17 @@ function CreateHousePage() {
                     type="number"
                     inputMode="numeric"
                     value={totalMembersCount}
-                    onChange={(e) => handleTotalMembersChange(Math.max(1, parseInt(e.target.value, 10) || 1))}
+                    onChange={(e) =>
+                      handleTotalMembersChange(Math.max(1, parseInt(e.target.value, 10) || 1))
+                    }
                     className="h-12 rounded-xl text-center font-mono font-semibold"
                   />
                 </div>
               </div>
 
               <p className="text-[11px] text-muted-foreground">
-                Total Members will automatically prepare {totalMembersCount} member entry slots in the next step.
+                Total Members will automatically prepare {totalMembersCount} member entry slots in
+                the next step.
               </p>
             </div>
           </div>
@@ -595,7 +630,9 @@ function CreateHousePage() {
         {currentStep === 5 && (
           <div className="space-y-5">
             <div>
-              <h2 className="font-display text-xl font-bold text-foreground">Step 5: Household Members</h2>
+              <h2 className="font-display text-xl font-bold text-foreground">
+                Step 5: Household Members
+              </h2>
               <p className="text-xs text-muted-foreground mt-0.5">
                 Enter names and ages. Eligible 30+ members receive automatic Member IDs.
               </p>
@@ -618,7 +655,8 @@ function CreateHousePage() {
               </div>
               <h2 className="font-display text-xl font-bold text-foreground">Survey Recorded!</h2>
               <p className="text-xs text-muted-foreground max-w-xs mx-auto">
-                Household <span className="font-mono font-bold text-primary">{houseId}</span> saved with {members.length} members.
+                Household <span className="font-mono font-bold text-primary">{houseId}</span> saved
+                with {members.length} members.
               </p>
             </div>
 
@@ -628,8 +666,8 @@ function CreateHousePage() {
                   30+ Members for Health Assessment ({eligible30Plus.length})
                 </Label>
                 {createdHouseUuid && (
-                  <AddMemberSheet 
-                    houseUuid={createdHouseUuid} 
+                  <AddMemberSheet
+                    houseUuid={createdHouseUuid}
                     houseId={activeHouseId}
                     currentMembers30Plus={eligible30Plus.length}
                   />
@@ -658,7 +696,9 @@ function CreateHousePage() {
                       >
                         <div>
                           <p className="font-bold text-sm text-foreground">{member.member_name}</p>
-                          <p className="font-mono text-xs text-primary font-semibold">{member.member_id}</p>
+                          <p className="font-mono text-xs text-primary font-semibold">
+                            {member.member_id}
+                          </p>
                           <p className="text-[11px] text-muted-foreground mt-0.5">
                             Age {mData["age"] ?? "?"} • {mData["gender"] ?? "Unknown"}
                           </p>
@@ -671,8 +711,8 @@ function CreateHousePage() {
                             </span>
                           </div>
                         ) : isCHW ? (
-                          <Button 
-                            size="sm" 
+                          <Button
+                            size="sm"
                             className="rounded-xl font-semibold bg-primary text-white shadow-xs"
                             onClick={() => {
                               setActiveAssessmentMemberId(member.id);
@@ -692,14 +732,13 @@ function CreateHousePage() {
                 </div>
               )}
             </div>
-
           </div>
         )}
 
         {/* STEP 7: MEMBER ASSESSMENT HUB */}
         {currentStep === 7 && activeAssessmentMemberId && (
           <div className="animate-in slide-in-from-right-4 duration-300">
-            <MemberAssessmentForm 
+            <MemberAssessmentForm
               memberId={activeAssessmentMemberId}
               {...(createdHouseUuid ? { houseUuid: createdHouseUuid } : {})}
               onComplete={() => {
@@ -730,7 +769,13 @@ function CreateHousePage() {
             </Button>
           )}
           {currentStep === 6 ? (
-            <Button asChild className={cn("h-12 rounded-xl text-base font-semibold shadow-md", currentStep > 1 ? "w-2/3" : "w-full")}>
+            <Button
+              asChild
+              className={cn(
+                "h-12 rounded-xl text-base font-semibold shadow-md",
+                currentStep > 1 ? "w-2/3" : "w-full",
+              )}
+            >
               <Link to="/houses/$houseId" params={{ houseId: createdHouseUuid ?? "" }}>
                 Finish & Open House Details
               </Link>
@@ -740,7 +785,10 @@ function CreateHousePage() {
               type="button"
               onClick={handleNextStep}
               disabled={createMutation.isPending}
-              className={cn("h-12 rounded-xl text-base font-semibold shadow-md flex items-center justify-center gap-2", currentStep > 1 ? "w-2/3" : "w-full")}
+              className={cn(
+                "h-12 rounded-xl text-base font-semibold shadow-md flex items-center justify-center gap-2",
+                currentStep > 1 ? "w-2/3" : "w-full",
+              )}
             >
               {createMutation.isPending ? (
                 "Saving Household…"

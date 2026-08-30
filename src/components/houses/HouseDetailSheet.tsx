@@ -27,7 +27,7 @@ import { useAuth } from "@/hooks/useAuth";
  */
 export function HouseDetailSheet({ house, open, onOpenChange }: HouseDetailSheetProps) {
   const { can } = useAuth();
-  
+
   if (!house) return null;
 
   const houseIdDisplay = house.house.house_id ?? house.house.house_number ?? "Unnumbered House";
@@ -57,16 +57,26 @@ export function HouseDetailSheet({ house, open, onOpenChange }: HouseDetailSheet
           {/* House Quick Metrics Summary */}
           <div className="grid grid-cols-4 gap-2 text-center bg-surface-muted p-2.5 rounded-2xl border border-border/50 text-xs">
             <div>
-              <span className="text-[10px] text-muted-foreground block uppercase font-medium">Members</span>
-              <span className="font-bold font-mono text-sm text-foreground">{house.members.length}</span>
+              <span className="text-[10px] text-muted-foreground block uppercase font-medium">
+                Members
+              </span>
+              <span className="font-bold font-mono text-sm text-foreground">
+                {house.members.length}
+              </span>
             </div>
             <div>
               <span className="text-[10px] text-risk-high block uppercase font-medium">High</span>
-              <span className="font-bold font-mono text-sm text-risk-high">{house.counts.high}</span>
+              <span className="font-bold font-mono text-sm text-risk-high">
+                {house.counts.high}
+              </span>
             </div>
             <div>
-              <span className="text-[10px] text-risk-moderate block uppercase font-medium">Mod</span>
-              <span className="font-bold font-mono text-sm text-risk-moderate">{house.counts.moderate}</span>
+              <span className="text-[10px] text-risk-moderate block uppercase font-medium">
+                Mod
+              </span>
+              <span className="font-bold font-mono text-sm text-risk-moderate">
+                {house.counts.moderate}
+              </span>
             </div>
             <div>
               <span className="text-[10px] text-risk-low block uppercase font-medium">Low</span>
@@ -99,8 +109,8 @@ export function HouseDetailSheet({ house, open, onOpenChange }: HouseDetailSheet
                     <div className="min-w-0 pr-2">
                       <p className="font-bold text-foreground truncate">{m.name}</p>
                       <p className="text-[10.5px] text-muted-foreground font-mono">
-                        {m.memberId && m.memberId !== "—" ? m.memberId : "Under 30"}{" "}
-                        • {m.age != null ? `Age ${m.age}` : "Age ?"} • {m.gender || "?"}
+                        {m.memberId && m.memberId !== "—" ? m.memberId : "Under 30"} •{" "}
+                        {m.age != null ? `Age ${m.age}` : "Age ?"} • {m.gender || "?"}
                       </p>
                       {m.systolic && m.diastolic ? (
                         <p className="text-[10px] font-mono text-primary mt-0.5 font-medium">
@@ -129,11 +139,17 @@ export function HouseDetailSheet({ house, open, onOpenChange }: HouseDetailSheet
                               className="inline-flex items-center gap-1 text-[10px] font-bold text-primary hover:underline bg-primary-soft/50 px-2 py-0.5 rounded-md"
                             >
                               <Stethoscope className="size-2.5" />
-                              {m.screenedAt ? (can("perform_assessment") ? "Re-Assess" : "View") : "Assess"}
+                              {m.screenedAt
+                                ? can("perform_assessment")
+                                  ? "Re-Assess"
+                                  : "View"
+                                : "Assess"}
                             </Link>
                           </div>
                         ) : (
-                          <span className="text-[9.5px] text-muted-foreground mt-1 block">Pending Assessment</span>
+                          <span className="text-[9.5px] text-muted-foreground mt-1 block">
+                            Pending Assessment
+                          </span>
                         )
                       ) : (
                         <span className="text-[9.5px] text-muted-foreground">Under 30</span>

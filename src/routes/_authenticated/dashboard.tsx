@@ -53,10 +53,14 @@ function DashboardSkeleton() {
         <Skeleton className="h-4 w-72 rounded-md" />
       </div>
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        {[1,2,3,4].map(i => <Skeleton key={i} className="h-28 rounded-2xl" />)}
+        {[1, 2, 3, 4].map((i) => (
+          <Skeleton key={i} className="h-28 rounded-2xl" />
+        ))}
       </div>
       <div className="grid gap-3 lg:grid-cols-3">
-        {[1,2,3].map(i => <Skeleton key={i} className="h-24 rounded-2xl" />)}
+        {[1, 2, 3].map((i) => (
+          <Skeleton key={i} className="h-24 rounded-2xl" />
+        ))}
       </div>
       <div className="grid gap-4 lg:grid-cols-2">
         <Skeleton className="h-48 rounded-2xl" />
@@ -88,16 +92,15 @@ function DashboardPage() {
   const priority = data.members
     .map((m) => {
       const pendingFollowUp = data.followUps.find(
-        (f) => f.member_uuid === m.id && f.status === "pending"
+        (f) => f.member_uuid === m.id && f.status === "pending",
       );
-      const overdueDays = pendingFollowUp && pendingFollowUp.due_date
-        ? Math.max(
-            0,
-            Math.floor(
-              (Date.now() - new Date(pendingFollowUp.due_date).getTime()) / 86_400_000
+      const overdueDays =
+        pendingFollowUp && pendingFollowUp.due_date
+          ? Math.max(
+              0,
+              Math.floor((Date.now() - new Date(pendingFollowUp.due_date).getTime()) / 86_400_000),
             )
-          )
-        : 0;
+          : 0;
 
       return {
         member: m,
@@ -116,13 +119,19 @@ function DashboardPage() {
 
   // Supervisor Team Data
   const isSupervisor = role === "supervisor" || role === "admin" || role === "super_admin";
-  const myTeam = teamMemberships?.filter((tm) => tm.supervisor_id === user?.userId && tm.status === "active") || [];
+  const myTeam =
+    teamMemberships?.filter((tm) => tm.supervisor_id === user?.userId && tm.status === "active") ||
+    [];
 
   const teamStats = myTeam.map((tm) => {
     const cswUser = users?.find((u) => u.profile.id === tm.csw_id);
     const cswHouses = data.houses.filter((h) => h.house.assigned_csw_id === tm.csw_id);
-    const cswMembers = data.members.filter((m) => cswHouses.some((h) => h.house.id === m.houseUuid));
-    const cswFollowUps = data.followUps.filter((f) => cswMembers.some((m) => m.id === f.member_uuid));
+    const cswMembers = data.members.filter((m) =>
+      cswHouses.some((h) => h.house.id === m.houseUuid),
+    );
+    const cswFollowUps = data.followUps.filter((f) =>
+      cswMembers.some((m) => m.id === f.member_uuid),
+    );
 
     return {
       cswId: tm.csw_id,
@@ -133,9 +142,11 @@ function DashboardPage() {
       moderateRisk: cswMembers.filter((m) => m.risk === "moderate").length,
       lowRisk: cswMembers.filter((m) => m.risk === "low").length,
       todayDue: cswFollowUps.filter((f) => followUpStatus(f.status, f.due_date) === "due").length,
-      overdue: cswFollowUps.filter((f) => followUpStatus(f.status, f.due_date) === "overdue").length,
+      overdue: cswFollowUps.filter((f) => followUpStatus(f.status, f.due_date) === "overdue")
+        .length,
       completedToday: cswFollowUps.filter(
-        (f) => followUpStatus(f.status, f.due_date) === "completed" && f.updated_at?.startsWith(today)
+        (f) =>
+          followUpStatus(f.status, f.due_date) === "completed" && f.updated_at?.startsWith(today),
       ).length,
     };
   });
@@ -148,21 +159,30 @@ function DashboardPage() {
         actions={
           <div className="flex items-center gap-2">
             {role === "survey_user" && (
-              <Button asChild className="rounded-xl font-semibold shadow-xs bg-primary text-primary-foreground">
+              <Button
+                asChild
+                className="rounded-xl font-semibold shadow-xs bg-primary text-primary-foreground"
+              >
                 <Link to="/survey/new">
                   <Plus className="size-4 mr-1.5 stroke-[2.5]" /> New Survey
                 </Link>
               </Button>
             )}
             {role === "supervisor" && (
-              <Button asChild className="rounded-xl font-semibold shadow-xs bg-primary text-primary-foreground">
+              <Button
+                asChild
+                className="rounded-xl font-semibold shadow-xs bg-primary text-primary-foreground"
+              >
                 <Link to="/team">
                   <Users className="size-4 mr-1.5 stroke-[2.5]" /> Team
                 </Link>
               </Button>
             )}
             {role === "admin" && (
-              <Button asChild className="rounded-xl font-semibold shadow-xs bg-primary text-primary-foreground">
+              <Button
+                asChild
+                className="rounded-xl font-semibold shadow-xs bg-primary text-primary-foreground"
+              >
                 <Link to="/users">
                   <ShieldCheck className="size-4 mr-1.5 stroke-[2.5]" /> User Management
                 </Link>
@@ -178,8 +198,19 @@ function DashboardPage() {
       />
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <StatCard label="Houses" value={stats.houses} icon={Home} to="/houses" hint={`${stats.mappedHouses} mapped`} />
-        <StatCard label="Members" value={stats.members} icon={Users} hint={`${stats.eligible} eligible (30+)`} />
+        <StatCard
+          label="Houses"
+          value={stats.houses}
+          icon={Home}
+          to="/houses"
+          hint={`${stats.mappedHouses} mapped`}
+        />
+        <StatCard
+          label="Members"
+          value={stats.members}
+          icon={Users}
+          hint={`${stats.eligible} eligible (30+)`}
+        />
         <StatCard
           label="Screened"
           value={stats.screened}
@@ -197,9 +228,27 @@ function DashboardPage() {
       </div>
 
       <div className="grid gap-3 lg:grid-cols-3">
-        <StatCard label="High risk" value={stats.risk.high} tone="high" hint="Members needing urgent contact" to="/analytics" />
-        <StatCard label="Moderate risk" value={stats.risk.moderate} tone="moderate" hint="Watch and review" to="/analytics" />
-        <StatCard label="Low risk" value={stats.risk.low} tone="low" hint="Routine follow-up" to="/analytics" />
+        <StatCard
+          label="High risk"
+          value={stats.risk.high}
+          tone="high"
+          hint="Members needing urgent contact"
+          to="/analytics"
+        />
+        <StatCard
+          label="Moderate risk"
+          value={stats.risk.moderate}
+          tone="moderate"
+          hint="Watch and review"
+          to="/analytics"
+        />
+        <StatCard
+          label="Low risk"
+          value={stats.risk.low}
+          tone="low"
+          hint="Routine follow-up"
+          to="/analytics"
+        />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
@@ -266,8 +315,12 @@ function DashboardPage() {
                     <p className="text-xs text-muted-foreground">CSW / CHW</p>
                   </div>
                   <div className="flex gap-2 text-xs">
-                    <span className="bg-risk-high/10 text-risk-high px-2 py-1 rounded-full">{ts.highRisk} High</span>
-                    <span className="bg-risk-moderate/10 text-risk-moderate px-2 py-1 rounded-full">{ts.moderateRisk} Mod</span>
+                    <span className="bg-risk-high/10 text-risk-high px-2 py-1 rounded-full">
+                      {ts.highRisk} High
+                    </span>
+                    <span className="bg-risk-moderate/10 text-risk-moderate px-2 py-1 rounded-full">
+                      {ts.moderateRisk} Mod
+                    </span>
                   </div>
                 </div>
 
@@ -281,17 +334,23 @@ function DashboardPage() {
                     <p className="text-[10px] text-muted-foreground">Members</p>
                   </div>
                   <div className="bg-surface-muted p-2 rounded-lg text-center">
-                    <p className="text-sm font-semibold tabular-nums text-risk-high">{ts.overdue}</p>
+                    <p className="text-sm font-semibold tabular-nums text-risk-high">
+                      {ts.overdue}
+                    </p>
                     <p className="text-[10px] text-muted-foreground">Overdue</p>
                   </div>
                   <div className="bg-surface-muted p-2 rounded-lg text-center">
-                    <p className="text-sm font-semibold tabular-nums text-primary">{ts.completedToday}</p>
+                    <p className="text-sm font-semibold tabular-nums text-primary">
+                      {ts.completedToday}
+                    </p>
                     <p className="text-[10px] text-muted-foreground">Done</p>
                   </div>
                 </div>
 
                 <Button variant="outline" size="sm" className="w-full text-xs" asChild>
-                  <Link to="/reports" search={{ csw: ts.cswId }}>View CSW Performance</Link>
+                  <Link to="/reports" search={{ csw: ts.cswId }}>
+                    View CSW Performance
+                  </Link>
                 </Button>
               </div>
             ))}
@@ -328,7 +387,10 @@ function DashboardPage() {
                       {member.systolic && member.diastolic
                         ? `BP ${member.systolic}/${member.diastolic}`
                         : "BP not recorded"}{" "}
-                      • {member.bloodSugar != null ? `Sugar ${member.bloodSugar}` : "Sugar not recorded"}
+                      •{" "}
+                      {member.bloodSugar != null
+                        ? `Sugar ${member.bloodSugar}`
+                        : "Sugar not recorded"}
                     </p>
                   </div>
                   <div className="flex shrink-0 items-center gap-2">

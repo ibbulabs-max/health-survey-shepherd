@@ -1,5 +1,11 @@
 import { useState } from "react";
-import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription } from "@/components/ui/drawer";
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerDescription,
+} from "@/components/ui/drawer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
@@ -31,7 +37,7 @@ export function PinSheet({
   prefillType = "house",
 }: PinSheetProps) {
   const refreshDataset = useRefreshDataset();
-  
+
   const [pinDraftType, setPinDraftType] = useState<string>(prefillType);
   const [pinDraftAddress, setPinDraftAddress] = useState<string>(prefillAddress);
   const [isSavingPin, setIsSavingPin] = useState(false);
@@ -79,7 +85,12 @@ export function PinSheet({
         toast.success("Pin linked to existing household.");
       } else {
         const { buildCanonicalHouseId } = await import("@/services/houseService");
-        const generatedHouseId = buildCanonicalHouseId(draftBlock, draftLane, draftSerialNo, draftHousingType);
+        const generatedHouseId = buildCanonicalHouseId(
+          draftBlock,
+          draftLane,
+          draftSerialNo,
+          draftHousingType,
+        );
         await createStandalonePin({
           pinType: pinDraftType,
           latitude: coords.lat,
@@ -108,7 +119,9 @@ export function PinSheet({
               {selectedExistingHouseUuid ? "Link House Location" : "Place Map Pin"}
             </span>
             <DrawerTitle className="font-display text-lg font-bold mt-0.5">
-              {selectedExistingHouseUuid ? "Link Existing House to Pin" : "Add Point of Interest Pin"}
+              {selectedExistingHouseUuid
+                ? "Link Existing House to Pin"
+                : "Add Point of Interest Pin"}
             </DrawerTitle>
             {coords && (
               <DrawerDescription className="text-xs font-mono">
@@ -132,7 +145,7 @@ export function PinSheet({
                       "p-2.5 rounded-xl border flex items-center gap-2 text-xs transition-all touch-target",
                       isSelected
                         ? "bg-primary text-white font-bold border-primary shadow-xs"
-                        : "bg-surface text-foreground border-border/70 hover:bg-surface-muted"
+                        : "bg-surface text-foreground border-border/70 hover:bg-surface-muted",
                     )}
                   >
                     <div

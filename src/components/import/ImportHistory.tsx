@@ -50,7 +50,7 @@ export function ImportHistory() {
   const canTransfer = isAdmin || role === "supervisor";
 
   const transferBatch = useMutation({
-    mutationFn: async ({ batchId, assigneeId }: { batchId: string, assigneeId: string | null }) => {
+    mutationFn: async ({ batchId, assigneeId }: { batchId: string; assigneeId: string | null }) => {
       const { transferImportBatch } = await import("@/services/importBackendService");
       await transferImportBatch({ data: { batchId, newAssigneeId: assigneeId } });
     },
@@ -59,7 +59,7 @@ export function ImportHistory() {
       setIsTransferring(null);
       batches.refetch();
     },
-    onError: (e) => toast.error(e instanceof Error ? e.message : "Failed to transfer import.")
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Failed to transfer import."),
   });
 
   const isLoading = batches.isLoading;
@@ -74,7 +74,10 @@ export function ImportHistory() {
       ) : (
         <>
           {(batches.data ?? []).map((b) => (
-            <div key={b.id} className="card-surface p-4 flex flex-col gap-3 relative overflow-hidden group">
+            <div
+              key={b.id}
+              className="card-surface p-4 flex flex-col gap-3 relative overflow-hidden group"
+            >
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0 flex-1">
                   <p className="flex items-center gap-2 truncate text-sm font-semibold">
@@ -82,22 +85,40 @@ export function ImportHistory() {
                     {Array.isArray(b.file_names) ? b.file_names.join(", ") : "Import"}
                   </p>
                   <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
-                    <span>{b.created_at ? format(new Date(b.created_at), "MMM d, yyyy h:mm a") : "Unknown date"}</span>
+                    <span>
+                      {b.created_at
+                        ? format(new Date(b.created_at), "MMM d, yyyy h:mm a")
+                        : "Unknown date"}
+                    </span>
                     <span>•</span>
                     <span>By {b.uploaded_by_name || "Unknown"}</span>
                     {b.assigned_to_name && (
                       <>
                         <span>•</span>
-                        <span className="text-primary font-medium">Assigned to {b.assigned_to_name}</span>
+                        <span className="text-primary font-medium">
+                          Assigned to {b.assigned_to_name}
+                        </span>
                       </>
                     )}
                   </div>
                   <div className="mt-2 flex flex-wrap gap-2 text-xs">
-                    <span className="bg-surface-muted px-2 py-0.5 rounded-full">{b.total_rows ?? 0} rows</span>
-                    <span className="bg-green-500/10 text-green-700 px-2 py-0.5 rounded-full">{b.houses_added ?? 0} houses</span>
-                    <span className="bg-blue-500/10 text-blue-700 px-2 py-0.5 rounded-full">{b.members_added ?? 0} members</span>
-                    <span className="bg-amber-500/10 text-amber-700 px-2 py-0.5 rounded-full">{b.merged_records ?? 0} merged</span>
-                    {(b.conflicts ?? 0) > 0 && <span className="bg-red-500/10 text-red-700 px-2 py-0.5 rounded-full">{b.conflicts} conflicts</span>}
+                    <span className="bg-surface-muted px-2 py-0.5 rounded-full">
+                      {b.total_rows ?? 0} rows
+                    </span>
+                    <span className="bg-green-500/10 text-green-700 px-2 py-0.5 rounded-full">
+                      {b.houses_added ?? 0} houses
+                    </span>
+                    <span className="bg-blue-500/10 text-blue-700 px-2 py-0.5 rounded-full">
+                      {b.members_added ?? 0} members
+                    </span>
+                    <span className="bg-amber-500/10 text-amber-700 px-2 py-0.5 rounded-full">
+                      {b.merged_records ?? 0} merged
+                    </span>
+                    {(b.conflicts ?? 0) > 0 && (
+                      <span className="bg-red-500/10 text-red-700 px-2 py-0.5 rounded-full">
+                        {b.conflicts} conflicts
+                      </span>
+                    )}
                   </div>
                 </div>
                 <div className="flex flex-col items-end gap-2">
@@ -106,24 +127,34 @@ export function ImportHistory() {
                   </span>
                 </div>
               </div>
-              
+
               <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-border/50">
-                <Button variant="outline" size="sm" className="h-8 rounded-lg text-xs" onClick={() => setSelectedBatch(b)}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 rounded-lg text-xs"
+                  onClick={() => setSelectedBatch(b)}
+                >
                   <Eye className="size-3 mr-1.5" /> View Changes
                 </Button>
-                
+
                 <div className="flex-1" />
-                
+
                 {canTransfer && b.status !== "deleted" && (
-                  <Button variant="ghost" size="sm" className="h-8 rounded-lg text-xs" onClick={() => setIsTransferring(b.id)}>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 rounded-lg text-xs"
+                    onClick={() => setIsTransferring(b.id)}
+                  >
                     <ArrowRightLeft className="size-3 mr-1.5" /> Transfer
                   </Button>
                 )}
-                
+
                 {canDelete && b.status !== "deleted" && (
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     className="h-8 rounded-lg text-xs text-destructive hover:bg-destructive/10 hover:text-destructive"
                     onClick={() => setIsDeletingBatch(b)}
                   >
@@ -134,45 +165,72 @@ export function ImportHistory() {
             </div>
           ))}
 
-          <Dialog open={!!isDeletingBatch} onOpenChange={(open) => !open && !removeBatch.isPending && setIsDeletingBatch(null)}>
+          <Dialog
+            open={!!isDeletingBatch}
+            onOpenChange={(open) => !open && !removeBatch.isPending && setIsDeletingBatch(null)}
+          >
             <DialogContent>
               <DialogHeader>
                 <DialogTitle className="text-destructive">Delete Import?</DialogTitle>
               </DialogHeader>
               <div className="space-y-4 text-sm">
                 <div className="card-surface p-4 border border-destructive/20 bg-destructive/5 space-y-2">
-                  <p><strong>File:</strong> {Array.isArray(isDeletingBatch?.file_names) ? isDeletingBatch?.file_names.join(", ") : "Unknown"}</p>
-                  <p><strong>Imported:</strong> {isDeletingBatch?.created_at ? format(new Date(isDeletingBatch.created_at), "MMM d, yyyy h:mm a") : "Unknown"}</p>
-                  <p><strong>Rows:</strong> {isDeletingBatch?.total_rows ?? 0}</p>
+                  <p>
+                    <strong>File:</strong>{" "}
+                    {Array.isArray(isDeletingBatch?.file_names)
+                      ? isDeletingBatch?.file_names.join(", ")
+                      : "Unknown"}
+                  </p>
+                  <p>
+                    <strong>Imported:</strong>{" "}
+                    {isDeletingBatch?.created_at
+                      ? format(new Date(isDeletingBatch.created_at), "MMM d, yyyy h:mm a")
+                      : "Unknown"}
+                  </p>
+                  <p>
+                    <strong>Rows:</strong> {isDeletingBatch?.total_rows ?? 0}
+                  </p>
                 </div>
-                
+
                 <div className="space-y-2">
                   <p>This import created:</p>
                   <ul className="list-disc pl-5 font-medium">
                     <li>{isDeletingBatch?.houses_added ?? 0} Houses</li>
                     <li>{isDeletingBatch?.members_added ?? 0} Members</li>
                   </ul>
-                  
+
                   <p className="mt-2">It updated:</p>
                   <ul className="list-disc pl-5 text-muted-foreground">
                     <li>{isDeletingBatch?.houses_updated ?? 0} Existing Houses</li>
                   </ul>
-                  
+
                   <p className="mt-2">It merged:</p>
                   <ul className="list-disc pl-5 text-muted-foreground">
                     <li>{isDeletingBatch?.merged_records ?? 0} Existing Members</li>
                   </ul>
                 </div>
-                
+
                 <p className="text-xs text-muted-foreground mt-4 border-t pt-4">
-                  <strong>Safety check:</strong> Only records created exclusively by this import will be destructively removed. Unrelated historical data and merged/updated records will simply lose this import as a source.
+                  <strong>Safety check:</strong> Only records created exclusively by this import
+                  will be destructively removed. Unrelated historical data and merged/updated
+                  records will simply lose this import as a source.
                 </p>
-                
+
                 <div className="flex justify-end gap-2 pt-2">
-                  <Button variant="outline" disabled={removeBatch.isPending} onClick={() => setIsDeletingBatch(null)}>Cancel</Button>
-                  <Button variant="destructive" disabled={removeBatch.isPending} onClick={() => {
-                    if (isDeletingBatch) removeBatch.mutate(isDeletingBatch);
-                  }}>
+                  <Button
+                    variant="outline"
+                    disabled={removeBatch.isPending}
+                    onClick={() => setIsDeletingBatch(null)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    disabled={removeBatch.isPending}
+                    onClick={() => {
+                      if (isDeletingBatch) removeBatch.mutate(isDeletingBatch);
+                    }}
+                  >
                     {removeBatch.isPending ? "Deleting..." : "Continue"}
                   </Button>
                 </div>
@@ -198,15 +256,16 @@ export function ImportHistory() {
               </DialogHeader>
               <div className="space-y-4">
                 <p className="text-sm text-muted-foreground">
-                  Select a new CHW or Supervisor to take ownership of all records in this import batch.
+                  Select a new CHW or Supervisor to take ownership of all records in this import
+                  batch.
                 </p>
-                <TransferForm 
+                <TransferForm
                   onTransfer={(assigneeId) => {
                     if (isTransferring) {
                       transferBatch.mutate({ batchId: isTransferring, assigneeId });
                     }
-                  }} 
-                  isPending={transferBatch.isPending} 
+                  }}
+                  isPending={transferBatch.isPending}
                 />
               </div>
             </DialogContent>
@@ -217,29 +276,37 @@ export function ImportHistory() {
   );
 }
 
-function TransferForm({ onTransfer, isPending }: { onTransfer: (id: string | null) => void, isPending: boolean }) {
+function TransferForm({
+  onTransfer,
+  isPending,
+}: {
+  onTransfer: (id: string | null) => void;
+  isPending: boolean;
+}) {
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
   const { user, isAdmin } = useAuth();
-  
+
   const users = useQuery({
     queryKey: ["users-for-transfer"],
     queryFn: async () => {
       // Simplistic user fetch - in a real scenario, use existing team query from ImportPage
       const { data } = await supabase.from(tables.profiles).select("id, full_name, username");
       return data ?? [];
-    }
+    },
   });
 
   return (
     <div className="space-y-4">
-      <select 
-        className="w-full border rounded-lg p-2" 
-        value={selectedUser || ""} 
-        onChange={e => setSelectedUser(e.target.value)}
+      <select
+        className="w-full border rounded-lg p-2"
+        value={selectedUser || ""}
+        onChange={(e) => setSelectedUser(e.target.value)}
       >
         <option value="">-- Unassigned --</option>
-        {(users.data ?? []).map(u => (
-          <option key={u.id} value={u.id}>{u.full_name || u.username}</option>
+        {(users.data ?? []).map((u) => (
+          <option key={u.id} value={u.id}>
+            {u.full_name || u.username}
+          </option>
         ))}
       </select>
       <div className="flex justify-end gap-2">
@@ -248,7 +315,7 @@ function TransferForm({ onTransfer, isPending }: { onTransfer: (id: string | nul
         </Button>
       </div>
     </div>
-  )
+  );
 }
 
 function BatchChangesViewer({ batch }: { batch: any }) {
@@ -281,7 +348,9 @@ function BatchChangesViewer({ batch }: { batch: any }) {
         </div>
         <div className="bg-surface-muted p-3 rounded-xl">
           <p className="text-xs text-muted-foreground uppercase tracking-wider">Data Conflicts</p>
-          <p className="font-display font-semibold text-xl text-amber-600">{batch.conflicts ?? 0}</p>
+          <p className="font-display font-semibold text-xl text-amber-600">
+            {batch.conflicts ?? 0}
+          </p>
         </div>
       </div>
 
@@ -290,7 +359,9 @@ function BatchChangesViewer({ batch }: { batch: any }) {
         {conflicts.isLoading ? (
           <p className="text-xs text-muted-foreground">Loading changes...</p>
         ) : (conflicts.data ?? []).length === 0 ? (
-          <p className="text-xs text-muted-foreground bg-surface-muted p-4 rounded-xl text-center">No conflicts or overwrites logged for this import.</p>
+          <p className="text-xs text-muted-foreground bg-surface-muted p-4 rounded-xl text-center">
+            No conflicts or overwrites logged for this import.
+          </p>
         ) : (
           <div className="border rounded-xl overflow-hidden">
             <div className="max-h-[400px] overflow-y-auto">
@@ -306,10 +377,16 @@ function BatchChangesViewer({ batch }: { batch: any }) {
                 <tbody className="divide-y">
                   {(conflicts.data ?? []).map((c: any) => (
                     <tr key={c.id}>
-                      <td className="px-3 py-2 truncate max-w-[120px]">{c.house_id} {c.member_ref ? `(Member)` : ''}</td>
+                      <td className="px-3 py-2 truncate max-w-[120px]">
+                        {c.house_id} {c.member_ref ? `(Member)` : ""}
+                      </td>
                       <td className="px-3 py-2 font-mono text-[10px]">{c.field}</td>
-                      <td className="px-3 py-2 text-destructive/80 line-through truncate max-w-[150px]">{c.existing_value || "—"}</td>
-                      <td className="px-3 py-2 text-green-700 font-medium truncate max-w-[150px]">{c.new_value || "—"}</td>
+                      <td className="px-3 py-2 text-destructive/80 line-through truncate max-w-[150px]">
+                        {c.existing_value || "—"}
+                      </td>
+                      <td className="px-3 py-2 text-green-700 font-medium truncate max-w-[150px]">
+                        {c.new_value || "—"}
+                      </td>
                     </tr>
                   ))}
                 </tbody>

@@ -2,8 +2,24 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { tables } from "@/config/database";
-import { calculateRisk, toStringArray, numberOrNull } from "@/lib/domain";
-import type { RiskLevel } from "@/config/risk";
+import {
+  importJobManager,
+  type PreviewHousePayload,
+  type PreviewConflictPayload,
+  type JobPayload,
+} from "@/services/importJobManager";
+
+const memberSchema = z.object({
+  key: z.string(),
+  name: z.string(),
+  memberId: z.string().nullable(),
+  fields: z.record(z.unknown()),
+  extra: z.record(z.unknown()),
+  existingId: z.string().nullable(),
+  matchConfidence: z.number(),
+  action: z.enum(["insert", "merge", "review"]),
+  sourceFiles: z.array(z.string()),
+});
 
 const houseSchema = z.object({
   key: z.string(),
@@ -15,318 +31,225 @@ const houseSchema = z.object({
   sourceFiles: z.array(z.string()),
   hasLocation: z.boolean(),
   hasInvalidCoordinates: z.boolean(),
-  members: z.array(
-    z.object({
-      key: z.string(),
-      name: z.string(),
-      memberId: z.string().nullable(),
-      fields: z.record(z.unknown()),
-      extra: z.record(z.unknown()),
-      existingId: z.string().nullable(),
-      matchConfidence: z.number(),
-      action: z.enum(["insert", "merge", "review"]),
-      sourceFiles: z.array(z.string()),
-    })
-  ),
+  members: z.array(memberSchema),
 });
 
-export const commitImportChunk = createServerFn({ method: "POST" })
+const conflictSchema = z.object({
+  entity: z.enum(["house", "member"]),
+  houseKey: z.string(),
+  memberKey: z.string().optional(),
+  label: z.string(),
+  field: z.string(),
+  existingValue: z.string(),
+  newValue: z.string(),
+  sourceFile: z.string(),
+});
+
+/* -------------------------------------------------------------------------- */
+/*                     1. START SERVER BACKGROUND IMPORT JOB                  */
+/* -------------------------------------------------------------------------- */
+
+export const startImportJob = createServerFn({ method: "POST" })
   .validator(
     z.object({
-      batchId: z.string(),
-      houses: z.array(houseSchema),
-      decisions: z.record(z.enum(["insert", "merge"])).optional(),
+      fileNames: z.array(z.string()),
       userId: z.string(),
+      username: z.string().nullable(),
       assignedTo: z.string().nullable().optional(),
+      assignedToName: z.string().nullable().optional(),
       supervisorId: z.string().nullable().optional(),
-    })
+      totalRows: z.number(),
+      uniqueHouses: z.number(),
+      newFields: z.array(z.string()).optional(),
+      houses: z.array(houseSchema),
+      conflicts: z.array(conflictSchema).optional(),
+      decisions: z.record(z.enum(["insert", "merge"])).optional(),
+    }),
   )
   .handler(async ({ data: payload }) => {
     const adminClient = getSupabaseAdmin();
-    const { batchId, houses, decisions, userId, assignedTo, supervisorId } = payload;
+    const {
+      fileNames,
+      userId,
+      username,
+      assignedTo,
+      assignedToName,
+      supervisorId,
+      totalRows,
+      uniqueHouses,
+      newFields,
+      houses,
+      conflicts,
+      decisions,
+    } = payload;
 
-    let actualSupervisorId = supervisorId ?? null;
-    if (assignedTo && !actualSupervisorId) {
-      const { data: membership } = await adminClient
-        .from(tables.teamMemberships)
-        .select("supervisor_id")
-        .eq("csw_id", assignedTo)
-        .eq("status", "active")
-        .maybeSingle();
-      if (membership) {
-        actualSupervisorId = membership.supervisor_id;
-      }
-    }
-
-    let housesAdded = 0;
-    let housesUpdated = 0;
-    let membersAdded = 0;
-    let membersMerged = 0;
-    let followUpsScheduled = 0;
-
-    const { nextDueDate } = await import("@/config/followups");
-
-    for (const house of houses) {
-      const latRaw = house.fields["latitude"];
-      const lngRaw = house.fields["longitude"];
-      const lat = numberOrNull(latRaw);
-      const lng = numberOrNull(lngRaw);
-      
-      const validLat = lat != null && lat >= -90 && lat <= 90 ? lat : null;
-      const validLng = lng != null && lng >= -180 && lng <= 180 ? lng : null;
-
-      const locationStatus = validLat != null && validLng != null ? "mapped" : "not_mapped";
-
-      const housePayload = {
-        house_id: house.fields["house_id"]?.toString() ?? null,
-        house_number: house.fields["house_number"]?.toString() ?? null,
-        address: house.fields["address"]?.toString() ?? null,
-        owner_name: house.fields["owner_name"]?.toString() ?? null,
-        total_members: numberOrNull(house.fields["total_members"]),
-        latitude: validLat,
-        longitude: validLng,
-        location_status: locationStatus,
-        location_source: validLat != null && validLng != null ? "import" : null,
-        pin_type: "house",
-        data: house.extra as Record<string, any>,
-        source_files: house.sourceFiles,
+    // 1. Create the persistent batch record in Supabase
+    const { data: batch, error: batchError } = await adminClient
+      .from(tables.importBatches)
+      .insert({
+        file_names: fileNames,
         uploaded_by: userId,
-        uploaded_at: new Date().toISOString(),
-        assigned_csw_id: assignedTo ?? null,
-        supervisor_id: actualSupervisorId,
-      };
+        uploaded_by_name: username,
+        assigned_to: assignedTo ?? null,
+        assigned_to_name: assignedToName ?? null,
+        supervisor_id: supervisorId ?? null,
+        total_rows: totalRows,
+        unique_houses: uniqueHouses,
+        new_fields: newFields ?? [],
+        status: "processing",
+      })
+      .select("id")
+      .single();
 
-      let houseUuid = house.existingId;
-      if (houseUuid) {
-        const clean = Object.fromEntries(Object.entries(housePayload).filter(([, v]) => v != null));
-        const { error } = await adminClient.from(tables.houses).update(clean).eq("id", houseUuid);
-        if (error) throw error;
-        housesUpdated += 1;
-      } else {
-        const { data, error } = await adminClient
-          .from(tables.houses)
-          .insert({ ...housePayload, created_by: userId })
-          .select("id")
-          .single();
-        if (error) throw error;
-        houseUuid = data.id;
-        housesAdded += 1;
+    if (batchError || !batch) {
+      throw new Error(batchError?.message || "Failed to create import batch record");
+    }
+
+    const batchId = batch.id;
+
+    // 2. Register job in server-side singleton manager
+    importJobManager.registerJob(batchId, {
+      fileNames,
+      uploadedBy: userId,
+      uploadedByName: username,
+      assignedTo: assignedTo ?? null,
+      assignedToName: assignedToName ?? null,
+      supervisorId: supervisorId ?? null,
+      totalRows,
+      uniqueHouses,
+    });
+
+    // 3. Trigger background worker execution (detached from HTTP response)
+    const jobPayload: JobPayload = {
+      houses: houses as PreviewHousePayload[],
+      conflicts: (conflicts || []) as PreviewConflictPayload[],
+      decisions: decisions ?? undefined,
+      newFields: newFields ?? undefined,
+    };
+
+    importJobManager.startBackgroundProcessing(batchId, jobPayload);
+
+    // Return immediately to client
+    return {
+      success: true,
+      batchId,
+      status: "processing",
+    };
+  });
+
+/* -------------------------------------------------------------------------- */
+/*                     2. GET IMPORT JOB STATUS & PROGRESS                    */
+/* -------------------------------------------------------------------------- */
+
+export const getImportJobStatus = createServerFn({ method: "POST" })
+  .validator(z.object({ batchId: z.string().optional() }))
+  .handler(async ({ data: { batchId } }) => {
+    // 1. Check in-memory active job first
+    if (batchId) {
+      const memJob = importJobManager.getJob(batchId);
+      if (memJob) {
+        return { success: true, job: memJob };
       }
-
-      for (const member of house.members) {
-        const decision = decisions?.[member.key];
-        const action = member.action === "review" ? (decision ?? "insert") : member.action;
-        
-        // Deep field merge strategy
-        const newFieldsAndExtra = { ...member.fields, ...member.extra } as Record<string, any>;
-
-        let memberUuid: string | null = null;
-
-        if (action === "merge" && member.existingId) {
-          const { data: existing } = await adminClient
-            .from(tables.houseMembers)
-            .select("data")
-            .eq("id", member.existingId)
-            .maybeSingle();
-            
-          const existingData = (existing?.data ?? {}) as Record<string, any>;
-          // Retain existing valid values over empty new values
-          const merged = { ...existingData };
-          for (const [k, v] of Object.entries(newFieldsAndExtra)) {
-            if (v != null && v !== "") {
-              merged[k] = v;
-            }
-          }
-
-          const { error } = await adminClient
-            .from(tables.houseMembers)
-            .update({
-              member_name: member.name,
-              data: merged,
-              source_files: member.sourceFiles,
-              possible_duplicate: member.matchConfidence < 0.95,
-              updated_at: new Date().toISOString(),
-            })
-            .eq("id", member.existingId);
-          if (error) throw error;
-          memberUuid = member.existingId;
-          membersMerged += 1;
-        } else {
-          const { data: inserted, error } = await adminClient
-            .from(tables.houseMembers)
-            .insert({
-              house_uuid: houseUuid,
-              member_id: member.memberId,
-              member_name: member.name,
-              data: newFieldsAndExtra,
-              source_files: member.sourceFiles,
-              uploaded_by: userId,
-              uploaded_at: new Date().toISOString(),
-              possible_duplicate: member.action === "review",
-            })
-            .select("id")
-            .single();
-          if (error) throw error;
-          memberUuid = inserted.id;
-          membersAdded += 1;
-        }
-
-        // Generate automatic follow-up and assessment from survey date
-        if (memberUuid && houseUuid) {
-          const screeningDateRaw = member.fields["screening_date"];
-          const surveyDate = screeningDateRaw ? new Date(String(screeningDateRaw)) : new Date();
-
-          const systolic = numberOrNull(member.fields["systolic"]);
-          const diastolic = numberOrNull(member.fields["diastolic"]);
-          const bloodSugar = numberOrNull(member.fields["blood_sugar"]);
-          const conditions = toStringArray(member.fields["known_history"]);
-          const riskResult = calculateRisk({ systolic, diastolic, bloodSugar, conditions });
-          const risk: RiskLevel = riskResult.level;
-
-          const hasAssessmentData = systolic != null || diastolic != null || bloodSugar != null || conditions.length > 0;
-
-          try {
-            if (hasAssessmentData) {
-              await adminClient.from(tables.memberAssessments).insert({
-                house_uuid: houseUuid,
-                member_uuid: memberUuid,
-                systolic,
-                diastolic,
-                blood_sugar: bloodSugar,
-                known_history: conditions,
-                risk_level: risk,
-                risk_reasons: riskResult.reasons,
-                assessed_by: userId,
-                assessed_at: surveyDate.toISOString(),
-                available: true,
-                referral_needed: false
-              });
-
-              const { data: currentMember } = await adminClient
-                .from(tables.houseMembers)
-                .select("data")
-                .eq("id", memberUuid)
-                .single();
-              const finalData = (currentMember?.data ?? {}) as Record<string, any>;
-              const age = numberOrNull(finalData["age"] ?? member.fields["age"]);
-              const isEligible = age != null && age >= 29;
-
-              if (isEligible) {
-                // Check for existing completed follow-ups in DB to base the next date on
-                const { data: completedFollowUps } = await adminClient
-                  .from(tables.followUps)
-                  .select("due_date, updated_at")
-                  .eq("member_uuid", memberUuid)
-                  .eq("status", "completed")
-                  .order("updated_at", { ascending: false })
-                  .limit(1);
-                  
-                const lastCompletedDb = completedFollowUps?.[0];
-                const followUpHistoryStr = String(member.fields["follow_ups"] || "");
-                
-                let latestHistoryDate: Date | null = null;
-                if (followUpHistoryStr) {
-                  const parts = followUpHistoryStr.split(/[\n,;]/);
-                  const dates: Date[] = [];
-                  for (const part of parts) {
-                    if (part.toUpperCase().includes('COMPLETED') || part.includes('|')) {
-                      const dateStr = part.split('|')[0].trim();
-                      const d = new Date(dateStr);
-                      if (!isNaN(d.getTime())) {
-                        dates.push(d);
-                      }
-                    }
-                  }
-                  if (dates.length > 0) {
-                    dates.sort((a, b) => b.getTime() - a.getTime());
-                    latestHistoryDate = dates[0];
-                  }
-                }
-                
-                let baseDateForNext = surveyDate;
-                
-                if (lastCompletedDb && lastCompletedDb.updated_at) {
-                  const dbDate = new Date(lastCompletedDb.updated_at);
-                  baseDateForNext = (latestHistoryDate && latestHistoryDate > dbDate) ? latestHistoryDate : dbDate;
-                } else if (latestHistoryDate) {
-                  baseDateForNext = latestHistoryDate;
-                }
-
-                // Check if a pending follow-up already exists
-                const { data: existingPending } = await adminClient.from(tables.followUps)
-                  .select("id, due_date")
-                  .eq("member_uuid", memberUuid)
-                  .eq("status", "pending")
-                  .maybeSingle();
-
-                const { nextDueDate } = await import("@/config/followups");
-                const nextTargetDate = nextDueDate(baseDateForNext, risk);
-                const nextTargetDateStr = nextTargetDate.toISOString().split('T')[0];
-
-                if (existingPending) {
-                   // Update existing instead of deleting to preserve ID and not duplicate
-                   await adminClient.from(tables.followUps).update({
-                     due_date: nextTargetDateStr,
-                     risk_level: risk,
-                     reason: `Imported screening ${risk} risk follow-up`,
-                     updated_at: new Date().toISOString()
-                   }).eq("id", existingPending.id);
-                   
-                   await adminClient.from(tables.tasks).update({
-                     due_date: nextTargetDateStr,
-                     updated_at: new Date().toISOString()
-                   }).eq("follow_up_id", existingPending.id);
-                } else {
-                   // Insert new pending follow-up
-                   const { data: insertedFup } = await adminClient.from(tables.followUps).insert({
-                     house_uuid: houseUuid,
-                     member_uuid: memberUuid,
-                     due_date: nextTargetDateStr,
-                     reason: `Imported screening ${risk} risk follow-up`,
-                     risk_level: risk,
-                     status: "pending",
-                     created_by: userId,
-                   }).select("id").single();
-                   
-                   if (insertedFup) {
-                     await adminClient.from(tables.tasks).insert({
-                       house_uuid: houseUuid,
-                       member_uuid: memberUuid,
-                       follow_up_id: insertedFup.id,
-                       task_type: "follow_up",
-                       status: "pending",
-                       due_date: nextTargetDateStr,
-                       created_by: userId,
-                     });
-                   }
-                   followUpsScheduled += 1;
-                }
-              }
-            }
-          } catch (fuErr) {
-            console.error("Failed to schedule follow-up for member:", memberUuid, fuErr);
-          }
-        }
+    } else {
+      const activeJob = importJobManager.getActiveJob();
+      if (activeJob) {
+        return { success: true, job: activeJob };
       }
     }
 
-    return { success: true, housesAdded, housesUpdated, membersAdded, membersMerged, followUpsScheduled };
+    // 2. Fallback query from Supabase database
+    const adminClient = getSupabaseAdmin();
+    let query = adminClient
+      .from(tables.importBatches)
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(1);
+
+    if (batchId) {
+      query = adminClient.from(tables.importBatches).select("*").eq("id", batchId).limit(1);
+    }
+
+    const { data: batches, error } = await query;
+    if (error || !batches || batches.length === 0) {
+      return { success: false, job: null };
+    }
+
+    const b = batches[0];
+    const isCompleted = b.status === "completed";
+    const isFailed = b.status === "failed";
+    const isProcessing = b.status === "processing";
+
+    const total = b.total_rows || 1;
+    const processed = isCompleted ? total : 0;
+    const percent = isCompleted ? 100 : isProcessing ? 50 : 0;
+
+    return {
+      success: true,
+      job: {
+        id: b.id,
+        fileNames: Array.isArray(b.file_names) ? b.file_names : [],
+        uploadedBy: b.uploaded_by,
+        uploadedByName: b.uploaded_by_name,
+        assignedTo: b.assigned_to,
+        assignedToName: b.assigned_to_name,
+        supervisorId: b.supervisor_id,
+        status: b.status || "completed",
+        currentStage: isCompleted
+          ? "Completed"
+          : isProcessing
+            ? "Processing"
+            : b.status || "Unknown",
+        totalRows: total,
+        processedRows: processed,
+        housesAdded: b.houses_added || 0,
+        housesUpdated: b.houses_updated || 0,
+        membersAdded: b.members_added || 0,
+        membersMerged: b.members_merged || b.merged_records || 0,
+        failedRows: 0,
+        conflictsCount: b.conflicts || 0,
+        progressPercent: percent,
+        errorSummary: [],
+        startedAt: b.created_at,
+        completedAt: isCompleted ? b.updated_at : null,
+        lastHeartbeatAt: b.updated_at || b.created_at,
+      },
+    };
   });
+
+/* -------------------------------------------------------------------------- */
+/*                     3. CANCEL RUNNING IMPORT JOB                           */
+/* -------------------------------------------------------------------------- */
+
+export const cancelImportJob = createServerFn({ method: "POST" })
+  .validator(z.object({ batchId: z.string() }))
+  .handler(async ({ data: { batchId } }) => {
+    const cancelled = importJobManager.cancelJob(batchId);
+    const adminClient = getSupabaseAdmin();
+    await adminClient
+      .from(tables.importBatches)
+      .update({ status: "cancelled", updated_at: new Date().toISOString() })
+      .eq("id", batchId);
+
+    return { success: true, cancelled };
+  });
+
+/* -------------------------------------------------------------------------- */
+/*                     4. DELETE IMPORT BATCH (PRESERVED)                     */
+/* -------------------------------------------------------------------------- */
 
 export const deleteImportBatch = createServerFn({ method: "POST" })
   .validator(z.object({ batchId: z.string() }))
   .handler(async ({ data: { batchId } }) => {
     const adminClient = getSupabaseAdmin();
-    
-    // Get batch info
+
     const { data: batch, error: bError } = await adminClient
       .from(tables.importBatches)
       .select("file_names")
       .eq("id", batchId)
       .single();
-      
+
     if (bError || !batch) throw new Error("Batch not found.");
-    
+
     const files = Array.isArray(batch.file_names) ? batch.file_names : [];
     if (!files.length) throw new Error("No files in batch.");
 
@@ -339,21 +262,21 @@ export const deleteImportBatch = createServerFn({ method: "POST" })
         .from(tables.houseMembers)
         .select("id, source_files")
         .contains("source_files", [filename]);
-        
+
       if (mError) throw mError;
-      
-      for (const member of (members || [])) {
+
+      for (const member of members || []) {
         if (member.source_files.length === 1) {
-          // Delete assessments/followups first to prevent FK constraint errors if cascade isn't on
           await adminClient.from(tables.memberAssessments).delete().eq("member_uuid", member.id);
           await adminClient.from(tables.followUps).delete().eq("member_uuid", member.id);
-          
           await adminClient.from(tables.houseMembers).delete().eq("id", member.id);
           membersDeleted++;
         } else {
-          // Update array
           const newSources = member.source_files.filter((f: string) => f !== filename);
-          await adminClient.from(tables.houseMembers).update({ source_files: newSources }).eq("id", member.id);
+          await adminClient
+            .from(tables.houseMembers)
+            .update({ source_files: newSources })
+            .eq("id", member.id);
         }
       }
 
@@ -362,70 +285,90 @@ export const deleteImportBatch = createServerFn({ method: "POST" })
         .from(tables.houses)
         .select("id, source_files")
         .contains("source_files", [filename]);
-        
+
       if (hError) throw hError;
 
-      for (const house of (houses || [])) {
+      for (const house of houses || []) {
         if (house.source_files.length === 1) {
           await adminClient.from(tables.houses).delete().eq("id", house.id);
           housesDeleted++;
         } else {
           const newSources = house.source_files.filter((f: string) => f !== filename);
-          await adminClient.from(tables.houses).update({ source_files: newSources }).eq("id", house.id);
+          await adminClient
+            .from(tables.houses)
+            .update({ source_files: newSources })
+            .eq("id", house.id);
         }
       }
     }
 
-    // Delete conflicts
     await adminClient.from(tables.importConflicts).delete().eq("batch_id", batchId);
-    
-    // Mark batch as deleted
-    await adminClient.from(tables.importBatches).update({ status: "deleted", updated_at: new Date().toISOString() }).eq("id", batchId);
+    await adminClient
+      .from(tables.importBatches)
+      .update({ status: "deleted", updated_at: new Date().toISOString() })
+      .eq("id", batchId);
 
     return { success: true, housesDeleted, membersDeleted };
   });
+
+/* -------------------------------------------------------------------------- */
+/*                     5. TRANSFER IMPORT BATCH (PRESERVED)                   */
+/* -------------------------------------------------------------------------- */
 
 export const transferImportBatch = createServerFn({ method: "POST" })
   .validator(z.object({ batchId: z.string(), newAssigneeId: z.string().nullable() }))
   .handler(async ({ data: { batchId, newAssigneeId } }) => {
     const adminClient = getSupabaseAdmin();
-    
+
     const { data: batch, error: bError } = await adminClient
       .from(tables.importBatches)
       .select("file_names, assigned_to")
       .eq("id", batchId)
       .single();
-      
+
     if (bError) throw bError;
-    
+
     const files = Array.isArray(batch.file_names) ? batch.file_names : [];
     if (!files.length) throw new Error("No files found in batch.");
-    
+
     let assignedToName = null;
     let supervisorId = null;
-    
+
     if (newAssigneeId) {
-      const { data: profile } = await adminClient.from(tables.profiles).select("full_name, username").eq("id", newAssigneeId).single();
+      const { data: profile } = await adminClient
+        .from(tables.profiles)
+        .select("full_name, username")
+        .eq("id", newAssigneeId)
+        .single();
       assignedToName = profile?.full_name || profile?.username || null;
-      
-      const { data: membership } = await adminClient.from(tables.teamMemberships).select("supervisor_id").eq("csw_id", newAssigneeId).eq("status", "active").maybeSingle();
+
+      const { data: membership } = await adminClient
+        .from(tables.teamMemberships)
+        .select("supervisor_id")
+        .eq("csw_id", newAssigneeId)
+        .eq("status", "active")
+        .maybeSingle();
       if (membership) {
         supervisorId = membership.supervisor_id;
       }
     }
-    
-    await adminClient.from(tables.importBatches).update({
-      assigned_to: newAssigneeId,
-      assigned_to_name: assignedToName,
-      supervisor_id: supervisorId,
-      updated_at: new Date().toISOString()
-    }).eq("id", batchId);
-    
+
+    await adminClient
+      .from(tables.importBatches)
+      .update({
+        assigned_to: newAssigneeId,
+        assigned_to_name: assignedToName,
+        supervisor_id: supervisorId,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", batchId);
+
     for (const file of files) {
-      await adminClient.from(tables.houses)
+      await adminClient
+        .from(tables.houses)
         .update({ assigned_csw_id: newAssigneeId, supervisor_id: supervisorId })
         .contains("source_files", [file]);
     }
-    
+
     return { success: true };
   });

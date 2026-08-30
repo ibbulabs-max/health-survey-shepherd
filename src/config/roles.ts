@@ -15,8 +15,7 @@ export const roleLabels: Record<AppRole, string> = {
   survey_user: "CSW / CHW",
 };
 
-export const isAdminLike = (role: AppRole | null) =>
-  role === "admin" || role === "super_admin";
+export const isAdminLike = (role: AppRole | null) => role === "admin" || role === "super_admin";
 
 export type Permission =
   | "manage_users"

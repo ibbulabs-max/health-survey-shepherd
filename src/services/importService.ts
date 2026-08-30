@@ -120,25 +120,25 @@ export async function extractHeaders(files: File[]): Promise<{
       }
     });
   }
-  
+
   const allHeaders = Array.from(headers);
   const unmappedHeaders: string[] = [];
   const suggestedMapping: Record<string, string> = {};
 
   // Fuzzy match logic
   const targetCanonical = Object.keys(importConfig.aliases);
-  
-  allHeaders.forEach(header => {
+
+  allHeaders.forEach((header) => {
     const canonical = aliasLookup.get(normaliseHeader(header));
     if (canonical) {
       suggestedMapping[header] = canonical;
     } else {
       unmappedHeaders.push(header);
-      
+
       // Try fuzzy matching (Levenshtein) to targetCanonical
       let bestMatch = "";
       let bestScore = 0;
-      targetCanonical.forEach(tc => {
+      targetCanonical.forEach((tc) => {
         const score = nameSimilarity(header, tc);
         if (score > 0.7 && score > bestScore) {
           bestScore = score;
@@ -154,7 +154,10 @@ export async function extractHeaders(files: File[]): Promise<{
   return { allHeaders, unmappedHeaders, suggestedMapping };
 }
 
-export async function parseFiles(files: File[], customMappings: Record<string, string> = {}): Promise<{
+export async function parseFiles(
+  files: File[],
+  customMappings: Record<string, string> = {},
+): Promise<{
   rows: ParsedRow[];
   unmappedHeaders: Record<string, string[]>;
 }> {
@@ -212,8 +215,12 @@ const splitBp = (row: Record<string, unknown>) => {
 const houseKeyOf = (row: Record<string, unknown>) => {
   const id = row["house_id"] ?? row["house_number"];
   if (id) return `id:${String(id).trim().toLowerCase()}`;
-  const address = String(row["address"] ?? "").trim().toLowerCase();
-  const owner = String(row["owner_name"] ?? "").trim().toLowerCase();
+  const address = String(row["address"] ?? "")
+    .trim()
+    .toLowerCase();
+  const owner = String(row["owner_name"] ?? "")
+    .trim()
+    .toLowerCase();
   return `addr:${address}|${owner}` || "unknown";
 };
 
@@ -251,7 +258,10 @@ function identityConfidence(
   return { score: Math.min(1, score), reason: reasons.join(", ") };
 }
 
-export async function buildPreview(files: File[], customMappings: Record<string, string> = {}): Promise<ImportPreview> {
+export async function buildPreview(
+  files: File[],
+  customMappings: Record<string, string> = {},
+): Promise<ImportPreview> {
   const { rows, unmappedHeaders } = await parseFiles(files, customMappings);
   rows.forEach((r) => splitBp(r.mapped));
 
@@ -361,7 +371,6 @@ export async function buildPreview(files: File[], customMappings: Record<string,
       house.hasLocation = true;
       house.hasInvalidCoordinates = false;
     } else if (rawLat != null || rawLng != null) {
-      // Coordinates were provided but are invalid — flag as data quality issue
       house.hasInvalidCoordinates = true;
       house.hasLocation = false;
     }
@@ -388,6 +397,7 @@ export async function buildPreview(files: File[], customMappings: Record<string,
       "physical_activity",
       "screening_date",
       "surveyor",
+      "follow_ups",
     ].forEach((f) => {
       if (row.mapped[f] != null && row.mapped[f] !== "") memberFields[f] = row.mapped[f];
     });
@@ -435,8 +445,8 @@ export async function buildPreview(files: File[], customMappings: Record<string,
     }
 
     const candidates: { member: HouseMember; score: number; reason: string }[] = [];
-    
-    // First, check members in the SAME house
+
+    // Check members in the same house
     (existingMembersByHouse.get(existing?.id ?? "") ?? []).forEach((m) => {
       const data = (m.data ?? {}) as Record<string, unknown>;
       const result = identityConfidence(candidate, {
@@ -447,26 +457,21 @@ export async function buildPreview(files: File[], customMappings: Record<string,
       });
       candidates.push({ member: m, score: result.score, reason: result.reason });
     });
-    
+
     let best = candidates.sort((a, b) => b.score - a.score)[0] ?? null;
 
-    // If no strong match in the same house, search GLOBALLY (in case they moved or house ID changed)
+    // Search globally if no match in same house
     if (!best || best.score < importConfig.identity.possibleMatch) {
       const globalCandidates: { member: HouseMember; score: number; reason: string }[] = [];
-      
-      // If we have a candidate Member ID, we can quickly look for it
       const hasMemberId = Boolean(candidate.memberId && candidate.memberId.trim().length > 0);
-      
+
       memberRows.forEach((m) => {
-        // Skip members already in the candidates list to avoid duplicate checks
         if (existing?.id === m.house_uuid) return;
-        
         const data = (m.data ?? {}) as Record<string, unknown>;
-        
-        // Optimization: if no member ID provided, only check members with very similar names
+
         if (!hasMemberId) {
           const sim = nameSimilarity(candidate.name, m.member_name ?? "");
-          if (sim < 0.7) return; // Skip if names are totally different and no memberId to rely on
+          if (sim < 0.7) return;
         }
 
         const result = identityConfidence(candidate, {
@@ -475,13 +480,16 @@ export async function buildPreview(files: File[], customMappings: Record<string,
           gender: (data["gender"] as string | undefined) ?? null,
           memberId: m.member_id,
         });
-        
+
         if (result.score >= importConfig.identity.possibleMatch) {
-          // Adjust reason to indicate it's from another house
-          globalCandidates.push({ member: m, score: result.score, reason: `${result.reason} (Different House)` });
+          globalCandidates.push({
+            member: m,
+            score: result.score,
+            reason: `${result.reason} (Different House)`,
+          });
         }
       });
-      
+
       const bestGlobal = globalCandidates.sort((a, b) => b.score - a.score)[0];
       if (bestGlobal && (!best || bestGlobal.score > best.score)) {
         best = bestGlobal;
@@ -542,150 +550,89 @@ export interface CommitOptions {
   assignedTo?: string | null;
   assignedToName?: string | null;
   supervisorId?: string | null;
-  onProgress?: (progress: { stage: string; current: number; total: number; batch?: number; totalBatches?: number }) => void;
+  onProgress?: (progress: {
+    stage: string;
+    current: number;
+    total: number;
+    batch?: number;
+    totalBatches?: number;
+  }) => void;
   signal?: AbortSignal;
 }
 
+/**
+ * Triggers server-side background execution for the import job.
+ * Returns immediately with batchId and status: 'processing'.
+ */
 export async function commitImport(
   preview: ImportPreview,
   options: CommitOptions = {},
-): Promise<ImportBatch> {
+): Promise<{ success: boolean; batchId: string; status: string }> {
   const { data: auth } = await supabase.auth.getUser();
   const userId = auth.user?.id ?? null;
   const username = auth.user?.email?.split("@")[0] ?? null;
   if (!userId) throw new Error("Must be logged in to import data.");
 
-  options.onProgress?.({ stage: "Preparing Batch Record", current: 0, total: preview.houses.length });
-
-  const { data: batch, error: batchError } = await supabase
-    .from(tables.importBatches)
-    .insert({
-      file_names: preview.files as unknown as Json,
-      uploaded_by: userId,
-      uploaded_by_name: username,
-      assigned_to: options.assignedTo ?? null,
-      assigned_to_name: options.assignedToName ?? null,
-      supervisor_id: options.supervisorId ?? null,
-      total_rows: preview.totals.rows,
-      unique_houses: preview.totals.houses,
-      new_fields: preview.newFields as unknown as Json,
-      status: "processing",
-    })
-    .select("*")
-    .single();
-  if (batchError) throw batchError;
-
-  let housesAdded = 0;
-  let housesUpdated = 0;
-  let membersAdded = 0;
-  let membersMerged = 0;
-  let followUpsScheduled = 0;
-
-  // Chunk processing
-  const CHUNK_SIZE = 25; // 25 houses per batch
-  const houses = preview.houses;
-  const chunks: PreviewHouse[][] = [];
-  for (let i = 0; i < houses.length; i += CHUNK_SIZE) {
-    chunks.push(houses.slice(i, i + CHUNK_SIZE));
-  }
-
-  const { commitImportChunk } = await import("@/services/importBackendService");
-
-  let processed = 0;
-  for (let i = 0; i < chunks.length; i++) {
-    if (options.signal?.aborted) {
-      await supabase.from(tables.importBatches).update({ status: "cancelled", updated_at: new Date().toISOString() }).eq("id", batch.id);
-      throw new Error("Import cancelled by user");
-    }
-
-    const chunk = chunks[i]!;
-    options.onProgress?.({ 
-      stage: "Importing Records", 
-      current: processed, 
-      total: houses.length, 
-      batch: i + 1, 
-      totalBatches: chunks.length 
-    });
-
-    try {
-      const res = await commitImportChunk({
-        data: {
-          batchId: batch.id,
-          houses: chunk,
-          decisions: options.decisions,
-          userId,
-          assignedTo: options.assignedTo,
-          supervisorId: options.supervisorId,
-        }
-      });
-
-      housesAdded += res.housesAdded;
-      housesUpdated += res.housesUpdated;
-      membersAdded += res.membersAdded;
-      membersMerged += res.membersMerged;
-      followUpsScheduled += res.followUpsScheduled;
-    } catch (e) {
-      console.error(`Chunk ${i + 1} failed:`, e);
-      throw e;
-    }
-
-    processed += chunk.length;
-    // Update batch status periodically
-    await supabase
-      .from(tables.importBatches)
-      .update({ processed_rows: processed })
-      .eq("id", batch.id);
-  }
-
-  options.onProgress?.({ stage: "Recording Conflicts", current: processed, total: houses.length });
-
-  if (preview.conflicts.length) {
-    const conflictRows = preview.conflicts.map((c) => ({
-      batch_id: batch.id,
-      entity: c.entity,
-      house_id: c.label || c.houseKey,
-      member_ref: c.memberKey ?? null,
-      field: c.field,
-      existing_value: c.existingValue,
-      new_value: c.newValue,
-      source_file: c.sourceFile,
-      status: "pending",
-    }));
-    // Also chunk conflicts if large
-    for (let i = 0; i < conflictRows.length; i += 100) {
-      const { error } = await supabase.from(tables.importConflicts).insert(conflictRows.slice(i, i + 100));
-      if (error) throw error;
-    }
-  }
-
-  options.onProgress?.({ stage: "Completing", current: processed, total: houses.length });
-
-  const { data: finished, error: finishError } = await supabase
-    .from(tables.importBatches)
-    .update({
-      houses_added: housesAdded,
-      houses_updated: housesUpdated,
-      members_added: membersAdded,
-      members_merged: membersMerged,
-      merged_records: membersMerged,
-      conflicts: preview.conflicts.length,
-      unmapped_houses: preview.totals.withoutLocation,
-      status: "completed",
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", batch.id)
-    .select("*")
-    .single();
-  if (finishError) throw finishError;
-
-  await logActivity("import.completed", {
-    batch_id: batch.id,
-    houses_added: housesAdded,
-    members_added: membersAdded,
-    follow_ups_scheduled: followUpsScheduled,
+  options.onProgress?.({
+    stage: "Starting background job on server...",
+    current: 0,
+    total: preview.totals.rows,
   });
 
-  return finished as ImportBatch;
+  const { startImportJob } = await import("@/services/importBackendService");
+
+  const housesPayload = preview.houses.map((h) => ({
+    key: h.key,
+    houseId: h.houseId,
+    fields: h.fields,
+    extra: h.extra,
+    existingId: h.existingId,
+    action: h.action,
+    sourceFiles: h.sourceFiles,
+    hasLocation: h.hasLocation,
+    hasInvalidCoordinates: h.hasInvalidCoordinates,
+    members: h.members.map((m) => ({
+      key: m.key,
+      name: m.name,
+      memberId: m.memberId,
+      fields: m.fields,
+      extra: m.extra,
+      existingId: m.existingId,
+      matchConfidence: m.matchConfidence,
+      action: m.action,
+      sourceFiles: m.sourceFiles,
+    })),
+  }));
+
+  const conflictsPayload = preview.conflicts.map((c) => ({
+    entity: c.entity,
+    houseKey: c.houseKey,
+    memberKey: c.memberKey,
+    label: c.label,
+    field: c.field,
+    existingValue: c.existingValue,
+    newValue: c.newValue,
+    sourceFile: c.sourceFile,
+  }));
+
+  const result = await startImportJob({
+    data: {
+      fileNames: preview.files,
+      userId,
+      username,
+      assignedTo: options.assignedTo ?? null,
+      assignedToName: options.assignedToName ?? null,
+      supervisorId: options.supervisorId ?? null,
+      totalRows: preview.totals.rows,
+      uniqueHouses: preview.totals.houses,
+      newFields: preview.newFields,
+      houses: housesPayload,
+      conflicts: conflictsPayload,
+      decisions: options.decisions,
+    },
+  });
+
+  return result;
 }
 
 export async function loadImportBatches(limit = 50) {

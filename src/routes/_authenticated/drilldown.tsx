@@ -47,7 +47,7 @@ function DrilldownPage() {
       if (value === "Overweight") return bmi >= 25 && bmi < 30;
       if (value === "Obese") return bmi >= 30;
     }
-    
+
     return false;
   });
 
@@ -97,7 +97,8 @@ function DrilldownPage() {
                       Age {m.age ?? "?"} • {m.gender || "Unknown"}
                       {m.houseId && (
                         <span>
-                          {" "}• House:{" "}
+                          {" "}
+                          • House:{" "}
                           <button
                             type="button"
                             onClick={() => {
@@ -111,17 +112,27 @@ function DrilldownPage() {
                       )}
                     </p>
                     <div className="text-xs text-muted-foreground flex gap-3 pt-1">
-                      <span>BP: <strong className="text-foreground">{m.systolic && m.diastolic ? `${m.systolic}/${m.diastolic}` : "—"}</strong></span>
-                      <span>Sugar: <strong className="text-foreground">{m.bloodSugar ?? "—"}</strong></span>
+                      <span>
+                        BP:{" "}
+                        <strong className="text-foreground">
+                          {m.systolic && m.diastolic ? `${m.systolic}/${m.diastolic}` : "—"}
+                        </strong>
+                      </span>
+                      <span>
+                        Sugar: <strong className="text-foreground">{m.bloodSugar ?? "—"}</strong>
+                      </span>
                       {m.conditions.length > 0 && (
-                        <span>Conditions: <strong className="text-foreground">{m.conditions.join(", ")}</strong></span>
+                        <span>
+                          Conditions:{" "}
+                          <strong className="text-foreground">{m.conditions.join(", ")}</strong>
+                        </span>
                       )}
                     </div>
                   </div>
 
                   <div className="flex gap-3 items-center mt-2 sm:mt-0 shrink-0">
                     <RiskBadge level={m.risk} />
-                    
+
                     <div className="flex gap-1.5">
                       <Link
                         to="/assessments/$memberId"

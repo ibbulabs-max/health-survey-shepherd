@@ -84,7 +84,7 @@ export function AnalyticsCandle({
       className={cn(
         "group relative flex flex-col items-center justify-end h-40 min-w-[50px] px-1 py-1.5 rounded-xl transition-all duration-200 cursor-pointer select-none",
         "hover:bg-surface-muted/70 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
-        isSelected && "bg-primary/10 ring-1 ring-primary/40 shadow-xs"
+        isSelected && "bg-primary/10 ring-1 ring-primary/40 shadow-xs",
       )}
     >
       {/* Candle Graphic Stack */}
@@ -104,7 +104,7 @@ export function AnalyticsCandle({
             candleWidth,
             "rounded-full transition-all duration-300 shadow-xs",
             styles.body,
-            isSelected && `ring-2 ${styles.ring} ring-offset-1 scale-105`
+            isSelected && `ring-2 ${styles.ring} ring-offset-1 scale-105`,
           )}
           style={{ height: `${bodyHeightPx}px` }}
         />
@@ -115,7 +115,7 @@ export function AnalyticsCandle({
         <span
           className={cn(
             "text-[11px] font-medium leading-tight text-muted-foreground truncate max-w-[56px] text-center",
-            isSelected && "text-primary font-bold"
+            isSelected && "text-primary font-bold",
           )}
         >
           {label}

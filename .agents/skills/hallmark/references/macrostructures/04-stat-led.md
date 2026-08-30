@@ -15,10 +15,11 @@ Avoid for products without a defensible single metric. A fake big number is wors
 
 Reference: Ahrefs, Stripe Sessions stat blocks, climate-impact dashboards, venture firm portfolio pages.
 
-**Sample opening lines** (imitate the *specificity*, not the wording — the number does the work):
-> *"+47% · faster · decide late."* — italicised number, three-word qualifier
-> *"4 seconds. From the alert link to the slow span."* — pairs the number with what it bought
-> *"434 total posts. New CSS you feel like you could use today."* — adam argyle, nerdy.dev — the count grounds the page in real volume
+**Sample opening lines** (imitate the _specificity_, not the wording — the number does the work):
+
+> _"+47% · faster · decide late."_ — italicised number, three-word qualifier
+> _"4 seconds. From the alert link to the slow span."_ — pairs the number with what it bought
+> _"434 total posts. New CSS you feel like you could use today."_ — adam argyle, nerdy.dev — the count grounds the page in real volume
 
 ```html
 <section class="stat-hero">

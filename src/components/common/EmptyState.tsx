@@ -10,9 +10,7 @@ export function EmptyState({
   return (
     <div className="card-surface flex flex-col items-center gap-2 px-6 py-14 text-center">
       <p className="font-display text-base font-semibold text-foreground">{title}</p>
-      {description ? (
-        <p className="max-w-sm text-sm text-muted-foreground">{description}</p>
-      ) : null}
+      {description ? <p className="max-w-sm text-sm text-muted-foreground">{description}</p> : null}
       {action ? <div className="mt-3">{action}</div> : null}
     </div>
   );
@@ -25,7 +23,7 @@ export function LoadingState({ label = "Loading…" }: { label?: string }) {
         <span className="size-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
         <p className="text-sm font-medium text-muted-foreground">{label}</p>
       </div>
-      
+
       {/* Global Skeleton Cards that look good anywhere */}
       <div className="grid gap-3 opacity-50 pointer-events-none">
         {[1, 2, 3].map((i) => (

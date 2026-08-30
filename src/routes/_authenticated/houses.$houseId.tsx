@@ -57,7 +57,8 @@ function HouseDetailPage() {
   const allHouses = useMemo(() => data?.houses ?? [], [data]);
   const currentIndex = allHouses.findIndex((h) => h.house.id === houseId);
   const prevHouse = currentIndex > 0 ? allHouses[currentIndex - 1] : null;
-  const nextHouse = currentIndex >= 0 && currentIndex < allHouses.length - 1 ? allHouses[currentIndex + 1] : null;
+  const nextHouse =
+    currentIndex >= 0 && currentIndex < allHouses.length - 1 ? allHouses[currentIndex + 1] : null;
 
   const house = data?.byHouseUuid.get(houseId);
 
@@ -77,7 +78,7 @@ function HouseDetailPage() {
         houseId,
         position.coords.latitude,
         position.coords.longitude,
-        position.coords.accuracy ?? null
+        position.coords.accuracy ?? null,
       );
     },
     onSuccess: () => {
@@ -135,7 +136,9 @@ function HouseDetailPage() {
                 <ChevronLeft className="size-4 mr-0.5" /> Prev
               </Link>
             ) : (
-              <span><ChevronLeft className="size-4 mr-0.5" /> Prev</span>
+              <span>
+                <ChevronLeft className="size-4 mr-0.5" /> Prev
+              </span>
             )}
           </Button>
           <Button
@@ -150,7 +153,9 @@ function HouseDetailPage() {
                 Next <ChevronRight className="size-4 ml-0.5" />
               </Link>
             ) : (
-              <span>Next <ChevronRight className="size-4 ml-0.5" /></span>
+              <span>
+                Next <ChevronRight className="size-4 ml-0.5" />
+              </span>
             )}
           </Button>
         </div>
@@ -183,7 +188,10 @@ function HouseDetailPage() {
 
       {/* Quick Overview Cards */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Info label="Housing Type" value={(house.house.data?.["housing_type"] as string) || "Pakka"} />
+        <Info
+          label="Housing Type"
+          value={(house.house.data?.["housing_type"] as string) || "Pakka"}
+        />
         <Info label="Total Members" value={`${house.members.length}`} />
         <Info label="Eligible (30+)" value={`${house.eligible}`} />
         <Info label="Screened" value={`${house.screened} of ${house.eligible}`} />
@@ -215,10 +223,12 @@ function HouseDetailPage() {
             Household Members ({house.members.length})
           </h2>
           {isCHW && (
-            <AddMemberSheet 
-              houseUuid={house.house.id} 
-              houseId={house.house.house_id} 
-              currentMembers30Plus={house.members.filter(m => m.age != null && m.age >= 30).length} 
+            <AddMemberSheet
+              houseUuid={house.house.id}
+              houseId={house.house.house_id}
+              currentMembers30Plus={
+                house.members.filter((m) => m.age != null && m.age >= 30).length
+              }
             />
           )}
         </div>
@@ -228,7 +238,10 @@ function HouseDetailPage() {
         ) : (
           <div className="grid gap-2.5">
             {house.members.map((member) => (
-              <div key={member.id} className="card-surface p-4 rounded-2xl border border-border/70 space-y-3 shadow-xs">
+              <div
+                key={member.id}
+                className="card-surface p-4 rounded-2xl border border-border/70 space-y-3 shadow-xs"
+              >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <p className="truncate font-bold text-base text-foreground">{member.name}</p>
@@ -243,15 +256,25 @@ function HouseDetailPage() {
                 <div className="grid grid-cols-3 gap-2 text-center">
                   <Reading
                     label="BP (mmHg)"
-                    value={member.systolic && member.diastolic ? `${member.systolic}/${member.diastolic}` : "—"}
+                    value={
+                      member.systolic && member.diastolic
+                        ? `${member.systolic}/${member.diastolic}`
+                        : "—"
+                    }
                   />
-                  <Reading label="Sugar (mg/dL)" value={member.bloodSugar != null ? `${member.bloodSugar}` : "—"} />
+                  <Reading
+                    label="Sugar (mg/dL)"
+                    value={member.bloodSugar != null ? `${member.bloodSugar}` : "—"}
+                  />
                   <Reading label="Conditions" value={`${member.conditions.length}`} />
                 </div>
 
                 {member.conditions.length > 0 && (
                   <p className="text-xs text-muted-foreground">
-                    Known: <span className="font-medium text-foreground">{member.conditions.join(", ")}</span>
+                    Known:{" "}
+                    <span className="font-medium text-foreground">
+                      {member.conditions.join(", ")}
+                    </span>
                   </p>
                 )}
 
@@ -260,12 +283,19 @@ function HouseDetailPage() {
                     {member.screenedAt
                       ? `Screened: ${new Date(member.screenedAt).toLocaleDateString()}`
                       : member.eligible
-                      ? "Screening Pending"
-                      : "Under 30 (Not eligible)"}
+                        ? "Screening Pending"
+                        : "Under 30 (Not eligible)"}
                   </p>
                   <div className="flex gap-2">
-                    <Button asChild size="sm" variant="outline" className="rounded-xl h-8 px-3 text-xs font-semibold shadow-xs">
-                      <Link to="/members/$memberId" params={{ memberId: member.id }}>Profile</Link>
+                    <Button
+                      asChild
+                      size="sm"
+                      variant="outline"
+                      className="rounded-xl h-8 px-3 text-xs font-semibold shadow-xs"
+                    >
+                      <Link to="/members/$memberId" params={{ memberId: member.id }}>
+                        Profile
+                      </Link>
                     </Button>
                     {member.eligible && (can("perform_assessment") || member.screenedAt) && (
                       <Button
@@ -275,7 +305,11 @@ function HouseDetailPage() {
                       >
                         <Link to="/assessments/$memberId" params={{ memberId: member.id }}>
                           <Stethoscope className="size-3.5 mr-1.5" />
-                          {member.screenedAt ? (can("perform_assessment") ? "Re-Assess" : "View") : "Assess"}
+                          {member.screenedAt
+                            ? can("perform_assessment")
+                              ? "Re-Assess"
+                              : "View"
+                            : "Assess"}
                         </Link>
                       </Button>
                     )}
@@ -289,7 +323,9 @@ function HouseDetailPage() {
 
       {/* Follow-up History */}
       <section className="space-y-3">
-        <h2 className="font-display text-base font-bold text-foreground">Follow-up Schedule & History</h2>
+        <h2 className="font-display text-base font-bold text-foreground">
+          Follow-up Schedule & History
+        </h2>
         {followUps.length === 0 ? (
           <EmptyState
             title="No follow-ups recorded"
@@ -301,10 +337,17 @@ function HouseDetailPage() {
               .slice()
               .sort((a, b) => (b.due_date ?? "").localeCompare(a.due_date ?? ""))
               .map((f) => (
-                <div key={f.id} className="card-surface flex items-center justify-between p-3.5 rounded-2xl border border-border/70">
+                <div
+                  key={f.id}
+                  className="card-surface flex items-center justify-between p-3.5 rounded-2xl border border-border/70"
+                >
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-bold text-foreground">{f.reason ?? "Routine Follow-up"}</p>
-                    <p className="text-xs text-muted-foreground font-mono">Due Date: {f.due_date ?? "—"}</p>
+                    <p className="truncate text-sm font-bold text-foreground">
+                      {f.reason ?? "Routine Follow-up"}
+                    </p>
+                    <p className="text-xs text-muted-foreground font-mono">
+                      Due Date: {f.due_date ?? "—"}
+                    </p>
                   </div>
                   <span className="rounded-full bg-surface-muted px-2.5 py-1 text-xs font-semibold capitalize text-muted-foreground border border-border/50">
                     {followUpStatus(f.status, f.due_date)}
@@ -321,7 +364,9 @@ function HouseDetailPage() {
 function Info({ label, value }: { label: string; value: string }) {
   return (
     <div className="card-surface p-3.5 rounded-2xl border border-border/70">
-      <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-semibold">{label}</p>
+      <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-semibold">
+        {label}
+      </p>
       <p className="mt-1 truncate font-display font-bold text-base text-foreground">{value}</p>
     </div>
   );

@@ -15,7 +15,7 @@ function userIdToAuthEmail(userId: string): string {
 
 async function createUser(userId: string, fullName: string, role: string) {
   console.log(`Creating user: ${userId}`);
-  
+
   // 1. Create in Auth
   const { data: authData, error: authError } = await adminClient.auth.admin.createUser({
     email: userIdToAuthEmail(userId),
@@ -31,9 +31,12 @@ async function createUser(userId: string, fullName: string, role: string) {
       console.log(`User ${userId} already exists.`);
       // Try to change password
       const { data: existingUsers } = await adminClient.auth.admin.listUsers();
-      const existingUser = existingUsers?.users.find(u => u.email === userIdToAuthEmail(userId));
+      const existingUser = existingUsers?.users.find((u) => u.email === userIdToAuthEmail(userId));
       if (existingUser) {
-        await adminClient.auth.admin.updateUserById(existingUser.id, { password: process.env.QA_NEW_PASSWORD || "000000", user_metadata: { must_change_pin: false } });
+        await adminClient.auth.admin.updateUserById(existingUser.id, {
+          password: process.env.QA_NEW_PASSWORD || "000000",
+          user_metadata: { must_change_pin: false },
+        });
         console.log(`Updated password for ${userId} to QA_NEW_PASSWORD`);
       }
       return;
@@ -63,22 +66,30 @@ async function createUser(userId: string, fullName: string, role: string) {
   if (roleError) {
     throw new Error(roleError.message);
   }
-  
+
   // 4. Update password and clear must_change_pin to simulate the password change flow
-  await adminClient.auth.admin.updateUserById(newUserId, { password: process.env.QA_NEW_PASSWORD || "000000", user_metadata: { must_change_pin: false } });
-  
+  await adminClient.auth.admin.updateUserById(newUserId, {
+    password: process.env.QA_NEW_PASSWORD || "000000",
+    user_metadata: { must_change_pin: false },
+  });
+
   console.log(`Successfully created ${userId} and set password`);
 }
 
 async function main() {
   await createUser(process.env.QA_SUP_USER || "sup-placeholder", "Supervisor QA", "supervisor");
   await createUser(process.env.QA_CHW_USER || "chw-placeholder", "CHW QA", "survey_user");
-  
+
   // Also reset admin password just in case it's broken
   const { data: existingUsers } = await adminClient.auth.admin.listUsers();
-  const adminUser = existingUsers?.users.find(u => u.email === userIdToAuthEmail(process.env.QA_ADMIN_USER || "admin-placeholder"));
+  const adminUser = existingUsers?.users.find(
+    (u) => u.email === userIdToAuthEmail(process.env.QA_ADMIN_USER || "admin-placeholder"),
+  );
   if (adminUser) {
-    await adminClient.auth.admin.updateUserById(adminUser.id, { password: process.env.QA_NEW_PASSWORD || "000000", user_metadata: { must_change_pin: false } });
+    await adminClient.auth.admin.updateUserById(adminUser.id, {
+      password: process.env.QA_NEW_PASSWORD || "000000",
+      user_metadata: { must_change_pin: false },
+    });
     console.log("Reset Admin password");
   }
 }

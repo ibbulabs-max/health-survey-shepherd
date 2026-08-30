@@ -1,4 +1,5 @@
 import { supabase } from "@/db/client";
+import { tables } from "@/config/database";
 
 export interface Holiday {
   id: string;
@@ -9,12 +10,15 @@ export interface Holiday {
 
 export async function fetchHolidays(): Promise<Holiday[]> {
   const { data, error } = await supabase
-    .from("holidays")
+    .from(tables.holidays)
     .select("*")
     .order("holiday_date", { ascending: true });
-    
+
   if (error) {
-    console.warn("Holidays table might not exist yet:", error.message);
+    // Log a concise informational message — the holidays table may be optional
+    // for deployments that haven't applied migrations yet. Returning an empty
+    // list keeps follow-up scheduling functional without breaking the UI.
+    console.info("fetchHolidays: holidays table unavailable or not migrated yet.", error.message);
     return [];
   }
   return data as Holiday[];
@@ -23,7 +27,7 @@ export async function fetchHolidays(): Promise<Holiday[]> {
 export async function createHoliday(date: string, name: string) {
   const { data: auth } = await supabase.auth.getUser();
   const { data, error } = await supabase
-    .from("holidays")
+    .from(tables.holidays)
     .insert({
       holiday_date: date,
       name: name || null,
@@ -37,9 +41,6 @@ export async function createHoliday(date: string, name: string) {
 }
 
 export async function deleteHoliday(id: string) {
-  const { error } = await supabase
-    .from("holidays")
-    .delete()
-    .eq("id", id);
+  const { error } = await supabase.from(tables.holidays).delete().eq("id", id);
   if (error) throw error;
 }

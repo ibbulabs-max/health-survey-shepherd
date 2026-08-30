@@ -1,7 +1,18 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { FileSpreadsheet, UploadCloud, UserCheck, History } from "lucide-react";
-import { useRef, useState } from "react";
+import {
+  FileSpreadsheet,
+  UploadCloud,
+  UserCheck,
+  History,
+  CheckCircle2,
+  AlertTriangle,
+  Loader2,
+  XCircle,
+  ChevronDown,
+  ChevronUp,
+} from "lucide-react";
+import { useRef, useState, useEffect } from "react";
 import { toast } from "sonner";
 
 import { EmptyState, LoadingState } from "@/components/common/EmptyState";
@@ -22,6 +33,7 @@ import {
   extractHeaders,
   type ImportPreview,
 } from "@/services/importService";
+import { getImportJobStatus, cancelImportJob } from "@/services/importBackendService";
 import { ImportHistory } from "@/components/import/ImportHistory";
 
 export const Route = createFileRoute("/_authenticated/import")({
@@ -58,16 +70,45 @@ function ImportPage() {
   const [decisions, setDecisions] = useState<Record<string, "insert" | "merge">>({});
   const [assignedTo, setAssignedTo] = useState<string | null>(null);
   const [supervisorId, setSupervisorId] = useState<string | null>(null);
-  const [importProgress, setImportProgress] = useState<{
-    stage: string;
-    current: number;
-    total: number;
-    batch?: number;
-    totalBatches?: number;
-  } | null>(null);
-  const [abortController, setAbortController] = useState<AbortController | null>(null);
+  const [activeBatchId, setActiveBatchId] = useState<string | null>(null);
+  const [showErrorDetails, setShowErrorDetails] = useState(false);
+  const [hasNotifiedComplete, setHasNotifiedComplete] = useState(false);
 
-  // Load team members for assignment (admins can see all; supervisors see their CSWs)
+  // Poll for active background import job
+  const jobQuery = useQuery({
+    queryKey: ["active-import-job", activeBatchId],
+    queryFn: async () => {
+      const res = await getImportJobStatus({ data: { batchId: activeBatchId || undefined } });
+      return res.job;
+    },
+    refetchInterval: (query) => {
+      const job = query.state.data;
+      if (job && (job.status === "processing" || job.status === "queued")) {
+        return 1500;
+      }
+      return 5000;
+    },
+  });
+
+  const activeJob = jobQuery.data;
+
+  // React to job completion
+  useEffect(() => {
+    if (
+      activeJob &&
+      (activeJob.status === "completed" || activeJob.status === "completed_with_errors")
+    ) {
+      if (!hasNotifiedComplete && activeBatchId === activeJob.id) {
+        setHasNotifiedComplete(true);
+        toast.success(
+          `Import completed! Added ${activeJob.housesAdded} houses, ${activeJob.membersAdded} members.`,
+        );
+        void refresh();
+      }
+    }
+  }, [activeJob, hasNotifiedComplete, activeBatchId, refresh]);
+
+  // Load team members for assignment
   const teamQuery = useQuery({
     queryKey: ["team-members-for-import", user?.id],
     queryFn: async () => {
@@ -125,7 +166,7 @@ function ImportPage() {
         setMappingState({
           unmapped: result.unmappedHeaders,
           suggestedMapping: result.suggestedMapping,
-          allHeaders: result.allHeaders
+          allHeaders: result.allHeaders,
         });
       } else {
         analyse.mutate({ files, customMapping: {} });
@@ -135,7 +176,13 @@ function ImportPage() {
   });
 
   const analyse = useMutation({
-    mutationFn: ({ files, customMapping }: { files: File[]; customMapping: Record<string, string> }) => buildPreview(files, customMapping),
+    mutationFn: ({
+      files,
+      customMapping,
+    }: {
+      files: File[];
+      customMapping: Record<string, string>;
+    }) => buildPreview(files, customMapping),
     onSuccess: (result) => {
       setPendingFiles(null);
       setMappingState(null);
@@ -155,34 +202,46 @@ function ImportPage() {
   });
 
   const commit = useMutation({
-    mutationFn: () => {
-      const ac = new AbortController();
-      setAbortController(ac);
-      const assignee = teamMembers.find(m => m.profile.id === assignedTo);
-      const assignedToName = assignee ? (assignee.profile.full_name ?? assignee.profile.username) : null;
-      return commitImport(preview!, { 
-        decisions, 
-        assignedTo, 
-        assignedToName, 
+    mutationFn: async () => {
+      const assignee = teamMembers.find((m) => m.profile.id === assignedTo);
+      const assignedToName = assignee
+        ? (assignee.profile.full_name ?? assignee.profile.username)
+        : null;
+
+      const res = await commitImport(preview!, {
+        decisions,
+        assignedTo,
+        assignedToName,
         supervisorId,
-        onProgress: setImportProgress,
-        signal: ac.signal
       });
+
+      return res;
     },
-    onSuccess: (batch) => {
-      toast.success(
-        `Imported ${batch.houses_added ?? 0} new houses, ${batch.members_added ?? 0} new members.`,
-      );
+    onSuccess: (res) => {
+      setActiveBatchId(res.batchId);
+      setHasNotifiedComplete(false);
       setPreview(null);
       setAssignedTo(null);
       setSupervisorId(null);
-      setImportProgress(null);
-      void refresh();
+      toast.info("Import job started on server. You can safely navigate away.", {
+        duration: 5000,
+      });
+      jobQuery.refetch();
     },
     onError: (e) => {
-      setImportProgress(null);
-      toast.error(e instanceof Error ? e.message : "Import failed.")
+      toast.error(e instanceof Error ? e.message : "Failed to start import.");
     },
+  });
+
+  const cancelJobMutation = useMutation({
+    mutationFn: async (batchId: string) => {
+      await cancelImportJob({ data: { batchId } });
+    },
+    onSuccess: () => {
+      toast.info("Import cancellation requested.");
+      jobQuery.refetch();
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Failed to cancel import."),
   });
 
   if (!can("import_data"))
@@ -194,8 +253,10 @@ function ImportPage() {
     );
 
   const teamMembers = teamQuery.data ?? [];
-  const supervisors = teamMembers.filter((m) => m.role === "supervisor");
   const csws = teamMembers.filter((m) => m.role === "survey_user");
+
+  const isJobRunning =
+    activeJob && (activeJob.status === "processing" || activeJob.status === "queued");
 
   return (
     <div className="space-y-5">
@@ -221,6 +282,153 @@ function ImportPage() {
         </div>
       </div>
 
+      {/* ============================================================== */}
+      {/*  ACTIVE SERVER BACKGROUND JOB BANNER                           */}
+      {/* ============================================================== */}
+      {isJobRunning && (
+        <div className="card-surface p-5 rounded-2xl border-2 border-primary/30 bg-primary-soft/40 shadow-card space-y-4 animate-in fade-in duration-300">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="size-10 rounded-xl bg-primary text-primary-foreground flex items-center justify-center">
+                <Loader2 className="size-5 animate-spin" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="font-display font-bold text-base text-foreground">
+                    Server Background Import in Progress
+                  </h3>
+                  <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-primary/20 text-primary">
+                    Live
+                  </span>
+                </div>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {activeJob.currentStage || "Processing records on server..."}
+                </p>
+              </div>
+            </div>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => cancelJobMutation.mutate(activeJob.id)}
+              disabled={cancelJobMutation.isPending}
+              className="text-xs rounded-xl h-8 text-destructive border-destructive/30 hover:bg-destructive/10"
+            >
+              Cancel Import
+            </Button>
+          </div>
+
+          {/* Progress bar */}
+          <div className="space-y-1.5">
+            <div className="flex justify-between text-xs font-semibold text-foreground">
+              <span>Progress: {activeJob.progressPercent}%</span>
+              <span>
+                {activeJob.processedRows} / {activeJob.totalRows} rows
+              </span>
+            </div>
+            <div className="w-full bg-primary/10 rounded-full h-3 overflow-hidden p-0.5">
+              <div
+                className="bg-primary h-full rounded-full transition-all duration-300"
+                style={{ width: `${Math.max(5, activeJob.progressPercent)}%` }}
+              />
+            </div>
+          </div>
+
+          {/* Dynamic real-time statistics */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 border-t border-border/40 text-center">
+            <div className="p-2 rounded-xl bg-white/60">
+              <p className="text-[10px] text-muted-foreground font-semibold">Houses Added</p>
+              <p className="text-sm font-bold text-foreground">{activeJob.housesAdded}</p>
+            </div>
+            <div className="p-2 rounded-xl bg-white/60">
+              <p className="text-[10px] text-muted-foreground font-semibold">Members Added</p>
+              <p className="text-sm font-bold text-emerald-600">{activeJob.membersAdded}</p>
+            </div>
+            <div className="p-2 rounded-xl bg-white/60">
+              <p className="text-[10px] text-muted-foreground font-semibold">Members Merged</p>
+              <p className="text-sm font-bold text-amber-600">{activeJob.membersMerged}</p>
+            </div>
+            <div className="p-2 rounded-xl bg-white/60">
+              <p className="text-[10px] text-muted-foreground font-semibold">Errors</p>
+              <p className="text-sm font-bold text-red-600">{activeJob.failedRows}</p>
+            </div>
+          </div>
+
+          <p className="text-[11px] text-primary/80 font-medium bg-white/80 p-2.5 rounded-xl text-center">
+            ✨ This import is running safely in the background on the server. You can safely
+            navigate to any other page or close the app.
+          </p>
+        </div>
+      )}
+
+      {/* ============================================================== */}
+      {/*  RECENTLY COMPLETED SUMMARY BANNER                             */}
+      {/* ============================================================== */}
+      {!isJobRunning &&
+        activeJob &&
+        (activeJob.status === "completed" || activeJob.status === "completed_with_errors") &&
+        activeBatchId === activeJob.id && (
+          <div className="card-surface p-5 rounded-2xl border border-emerald-200 bg-emerald-50/40 shadow-sm space-y-3 animate-in fade-in duration-300">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="size-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center">
+                  <CheckCircle2 className="size-5" />
+                </div>
+                <div>
+                  <h3 className="font-display font-bold text-sm text-emerald-950">
+                    Import Job Finished Successfully
+                  </h3>
+                  <p className="text-xs text-emerald-800/80">
+                    Processed {activeJob.processedRows} rows • Added {activeJob.housesAdded} houses,{" "}
+                    {activeJob.membersAdded} members ({activeJob.membersMerged} merged).
+                  </p>
+                </div>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setActiveBatchId(null)}
+                className="text-xs h-7 text-emerald-800 hover:bg-emerald-100"
+              >
+                Dismiss
+              </Button>
+            </div>
+
+            {/* If there were row errors, allow viewing them */}
+            {activeJob.errorSummary && activeJob.errorSummary.length > 0 && (
+              <div className="pt-2 border-t border-emerald-200/60">
+                <button
+                  onClick={() => setShowErrorDetails(!showErrorDetails)}
+                  className="text-xs font-semibold text-amber-800 hover:underline flex items-center gap-1"
+                >
+                  <AlertTriangle className="size-3.5" />
+                  <span>{activeJob.errorSummary.length} row(s) had warnings or issues</span>
+                  {showErrorDetails ? (
+                    <ChevronUp className="size-3.5" />
+                  ) : (
+                    <ChevronDown className="size-3.5" />
+                  )}
+                </button>
+
+                {showErrorDetails && (
+                  <div className="mt-2 p-3 rounded-xl bg-white border border-amber-200 max-h-48 overflow-y-auto space-y-1.5 text-xs text-muted-foreground">
+                    {activeJob.errorSummary.map((err, idx) => (
+                      <p key={idx}>
+                        <span className="font-bold text-foreground">Row {err.row}:</span>{" "}
+                        <span className="text-amber-700 font-medium">[{err.item}]</span> —{" "}
+                        {err.error}
+                      </p>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+      {/* ============================================================== */}
+      {/*  DRAG AND DROP FILE UPLOAD AREA                                */}
+      {/* ============================================================== */}
       <div
         className="card-surface flex flex-col items-center gap-3 border-dashed p-8 text-center"
         onDragOver={(e) => e.preventDefault()}
@@ -249,22 +457,34 @@ function ImportPage() {
             e.target.value = "";
           }}
         />
-        <Button className="rounded-xl shadow-sm hover:shadow transition-all" onClick={() => inputRef.current?.click()}>
+        <Button
+          className="rounded-xl shadow-sm hover:shadow transition-all"
+          onClick={() => inputRef.current?.click()}
+        >
           Choose files
         </Button>
       </div>
 
-      {(extract.isPending || analyse.isPending) ? <LoadingState label="Analysing files and matching identities…" /> : null}
+      {extract.isPending || analyse.isPending ? (
+        <LoadingState label="Analysing files and matching identities…" />
+      ) : null}
 
+      {/* ============================================================== */}
+      {/*  COLUMN MAPPING UI                                             */}
+      {/* ============================================================== */}
       {mappingState ? (
         <div className="card-surface p-4 border border-amber-200 bg-amber-50/30">
           <h3 className="font-display text-base font-semibold text-amber-800">Map Columns</h3>
           <p className="text-sm text-amber-800/80 mt-1 mb-4">
-            Some columns from your file were not automatically recognized. Please map them to the correct internal fields, or leave them as "Skip" to import them as dynamic extra data.
+            Some columns from your file were not automatically recognized. Please map them to the
+            correct internal fields, or leave them as "Skip" to import them as dynamic extra data.
           </p>
           <div className="grid gap-3 mb-6">
             {mappingState.unmapped.map((header) => (
-              <div key={header} className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 p-3 bg-white/50 backdrop-blur-sm rounded-xl border border-amber-200/50">
+              <div
+                key={header}
+                className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 p-3 bg-white/50 backdrop-blur-sm rounded-xl border border-amber-200/50"
+              >
                 <span className="font-medium text-sm">{header}</span>
                 <select
                   className="rounded-lg border border-amber-200 p-2 text-sm bg-white w-full sm:w-64"
@@ -274,14 +494,16 @@ function ImportPage() {
                       ...mappingState,
                       suggestedMapping: {
                         ...mappingState.suggestedMapping,
-                        [header]: e.target.value
-                      }
+                        [header]: e.target.value,
+                      },
                     });
                   }}
                 >
                   <option value="">-- Skip (Import as Extra) --</option>
-                  {Object.keys(importConfig.aliases).map(canonical => (
-                    <option key={canonical} value={canonical}>{canonical}</option>
+                  {Object.keys(importConfig.aliases).map((canonical) => (
+                    <option key={canonical} value={canonical}>
+                      {canonical}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -292,22 +514,32 @@ function ImportPage() {
               className="rounded-xl shadow-sm"
               onClick={() => {
                 if (pendingFiles) {
-                  analyse.mutate({ files: pendingFiles, customMapping: mappingState.suggestedMapping });
+                  analyse.mutate({
+                    files: pendingFiles,
+                    customMapping: mappingState.suggestedMapping,
+                  });
                 }
               }}
             >
               Confirm Mapping & Preview
             </Button>
-            <Button variant="outline" className="rounded-xl" onClick={() => {
-              setMappingState(null);
-              setPendingFiles(null);
-            }}>
+            <Button
+              variant="outline"
+              className="rounded-xl"
+              onClick={() => {
+                setMappingState(null);
+                setPendingFiles(null);
+              }}
+            >
               Cancel
             </Button>
           </div>
         </div>
       ) : null}
 
+      {/* ============================================================== */}
+      {/*  IMPORT PREVIEW UI                                             */}
+      {/* ============================================================== */}
       {preview && !mappingState ? (
         <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
@@ -337,13 +569,19 @@ function ImportPage() {
 
           {preview.newFields.length ? (
             <div className="card-surface p-4 border border-blue-200 bg-blue-50/30">
-              <p className="text-sm font-medium text-blue-900">New dynamic fields detected ({preview.newFields.length})</p>
+              <p className="text-sm font-medium text-blue-900">
+                New dynamic fields detected ({preview.newFields.length})
+              </p>
               <p className="mt-1 text-xs text-blue-800/70">
-                These fields were not mapped to standard profiles but will be dynamically stored and automatically become available in Analytics and Data Quality reports.
+                These fields were not mapped to standard profiles but will be dynamically stored and
+                automatically become available in Analytics and Data Quality reports.
               </p>
               <div className="mt-3 flex flex-wrap gap-2">
                 {preview.newFields.map((f, i) => (
-                  <span key={i} className="rounded-full bg-blue-100 text-blue-800 px-3 py-1 text-xs font-semibold">
+                  <span
+                    key={i}
+                    className="rounded-full bg-blue-100 text-blue-800 px-3 py-1 text-xs font-semibold"
+                  >
                     {f}
                   </span>
                 ))}
@@ -362,6 +600,7 @@ function ImportPage() {
             </div>
           ) : null}
 
+          {/* Assign Data To */}
           <section className="card-surface p-4">
             <div className="flex items-center gap-2 mb-3">
               <UserCheck className="size-4 text-primary" />
@@ -417,9 +656,12 @@ function ImportPage() {
             )}
           </section>
 
+          {/* Same Person Action Review */}
           {preview.totals.possibleMatches ? (
             <section className="card-surface p-4 border border-amber-200">
-              <p className="text-sm font-semibold text-amber-800">Possible same person — choose an action</p>
+              <p className="text-sm font-semibold text-amber-800">
+                Possible same person — choose an action
+              </p>
               <div className="mt-3 grid gap-2">
                 {preview.houses.flatMap((h) =>
                   h.members
@@ -458,6 +700,7 @@ function ImportPage() {
             </section>
           ) : null}
 
+          {/* Conflicts */}
           {preview.conflicts.length ? (
             <section className="card-surface p-4">
               <p className="text-sm font-medium">Conflicts logged ({preview.conflicts.length})</p>
@@ -469,64 +712,39 @@ function ImportPage() {
                 {preview.conflicts.slice(0, 50).map((c, i) => (
                   <p key={i} className="text-xs text-muted-foreground">
                     <span className="font-medium text-foreground">{c.label}</span> · {c.field}:{" "}
-                    <span className="line-through opacity-70">{c.existingValue}</span> → <span className="text-green-600 font-medium">{c.newValue}</span> ({c.sourceFile})
+                    <span className="line-through opacity-70">{c.existingValue}</span> →{" "}
+                    <span className="text-green-600 font-medium">{c.newValue}</span> ({c.sourceFile}
+                    )
                   </p>
                 ))}
               </div>
             </section>
           ) : null}
 
+          {/* Bottom Action Bar */}
           <div className="flex flex-wrap gap-2 sticky bottom-4 z-10 p-4 bg-white/80 backdrop-blur-md rounded-2xl border shadow-sm mt-8">
-            {!importProgress && (
-              <>
-                <Button
-                  className="rounded-xl shadow-sm w-full sm:w-auto"
-                  disabled={commit.isPending}
-                  onClick={() => commit.mutate()}
-                >
-                  Approve and import
-                </Button>
-                <Button variant="secondary" className="rounded-xl w-full sm:w-auto" onClick={() => setPreview(null)} disabled={commit.isPending}>
-                  Discard preview
-                </Button>
-              </>
-            )}
-            
-            {importProgress && (
-              <div className="w-full">
-                <div className="flex justify-between items-center text-sm font-medium mb-2 text-primary">
-                  <div className="flex gap-2 items-center">
-                    <span>{importProgress.stage}</span>
-                    {importProgress.batch ? 
-                      <span>Batch {importProgress.batch} of {importProgress.totalBatches}</span> 
-                      : 
-                      <span>{importProgress.current} / {importProgress.total}</span>
-                    }
-                  </div>
-                  <Button 
-                    variant="destructive" 
-                    size="sm" 
-                    onClick={() => abortController?.abort()}
-                    className="h-7 text-xs px-3 rounded-lg"
-                  >
-                    Cancel Import
-                  </Button>
-                </div>
-                <div className="w-full bg-primary/10 rounded-full h-2.5 overflow-hidden">
-                  <div 
-                    className="bg-primary h-2.5 rounded-full transition-all duration-300" 
-                    style={{ width: `${Math.max(5, (importProgress.current / Math.max(1, importProgress.total)) * 100)}%` }}
-                  ></div>
-                </div>
-                <p className="text-xs text-primary/70 mt-2 text-center animate-pulse">
-                  Processing backend chunk in background. Do not close this page.
-                </p>
-              </div>
-            )}
+            <Button
+              className="rounded-xl shadow-sm w-full sm:w-auto font-semibold"
+              disabled={commit.isPending}
+              onClick={() => commit.mutate()}
+            >
+              {commit.isPending ? "Starting Background Import..." : "Approve and import"}
+            </Button>
+            <Button
+              variant="secondary"
+              className="rounded-xl w-full sm:w-auto"
+              onClick={() => setPreview(null)}
+              disabled={commit.isPending}
+            >
+              Discard preview
+            </Button>
           </div>
         </div>
       ) : null}
 
+      {/* ============================================================== */}
+      {/*  IMPORT HISTORY                                                */}
+      {/* ============================================================== */}
       <div className="hidden md:block pt-8 border-t">
         <h2 className="mb-4 font-display text-lg font-semibold flex items-center gap-2">
           <History className="size-5 text-primary" /> Import history

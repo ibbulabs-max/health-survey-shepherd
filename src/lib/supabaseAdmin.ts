@@ -4,17 +4,22 @@ import { databaseConfig } from "@/config/database";
 /**
  * Initializes a Supabase client using the SERVICE ROLE KEY.
  * This client bypasses Row Level Security (RLS) entirely.
- * 
+ *
  * NEVER import this file into a React component or any client-side bundle.
  * Only import this in TanStack Start `createServerFn` handlers.
  */
 export function getSupabaseAdmin() {
-  const serviceRoleKey = process.env['SUPABASE_SERVICE_ROLE_KEY'];
+  const serviceRoleKey = process.env["SUPABASE_SERVICE_ROLE_KEY"];
+  const supabaseUrl = process.env["VITE_SUPABASE_URL"] || databaseConfig.url;
+
   if (!serviceRoleKey) {
     throw new Error("SUPABASE_SERVICE_ROLE_KEY is not defined in the server environment.");
   }
+  if (!supabaseUrl) {
+    throw new Error("VITE_SUPABASE_URL is not defined in the server environment.");
+  }
 
-  return createClient(databaseConfig.url, serviceRoleKey, {
+  return createClient(supabaseUrl, serviceRoleKey, {
     auth: {
       autoRefreshToken: false,
       persistSession: false,

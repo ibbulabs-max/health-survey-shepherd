@@ -3,7 +3,13 @@ import { Plus, Check, Home, Building2, Sparkles } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import {
   getAvailableBlocks,
   getAvailableLanes,
@@ -87,8 +93,12 @@ export function HouseIdBuilder({
       {/* Live iOS House ID Card Preview */}
       <div className="card-surface ios-glass p-4 rounded-2xl border border-primary/20 bg-primary-soft/30 flex items-center justify-between shadow-sm">
         <div>
-          <span className="text-[10px] font-bold uppercase tracking-widest text-primary">Canonical House ID</span>
-          <p className="font-display font-bold text-2xl text-foreground tracking-tight mt-0.5">{houseIdPreview}</p>
+          <span className="text-[10px] font-bold uppercase tracking-widest text-primary">
+            Canonical House ID
+          </span>
+          <p className="font-display font-bold text-2xl text-foreground tracking-tight mt-0.5">
+            {houseIdPreview}
+          </p>
         </div>
         <div className="size-10 rounded-2xl bg-primary text-primary-foreground flex items-center justify-center shadow-md">
           <Home className="size-5" />
@@ -98,7 +108,9 @@ export function HouseIdBuilder({
       {/* Block Selector */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Block Number</Label>
+          <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+            Block Number
+          </Label>
           <Button
             type="button"
             variant="ghost"
@@ -121,7 +133,7 @@ export function HouseIdBuilder({
                   "min-w-[56px] py-2.5 px-3 rounded-xl font-display font-semibold text-sm transition-all text-center border",
                   active
                     ? "bg-primary text-primary-foreground border-primary shadow-sm scale-105"
-                    : "bg-surface text-foreground border-border/70 hover:bg-surface-muted"
+                    : "bg-surface text-foreground border-border/70 hover:bg-surface-muted",
                 )}
               >
                 {b}
@@ -134,7 +146,9 @@ export function HouseIdBuilder({
       {/* Lane Selector */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Lane Number</Label>
+          <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+            Lane Number
+          </Label>
           <Button
             type="button"
             variant="ghost"
@@ -157,7 +171,7 @@ export function HouseIdBuilder({
                   "min-w-[56px] py-2.5 px-3 rounded-xl font-display font-semibold text-sm transition-all text-center border",
                   active
                     ? "bg-primary text-primary-foreground border-primary shadow-sm scale-105"
-                    : "bg-surface text-foreground border-border/70 hover:bg-surface-muted"
+                    : "bg-surface text-foreground border-border/70 hover:bg-surface-muted",
                 )}
               >
                 {l}
@@ -170,7 +184,9 @@ export function HouseIdBuilder({
       {/* Serial Number (Auto-calculated with Manual override) */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Serial Number</Label>
+          <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+            Serial Number
+          </Label>
           <span className="text-[11px] text-muted-foreground font-medium flex items-center gap-1">
             <Sparkles className="size-3 text-primary" /> Auto-calculated
           </span>
@@ -189,7 +205,9 @@ export function HouseIdBuilder({
 
       {/* Housing Type Selection */}
       <div className="space-y-2">
-        <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Housing Type</Label>
+        <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+          Housing Type
+        </Label>
         <div className="grid grid-cols-3 gap-2">
           {housingTypes.map((ht) => {
             const active = housingType === ht.id;
@@ -202,7 +220,7 @@ export function HouseIdBuilder({
                   "p-3 rounded-2xl border text-left transition-all flex flex-col justify-between relative",
                   active
                     ? "bg-primary/10 border-primary text-primary shadow-sm ring-2 ring-primary/20"
-                    : "bg-surface text-foreground border-border/70 hover:bg-surface-muted"
+                    : "bg-surface text-foreground border-border/70 hover:bg-surface-muted",
                 )}
               >
                 {active && (
@@ -230,7 +248,9 @@ export function HouseIdBuilder({
             <DialogTitle>Add New Block</DialogTitle>
           </DialogHeader>
           <div className="py-2">
-            <Label className="text-xs text-muted-foreground">Block Identifier (e.g. B11, B12)</Label>
+            <Label className="text-xs text-muted-foreground">
+              Block Identifier (e.g. B11, B12)
+            </Label>
             <Input
               value={newBlockInput}
               onChange={(e) => setNewBlockInput(e.target.value)}
@@ -240,8 +260,16 @@ export function HouseIdBuilder({
             />
           </div>
           <DialogFooter className="gap-2 sm:gap-0">
-            <Button variant="ghost" onClick={() => setAddBlockOpen(false)} className="rounded-xl">Cancel</Button>
-            <Button onClick={handleAddBlock} disabled={!newBlockInput.trim()} className="rounded-xl">Add Block</Button>
+            <Button variant="ghost" onClick={() => setAddBlockOpen(false)} className="rounded-xl">
+              Cancel
+            </Button>
+            <Button
+              onClick={handleAddBlock}
+              disabled={!newBlockInput.trim()}
+              className="rounded-xl"
+            >
+              Add Block
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -263,8 +291,12 @@ export function HouseIdBuilder({
             />
           </div>
           <DialogFooter className="gap-2 sm:gap-0">
-            <Button variant="ghost" onClick={() => setAddLaneOpen(false)} className="rounded-xl">Cancel</Button>
-            <Button onClick={handleAddLane} disabled={!newLaneInput.trim()} className="rounded-xl">Add Lane</Button>
+            <Button variant="ghost" onClick={() => setAddLaneOpen(false)} className="rounded-xl">
+              Cancel
+            </Button>
+            <Button onClick={handleAddLane} disabled={!newLaneInput.trim()} className="rounded-xl">
+              Add Lane
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

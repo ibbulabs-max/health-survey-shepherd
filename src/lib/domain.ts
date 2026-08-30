@@ -25,12 +25,23 @@ export interface RiskResult {
 }
 
 /** Derives risk from exact readings + conditions using configured thresholds. */
-export function calculateRisk(input: {
-  systolic?: number | null;
-  diastolic?: number | null;
-  bloodSugar?: number | null;
-  conditions?: string[];
-}): RiskResult {
+export function calculateRisk(
+  input: {
+    systolic?: number | null;
+    diastolic?: number | null;
+    bloodSugar?: number | null;
+    conditions?: string[];
+  },
+  // Optional thresholds override (server may pass DB-configured thresholds). If omitted,
+  // fall back to compile-time `riskConfig` defaults so client-side code continues to work.
+  thresholds?: {
+    bp?: {
+      high: { systolic: number; diastolic: number };
+      moderate: { systolic: number; diastolic: number };
+    };
+    sugar?: { high: number; moderate: number };
+  },
+): RiskResult {
   const reasons: string[] = [];
   let level: RiskLevel = "low";
   const escalate = (to: RiskLevel) => {
@@ -38,16 +49,15 @@ export function calculateRisk(input: {
   };
 
   const { systolic, diastolic, bloodSugar } = input;
+  const cfg = thresholds ?? { bp: riskConfig.bp, sugar: riskConfig.sugar };
+
   if (systolic != null || diastolic != null) {
-    if (
-      (systolic ?? 0) >= riskConfig.bp.high.systolic ||
-      (diastolic ?? 0) >= riskConfig.bp.high.diastolic
-    ) {
+    if ((systolic ?? 0) >= cfg.bp!.high.systolic || (diastolic ?? 0) >= cfg.bp!.high.diastolic) {
       escalate("high");
       reasons.push(`BP ${systolic ?? "-"}/${diastolic ?? "-"} at or above high threshold`);
     } else if (
-      (systolic ?? 0) >= riskConfig.bp.moderate.systolic ||
-      (diastolic ?? 0) >= riskConfig.bp.moderate.diastolic
+      (systolic ?? 0) >= cfg.bp!.moderate.systolic ||
+      (diastolic ?? 0) >= cfg.bp!.moderate.diastolic
     ) {
       escalate("moderate");
       reasons.push(`BP ${systolic ?? "-"}/${diastolic ?? "-"} raised`);
@@ -55,10 +65,10 @@ export function calculateRisk(input: {
   }
 
   if (bloodSugar != null) {
-    if (bloodSugar >= riskConfig.sugar.high) {
+    if (bloodSugar >= cfg.sugar!.high) {
       escalate("high");
       reasons.push(`Blood sugar ${bloodSugar} at or above high threshold`);
-    } else if (bloodSugar >= riskConfig.sugar.moderate) {
+    } else if (bloodSugar >= cfg.sugar!.moderate) {
       escalate("moderate");
       reasons.push(`Blood sugar ${bloodSugar} raised`);
     }
@@ -107,27 +117,29 @@ export interface MemberView {
   dataIssues: string[];
 }
 
-const ELIGIBLE_AGE = 29;
-
 export function buildMemberView(
   member: HouseMember,
   assessment: MemberAssessment | null,
   house?: House | null,
+  minEligibleAge: number = 30, // Fallback if settings aren't loaded yet
+  thresholds?: Parameters<typeof calculateRisk>[1],
 ): MemberView {
   const data = (member.data ?? {}) as Record<string, unknown>;
   const age = numberOrNull(data["age"]);
   const gender = (data["gender"] as string | undefined) ?? null;
-  
+
   const conditionsRaw = assessment ? assessment.known_history : data["known_history"];
   const conditions = toStringArray(conditionsRaw);
-  const hasExplicitNone = typeof conditionsRaw === "string" && /^(no|none|nil|na|n\/a|no condition|no known condition)$/i.test(conditionsRaw.trim());
+  const hasExplicitNone =
+    typeof conditionsRaw === "string" &&
+    /^(no|none|nil|na|n\/a|no condition|no known condition)$/i.test(conditionsRaw.trim());
 
   const systolic = assessment?.systolic ?? numberOrNull(data["systolic"]);
   const diastolic = assessment?.diastolic ?? numberOrNull(data["diastolic"]);
   const bloodSugar = assessment?.blood_sugar ?? numberOrNull(data["blood_sugar"]);
 
   const stored = assessment?.risk_level ? asRisk(assessment.risk_level) : null;
-  const computed = calculateRisk({ systolic, diastolic, bloodSugar, conditions });
+  const computed = calculateRisk({ systolic, diastolic, bloodSugar, conditions }, thresholds);
   const risk = stored ?? computed.level;
 
   const dataIssues: string[] = [];
@@ -137,7 +149,8 @@ export function buildMemberView(
   if (systolic == null || diastolic == null) dataIssues.push("Missing BP");
   if (bloodSugar == null) dataIssues.push("Missing sugar");
   if (
-    conditions.length === 0 && !hasExplicitNone &&
+    conditions.length === 0 &&
+    !hasExplicitNone &&
     ((systolic ?? 0) >= riskConfig.bp.high.systolic ||
       (bloodSugar ?? 0) >= riskConfig.sugar.high ||
       Boolean(assessment?.medication && toStringArray(assessment.medication).length))
@@ -177,7 +190,7 @@ export function buildMemberView(
     conditions,
     risk,
     riskReasons: computed.reasons,
-    eligible: age != null && age >= ELIGIBLE_AGE,
+    eligible: age != null && age >= minEligibleAge,
     screenedAt: assessment?.assessed_at ?? null,
     assessment,
     extraFields,
@@ -228,10 +241,7 @@ export const isSameDay = (a: Date, b: Date) => a.toDateString() === b.toDateStri
 export const toDateKey = (d: Date) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
-export const followUpStatus = (
-  status: string | null,
-  dueDate: string | null,
-): FollowUpStatus => {
+export const followUpStatus = (status: string | null, dueDate: string | null): FollowUpStatus => {
   const s = (status ?? "pending").toLowerCase();
   // DB-valid terminal statuses
   if (s === "completed") return "completed";
@@ -276,7 +286,12 @@ export function priorityScore(input: {
 /* --------------------------- identity matching ----------------------------- */
 
 export function nameSimilarity(a: string, b: string): number {
-  const norm = (s: string) => s.toLowerCase().replace(/[^a-z ]/g, "").replace(/\s+/g, " ").trim();
+  const norm = (s: string) =>
+    s
+      .toLowerCase()
+      .replace(/[^a-z ]/g, "")
+      .replace(/\s+/g, " ")
+      .trim();
   const x = norm(a);
   const y = norm(b);
   if (!x || !y) return 0;

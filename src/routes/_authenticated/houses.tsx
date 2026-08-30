@@ -47,20 +47,25 @@ function HousesPage() {
   const [filter, setFilter] = useState<Filter>("all");
   const [limit, setLimit] = useState<number>(appConfig.pagination.defaultPageSize);
   const [selectedHouse, setSelectedHouse] = useState<HouseView | null>(null);
-  
+
   // Admin Selection State
   const [selectedHouseUuids, setSelectedHouseUuids] = useState<string[]>([]);
   const isSelectionMode = selectedHouseUuids.length > 0;
-  
+
   const handleToggleHouse = (uuid: string) => {
-    setSelectedHouseUuids((prev) => 
-      prev.includes(uuid) ? prev.filter(id => id !== uuid) : [...prev, uuid]
+    setSelectedHouseUuids((prev) =>
+      prev.includes(uuid) ? prev.filter((id) => id !== uuid) : [...prev, uuid],
     );
   };
-  
+
   const handleBulkDelete = async () => {
-    if (!window.confirm(`Are you sure you want to delete ${selectedHouseUuids.length} houses? This will also delete related members and assessments forever.`)) return;
-    
+    if (
+      !window.confirm(
+        `Are you sure you want to delete ${selectedHouseUuids.length} houses? This will also delete related members and assessments forever.`,
+      )
+    )
+      return;
+
     try {
       await bulkDeleteHouses(selectedHouseUuids);
       toast.success(`Deleted ${selectedHouseUuids.length} houses successfully.`);
@@ -168,51 +173,51 @@ function HousesPage() {
       ) : (
         <div className="grid gap-2">
           {houses.slice(0, limit).map((h) => (
-              <div
-                key={h.house.id}
-                onClick={() => {
-                  if (isSelectionMode || role === "admin") {
-                    handleToggleHouse(h.house.id);
-                  } else {
-                    setSelectedHouse(h);
-                  }
-                }}
-                className={cn(
-                  "card-surface flex items-start gap-3 p-4 transition-all hover:border-primary/40 cursor-pointer shadow-xs active:scale-[0.99]",
-                  selectedHouseUuids.includes(h.house.id) && "ring-2 ring-primary bg-primary/5"
-                )}
-              >
-                {role === "admin" && (
-                  <div className="pt-1 pr-1 shrink-0" onClick={(e) => e.stopPropagation()}>
-                    <Checkbox
-                      checked={selectedHouseUuids.includes(h.house.id)}
-                      onCheckedChange={() => handleToggleHouse(h.house.id)}
-                    />
-                  </div>
-                )}
-                
-                <div className="min-w-0 flex-1">
-                  <p className="truncate font-semibold text-foreground">
-                    {h.house.house_id ?? h.house.house_number ?? "Unnumbered house"}
-                    {h.house.owner_name ? ` • ${h.house.owner_name}` : ""}
-                  </p>
-                  <p className="truncate text-xs text-muted-foreground mt-0.5">
-                    {h.house.address ?? "No address recorded"}
-                  </p>
-                  <p className="mt-1.5 text-xs text-muted-foreground">
-                    {h.members.length} members • {h.eligible} eligible • {h.screened} screened
-                    {h.pendingFollowUps ? ` • ${h.pendingFollowUps} follow-ups` : ""}
-                  </p>
+            <div
+              key={h.house.id}
+              onClick={() => {
+                if (isSelectionMode || role === "admin") {
+                  handleToggleHouse(h.house.id);
+                } else {
+                  setSelectedHouse(h);
+                }
+              }}
+              className={cn(
+                "card-surface flex items-start gap-3 p-4 transition-all hover:border-primary/40 cursor-pointer shadow-xs active:scale-[0.99]",
+                selectedHouseUuids.includes(h.house.id) && "ring-2 ring-primary bg-primary/5",
+              )}
+            >
+              {role === "admin" && (
+                <div className="pt-1 pr-1 shrink-0" onClick={(e) => e.stopPropagation()}>
+                  <Checkbox
+                    checked={selectedHouseUuids.includes(h.house.id)}
+                    onCheckedChange={() => handleToggleHouse(h.house.id)}
+                  />
                 </div>
-                <div className="flex shrink-0 flex-col items-end gap-1.5">
-                  <RiskBadge level={h.risk} />
-                  {!h.hasLocation ? (
-                    <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground">
-                      <MapPin className="size-3" /> Unmapped
-                    </span>
-                  ) : null}
-                </div>
+              )}
+
+              <div className="min-w-0 flex-1">
+                <p className="truncate font-semibold text-foreground">
+                  {h.house.house_id ?? h.house.house_number ?? "Unnumbered house"}
+                  {h.house.owner_name ? ` • ${h.house.owner_name}` : ""}
+                </p>
+                <p className="truncate text-xs text-muted-foreground mt-0.5">
+                  {h.house.address ?? "No address recorded"}
+                </p>
+                <p className="mt-1.5 text-xs text-muted-foreground">
+                  {h.members.length} members • {h.eligible} eligible • {h.screened} screened
+                  {h.pendingFollowUps ? ` • ${h.pendingFollowUps} follow-ups` : ""}
+                </p>
               </div>
+              <div className="flex shrink-0 flex-col items-end gap-1.5">
+                <RiskBadge level={h.risk} />
+                {!h.hasLocation ? (
+                  <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground">
+                    <MapPin className="size-3" /> Unmapped
+                  </span>
+                ) : null}
+              </div>
+            </div>
           ))}
           {houses.length > limit ? (
             <button
@@ -229,18 +234,10 @@ function HousesPage() {
         <div className="fixed bottom-0 inset-x-0 p-4 bg-background/90 backdrop-blur-md border-t border-border z-30 flex items-center justify-between safe-bottom shadow-[0_-4px_24px_-2px_oklch(0_0_0/0.05)]">
           <span className="text-sm font-semibold">{selectedHouseUuids.length} selected</span>
           <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setSelectedHouseUuids([])}
-            >
+            <Button variant="outline" size="sm" onClick={() => setSelectedHouseUuids([])}>
               Cancel
             </Button>
-            <Button
-              variant="destructive"
-              size="sm"
-              onClick={handleBulkDelete}
-            >
+            <Button variant="destructive" size="sm" onClick={handleBulkDelete}>
               <Trash2 className="size-4 mr-1.5" /> Delete
             </Button>
           </div>

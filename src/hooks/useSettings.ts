@@ -3,22 +3,27 @@ import { followUpConfig } from "@/config/followups";
 import type { RiskLevel } from "@/config/risk";
 import { supabase } from "@/db/client";
 import { tables } from "@/config/database";
+import { getHealthThresholds } from "@/services/settingsServerFns";
 
 interface SettingsState {
   followUpIntervals: Record<RiskLevel, number>;
   dailyTarget: number;
-  updateInterval: (risk: RiskLevel, days: number) => Promise<void>;
+  minEligibleAge: number;
+  thresholds: any | null; // You can type this better later if needed
   updateDailyTarget: (target: number) => Promise<void>;
-  loadSettings: () => Promise<void>;
+  loadSettings: (userId?: string, role?: string, supervisorId?: string) => Promise<void>;
 }
 
 export const useSettings = create<SettingsState>()((set, get) => ({
   followUpIntervals: { ...followUpConfig.intervalDays },
   dailyTarget: followUpConfig.defaultDailyTarget,
-  
-  loadSettings: async () => {
+  minEligibleAge: 30, // Default fallback
+  thresholds: null,
+
+  loadSettings: async (userId?: string, role?: string, supervisorId?: string) => {
     try {
-      const { data } = await supabase
+      // 1. Load basic UI settings (dailyTarget) from activityLogs (legacy behavior for non-threshold settings if needed)
+      const { data: activityData } = await supabase
         .from(tables.activityLogs)
         .select("details")
         .eq("action", "system.settings.update")
@@ -26,38 +31,38 @@ export const useSettings = create<SettingsState>()((set, get) => ({
         .limit(1)
         .maybeSingle();
 
-      if (data?.details?.intervals) {
-        set({ followUpIntervals: data.details.intervals as Record<RiskLevel, number> });
+      if (typeof activityData?.details?.dailyTarget === "number") {
+        set({ dailyTarget: activityData.details.dailyTarget });
       }
-      if (typeof data?.details?.dailyTarget === 'number') {
-        set({ dailyTarget: data.details.dailyTarget });
+
+      // 2. Load health thresholds and intervals from the backend table
+      const response = await getHealthThresholds({ data: { userId, role, supervisorId } });
+      if (response && response.success && response.settings) {
+        const s = response.settings;
+        set({
+          minEligibleAge: s.minimum_eligible_age ?? 30,
+          followUpIntervals: {
+            high: s.interval_high ?? followUpConfig.intervalDays.high,
+            moderate: s.interval_moderate ?? followUpConfig.intervalDays.moderate,
+            low: s.interval_low ?? followUpConfig.intervalDays.low,
+          },
+          thresholds: {
+            ...s,
+            vitals_config: s.vitals_config ?? {
+              bloodPressure: true,
+              bloodSugar: true,
+              weight: true,
+              height: true,
+              bmi: true,
+              pulse: true,
+              spo2: true,
+              temperature: true,
+            },
+          },
+        });
       }
     } catch (e) {
-      console.error("Failed to load settings from backend:", e);
-    }
-  },
-
-  updateInterval: async (risk, days) => {
-    // Optimistic update
-    const prev = { ...get().followUpIntervals };
-    const next = { ...prev, [risk]: days };
-    set({ followUpIntervals: next });
-
-    try {
-      const { data: auth } = await supabase.auth.getUser();
-      const userId = auth.user?.id ?? null;
-      
-      const { error } = await supabase.from(tables.activityLogs).insert({
-        action: "system.settings.update",
-        details: { intervals: next },
-        user_id: userId
-      });
-      if (error) throw error;
-    } catch (e) {
-      console.error("Failed to save settings to backend:", e);
-      // Revert on failure
-      set({ followUpIntervals: prev });
-      throw e;
+      console.error("Failed to load settings:", e);
     }
   },
 
@@ -67,16 +72,15 @@ export const useSettings = create<SettingsState>()((set, get) => ({
     try {
       const { data: auth } = await supabase.auth.getUser();
       const userId = auth.user?.id ?? null;
-      
+
       const currentDetails = {
-        intervals: get().followUpIntervals,
-        dailyTarget: target
+        dailyTarget: target,
       };
 
       const { error } = await supabase.from(tables.activityLogs).insert({
         action: "system.settings.update",
         details: currentDetails,
-        user_id: userId
+        user_id: userId,
       });
       if (error) throw error;
     } catch (e) {
@@ -84,5 +88,5 @@ export const useSettings = create<SettingsState>()((set, get) => ({
       set({ dailyTarget: prev });
       throw e;
     }
-  }
+  },
 }));

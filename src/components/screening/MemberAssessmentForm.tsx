@@ -16,7 +16,7 @@ import {
   History,
   Calendar,
   Clock,
-  FileText
+  FileText,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -33,12 +33,7 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { RiskBadge } from "@/components/common/RiskBadge";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import {
   LifestyleFrequencySheet,
   FamilyHistorySheet,
@@ -124,7 +119,7 @@ export function MemberAssessmentForm({
 
   // History Sheet State
   const [historyOpen, setHistoryOpen] = useState(false);
-  
+
   // Fetch Historical Data
   const { data: memberHistory, isLoading: isLoadingHistory } = useQuery({
     queryKey: ["member_history", memberId],
@@ -136,20 +131,20 @@ export function MemberAssessmentForm({
         .select("*")
         .eq("member_uuid", memberId)
         .order("assessed_at", { ascending: false });
-        
+
       // Get all follow-ups for this member
       const { data: followUps } = await supabase
         .from("follow_ups")
         .select("*")
         .eq("member_uuid", memberId)
         .order("created_at", { ascending: false });
-        
+
       return {
         assessments: assessments || [],
-        followUps: followUps || []
+        followUps: followUps || [],
       };
     },
-    enabled: !!memberId && historyOpen
+    enabled: !!memberId && historyOpen,
   });
 
   // Initialize once loaded
@@ -203,7 +198,19 @@ export function MemberAssessmentForm({
     if (bmiNum && bmiNum >= 25) score += 2;
     if (Number(waistCm) >= 90) score += 2;
     return score;
-  }, [alcohol, alcoholFreq, smoking, smokingFreq, tobacco, tobaccoFreq, physicalActivity, familyHistory, familyConditions, bmiNum, waistCm]);
+  }, [
+    alcohol,
+    alcoholFreq,
+    smoking,
+    smokingFreq,
+    tobacco,
+    tobaccoFreq,
+    physicalActivity,
+    familyHistory,
+    familyConditions,
+    bmiNum,
+    waistCm,
+  ]);
 
   // Clinical Risk Calculation
   const riskResult = calculateRisk({
@@ -228,7 +235,9 @@ export function MemberAssessmentForm({
 
       const selectedDest = referralDestinations.find((d) => d.id === referralDestinationId);
       const destinationName =
-        referralDestinationId === "dest_other" ? customDestination : selectedDest?.name ?? "Referred";
+        referralDestinationId === "dest_other"
+          ? customDestination
+          : (selectedDest?.name ?? "Referred");
 
       return await saveScreening({
         houseUuid: member?.houseUuid ?? null,
@@ -279,7 +288,11 @@ export function MemberAssessmentForm({
     return <div className="p-12 text-center text-muted-foreground">Loading assessment…</div>;
   }
   if (!member) {
-    return <div className="p-12 text-center text-destructive font-semibold">Member record not found.</div>;
+    return (
+      <div className="p-12 text-center text-destructive font-semibold">
+        Member record not found.
+      </div>
+    );
   }
 
   const handleNext = () => setStep((s) => Math.min(totalSteps, s + 1));
@@ -298,7 +311,10 @@ export function MemberAssessmentForm({
             <div className="pt-2 flex justify-center">
               <RiskBadge level={riskResult.level} />
             </div>
-            <Button onClick={onComplete} className="w-full h-12 rounded-xl mt-6 font-semibold shadow-md text-base">
+            <Button
+              onClick={onComplete}
+              className="w-full h-12 rounded-xl mt-6 font-semibold shadow-md text-base"
+            >
               Continue
             </Button>
           </div>
@@ -314,7 +330,9 @@ export function MemberAssessmentForm({
           </div>
           <h2 className="font-display text-2xl font-bold text-foreground">Assessment Complete!</h2>
           <p className="text-sm text-muted-foreground">
-            Health assessment successfully saved for <span className="font-bold text-foreground">{member.name}</span> (ID: {member.memberId}).
+            Health assessment successfully saved for{" "}
+            <span className="font-bold text-foreground">{member.name}</span> (ID: {member.memberId}
+            ).
           </p>
           <div className="pt-2 flex justify-center">
             <RiskBadge level={riskResult.level} />
@@ -324,16 +342,23 @@ export function MemberAssessmentForm({
         {nextMember ? (
           <div className="card-surface p-5 rounded-2xl border border-primary/30 bg-primary-soft/10 space-y-3 shadow-sm">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold uppercase tracking-wider text-primary">Next Household Member</span>
+              <span className="text-xs font-bold uppercase tracking-wider text-primary">
+                Next Household Member
+              </span>
               <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-600 border border-amber-500/20">
                 Assessment Pending
               </span>
             </div>
             <div>
               <p className="font-bold text-base text-foreground">{nextMember.name}</p>
-              <p className="font-mono text-xs text-muted-foreground">{nextMember.memberId} • Age {nextMember.age} • {nextMember.gender}</p>
+              <p className="font-mono text-xs text-muted-foreground">
+                {nextMember.memberId} • Age {nextMember.age} • {nextMember.gender}
+              </p>
             </div>
-            <Button asChild className="w-full h-12 rounded-xl font-semibold bg-primary text-white shadow-xs">
+            <Button
+              asChild
+              className="w-full h-12 rounded-xl font-semibold bg-primary text-white shadow-xs"
+            >
               <Link to="/assessments/$memberId" params={{ memberId: nextMember.id }}>
                 <Stethoscope className="size-4 mr-2" /> Assess {nextMember.name} Now
               </Link>
@@ -342,7 +367,9 @@ export function MemberAssessmentForm({
         ) : (
           <div className="card-surface p-5 rounded-2xl border border-border/70 text-center space-y-2">
             <p className="font-bold text-sm text-foreground">All Eligible Members Assessed!</p>
-            <p className="text-xs text-muted-foreground">Survey completed for Household {member.houseId}.</p>
+            <p className="text-xs text-muted-foreground">
+              Survey completed for Household {member.houseId}.
+            </p>
           </div>
         )}
 
@@ -363,7 +390,11 @@ export function MemberAssessmentForm({
           onClick={() => {
             if (step > 1) handleBack();
             else if (onCancel) onCancel();
-            else navigate({ to: "/houses/$houseId", params: { houseId: houseUuid ?? member.houseUuid ?? "" } });
+            else
+              navigate({
+                to: "/houses/$houseId",
+                params: { houseId: houseUuid ?? member.houseUuid ?? "" },
+              });
           }}
           className="flex items-center text-primary text-sm font-medium hover:opacity-80"
         >
@@ -393,7 +424,10 @@ export function MemberAssessmentForm({
       </div>
 
       <Sheet open={historyOpen} onOpenChange={setHistoryOpen}>
-        <SheetContent side="bottom" className="h-[85vh] rounded-t-3xl sm:max-w-md sm:mx-auto p-0 flex flex-col bg-background/95 backdrop-blur-xl border-t border-border">
+        <SheetContent
+          side="bottom"
+          className="h-[85vh] rounded-t-3xl sm:max-w-md sm:mx-auto p-0 flex flex-col bg-background/95 backdrop-blur-xl border-t border-border"
+        >
           <SheetHeader className="p-4 border-b border-border text-left">
             <SheetTitle className="font-display flex items-center gap-2">
               <History className="size-5 text-primary" />
@@ -402,9 +436,13 @@ export function MemberAssessmentForm({
           </SheetHeader>
           <div className="flex-1 overflow-y-auto p-4 space-y-6">
             {isLoadingHistory ? (
-              <div className="text-center py-8 text-muted-foreground text-sm">Loading history...</div>
-            ) : (!memberHistory?.assessments?.length && !memberHistory?.followUps?.length) ? (
-              <div className="text-center py-8 text-muted-foreground text-sm">No historical records found.</div>
+              <div className="text-center py-8 text-muted-foreground text-sm">
+                Loading history...
+              </div>
+            ) : !memberHistory?.assessments?.length && !memberHistory?.followUps?.length ? (
+              <div className="text-center py-8 text-muted-foreground text-sm">
+                No historical records found.
+              </div>
             ) : (
               <div className="relative border-l-2 border-border/50 ml-4 pl-6 space-y-8">
                 {/* Assessments */}
@@ -443,7 +481,7 @@ export function MemberAssessmentForm({
                     </div>
                   </div>
                 ))}
-                
+
                 {/* Follow Ups */}
                 {memberHistory.followUps.map((fu: any) => (
                   <div key={fu.id} className="relative">
@@ -452,21 +490,32 @@ export function MemberAssessmentForm({
                     </div>
                     <div className="card-surface p-4 rounded-2xl border border-border/70 space-y-1">
                       <div className="flex justify-between items-start">
-                        <span className="text-xs font-bold text-foreground">Follow-up {fu.status === 'completed' ? 'Completed' : fu.status === 'missed' ? 'Missed' : 'Scheduled'}</span>
+                        <span className="text-xs font-bold text-foreground">
+                          Follow-up{" "}
+                          {fu.status === "completed"
+                            ? "Completed"
+                            : fu.status === "missed"
+                              ? "Missed"
+                              : "Scheduled"}
+                        </span>
                         <span className="text-[10px] text-muted-foreground">
                           Due: {fu.due_date}
                         </span>
                       </div>
                       <p className="text-xs text-muted-foreground pt-1">{fu.reason}</p>
                       <div className="pt-2">
-                         <span className={cn(
-                           "px-2 py-0.5 rounded-full text-[10px] font-bold border",
-                           fu.status === 'completed' ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20" :
-                           fu.status === 'missed' ? "bg-rose-500/10 text-rose-600 border-rose-500/20" :
-                           "bg-amber-500/10 text-amber-600 border-amber-500/20"
-                         )}>
-                           {fu.status}
-                         </span>
+                        <span
+                          className={cn(
+                            "px-2 py-0.5 rounded-full text-[10px] font-bold border",
+                            fu.status === "completed"
+                              ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
+                              : fu.status === "missed"
+                                ? "bg-rose-500/10 text-rose-600 border-rose-500/20"
+                                : "bg-amber-500/10 text-amber-600 border-amber-500/20",
+                          )}
+                        >
+                          {fu.status}
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -483,14 +532,20 @@ export function MemberAssessmentForm({
         {step === 1 && (
           <div className="space-y-4">
             <div>
-              <h2 className="font-display text-lg font-bold text-foreground">Step 1: History & Conditions</h2>
-              <p className="text-xs text-muted-foreground mt-0.5">Known medical conditions and availability.</p>
+              <h2 className="font-display text-lg font-bold text-foreground">
+                Step 1: History & Conditions
+              </h2>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Known medical conditions and availability.
+              </p>
             </div>
 
             <div className="card-surface p-4 rounded-2xl border border-border/70 flex items-center justify-between">
               <div>
                 <p className="text-sm font-semibold text-foreground">Member Present for Survey</p>
-                <p className="text-xs text-muted-foreground">Turn off if member is currently unavailable.</p>
+                <p className="text-xs text-muted-foreground">
+                  Turn off if member is currently unavailable.
+                </p>
               </div>
               <Switch checked={available} onCheckedChange={setAvailable} />
             </div>
@@ -510,7 +565,7 @@ export function MemberAssessmentForm({
                     "p-3 rounded-2xl border text-left font-semibold text-xs transition-all",
                     knownHistoryStatus === "none"
                       ? "bg-primary/10 border-primary text-primary shadow-xs ring-1 ring-primary/20"
-                      : "bg-surface text-muted-foreground border-border hover:bg-surface-muted"
+                      : "bg-surface text-muted-foreground border-border hover:bg-surface-muted",
                   )}
                 >
                   NO KNOWN HISTORY
@@ -522,7 +577,7 @@ export function MemberAssessmentForm({
                     "p-3 rounded-2xl border text-left font-semibold text-xs transition-all",
                     knownHistoryStatus === "known"
                       ? "bg-primary/10 border-primary text-primary shadow-xs ring-1 ring-primary/20"
-                      : "bg-surface text-muted-foreground border-border hover:bg-surface-muted"
+                      : "bg-surface text-muted-foreground border-border hover:bg-surface-muted",
                   )}
                 >
                   KNOWN CONDITIONS
@@ -536,7 +591,15 @@ export function MemberAssessmentForm({
                   Select Known Conditions
                 </Label>
                 <div className="grid grid-cols-2 gap-2">
-                  {["Hypertension", "Diabetes", "Heart Disease", "Stroke", "Cancer", "Asthma", "Other"].map((cond) => {
+                  {[
+                    "Hypertension",
+                    "Diabetes",
+                    "Heart Disease",
+                    "Stroke",
+                    "Cancer",
+                    "Asthma",
+                    "Other",
+                  ].map((cond) => {
                     const active = conditions.includes(cond);
                     return (
                       <button
@@ -544,14 +607,14 @@ export function MemberAssessmentForm({
                         type="button"
                         onClick={() =>
                           setConditions((prev) =>
-                            prev.includes(cond) ? prev.filter((x) => x !== cond) : [...prev, cond]
+                            prev.includes(cond) ? prev.filter((x) => x !== cond) : [...prev, cond],
                           )
                         }
                         className={cn(
                           "p-2.5 rounded-xl border text-xs font-semibold transition-all text-left flex justify-between items-center",
                           active
                             ? "bg-primary text-white border-primary shadow-xs"
-                            : "bg-surface text-foreground border-border/70 hover:bg-surface-muted"
+                            : "bg-surface text-foreground border-border/70 hover:bg-surface-muted",
                         )}
                       >
                         <span>{cond}</span>
@@ -563,7 +626,9 @@ export function MemberAssessmentForm({
 
                 {conditions.includes("Hypertension") && (
                   <div className="space-y-1 pt-2 animate-in fade-in">
-                    <Label className="text-xs text-foreground font-medium">Tablets Taking for Hypertension</Label>
+                    <Label className="text-xs text-foreground font-medium">
+                      Tablets Taking for Hypertension
+                    </Label>
                     <Input
                       value={htnMedication}
                       onChange={(e) => setHtnMedication(e.target.value)}
@@ -575,7 +640,9 @@ export function MemberAssessmentForm({
 
                 {conditions.includes("Diabetes") && (
                   <div className="space-y-1 pt-2 animate-in fade-in">
-                    <Label className="text-xs text-foreground font-medium">Tablets / Insulin for Diabetes</Label>
+                    <Label className="text-xs text-foreground font-medium">
+                      Tablets / Insulin for Diabetes
+                    </Label>
                     <Input
                       value={dmMedication}
                       onChange={(e) => setDmMedication(e.target.value)}
@@ -593,14 +660,20 @@ export function MemberAssessmentForm({
         {step === 2 && (
           <div className="space-y-5">
             <div>
-              <h2 className="font-display text-lg font-bold text-foreground">Step 2: Lifestyle & Habits</h2>
-              <p className="text-xs text-muted-foreground mt-0.5">Progressive disclosure for substance use & activity.</p>
+              <h2 className="font-display text-lg font-bold text-foreground">
+                Step 2: Lifestyle & Habits
+              </h2>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Progressive disclosure for substance use & activity.
+              </p>
             </div>
 
             {/* Alcohol */}
             <div className="card-surface p-4 rounded-2xl border border-border/70 space-y-2.5">
               <div className="flex justify-between items-center">
-                <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Alcohol Consumption</Label>
+                <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Alcohol Consumption
+                </Label>
                 {alcohol !== "No" && (
                   <button
                     type="button"
@@ -622,16 +695,27 @@ export function MemberAssessmentForm({
                 }}
                 className="justify-start bg-surface-muted p-1 rounded-xl w-full border border-border/50"
               >
-                <ToggleGroupItem value="No" className="rounded-lg flex-1 text-xs font-semibold">No</ToggleGroupItem>
-                <ToggleGroupItem value="Yes" className="rounded-lg flex-1 text-xs font-semibold">Yes</ToggleGroupItem>
-                <ToggleGroupItem value="Used to" className="rounded-lg flex-1 text-xs font-semibold">Past / Used to</ToggleGroupItem>
+                <ToggleGroupItem value="No" className="rounded-lg flex-1 text-xs font-semibold">
+                  No
+                </ToggleGroupItem>
+                <ToggleGroupItem value="Yes" className="rounded-lg flex-1 text-xs font-semibold">
+                  Yes
+                </ToggleGroupItem>
+                <ToggleGroupItem
+                  value="Used to"
+                  className="rounded-lg flex-1 text-xs font-semibold"
+                >
+                  Past / Used to
+                </ToggleGroupItem>
               </ToggleGroup>
             </div>
 
             {/* Smoking */}
             <div className="card-surface p-4 rounded-2xl border border-border/70 space-y-2.5">
               <div className="flex justify-between items-center">
-                <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Smoking</Label>
+                <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Smoking
+                </Label>
                 {smoking !== "No" && (
                   <button
                     type="button"
@@ -653,16 +737,27 @@ export function MemberAssessmentForm({
                 }}
                 className="justify-start bg-surface-muted p-1 rounded-xl w-full border border-border/50"
               >
-                <ToggleGroupItem value="No" className="rounded-lg flex-1 text-xs font-semibold">No</ToggleGroupItem>
-                <ToggleGroupItem value="Yes" className="rounded-lg flex-1 text-xs font-semibold">Yes</ToggleGroupItem>
-                <ToggleGroupItem value="Used to" className="rounded-lg flex-1 text-xs font-semibold">Past / Used to</ToggleGroupItem>
+                <ToggleGroupItem value="No" className="rounded-lg flex-1 text-xs font-semibold">
+                  No
+                </ToggleGroupItem>
+                <ToggleGroupItem value="Yes" className="rounded-lg flex-1 text-xs font-semibold">
+                  Yes
+                </ToggleGroupItem>
+                <ToggleGroupItem
+                  value="Used to"
+                  className="rounded-lg flex-1 text-xs font-semibold"
+                >
+                  Past / Used to
+                </ToggleGroupItem>
               </ToggleGroup>
             </div>
 
             {/* Tobacco */}
             <div className="card-surface p-4 rounded-2xl border border-border/70 space-y-2.5">
               <div className="flex justify-between items-center">
-                <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Other Tobacco (Chewing/Snuff)</Label>
+                <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Other Tobacco (Chewing/Snuff)
+                </Label>
                 {tobacco !== "No" && (
                   <button
                     type="button"
@@ -684,18 +779,33 @@ export function MemberAssessmentForm({
                 }}
                 className="justify-start bg-surface-muted p-1 rounded-xl w-full border border-border/50"
               >
-                <ToggleGroupItem value="No" className="rounded-lg flex-1 text-xs font-semibold">No</ToggleGroupItem>
-                <ToggleGroupItem value="Yes" className="rounded-lg flex-1 text-xs font-semibold">Yes</ToggleGroupItem>
-                <ToggleGroupItem value="Used to" className="rounded-lg flex-1 text-xs font-semibold">Past / Used to</ToggleGroupItem>
+                <ToggleGroupItem value="No" className="rounded-lg flex-1 text-xs font-semibold">
+                  No
+                </ToggleGroupItem>
+                <ToggleGroupItem value="Yes" className="rounded-lg flex-1 text-xs font-semibold">
+                  Yes
+                </ToggleGroupItem>
+                <ToggleGroupItem
+                  value="Used to"
+                  className="rounded-lg flex-1 text-xs font-semibold"
+                >
+                  Past / Used to
+                </ToggleGroupItem>
               </ToggleGroup>
             </div>
 
             {/* Waist Measurement */}
             <div className="card-surface p-4 rounded-2xl border border-border/70 space-y-2">
               <div className="flex justify-between items-center">
-                <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Waist Measurement</Label>
+                <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Waist Measurement
+                </Label>
                 <span className="text-[11px] font-mono font-bold text-primary">
-                  {Number(waistCm) >= 100 ? "≥ 100 cm (High)" : Number(waistCm) >= 90 ? "90–100 cm (Mod)" : "< 90 cm (Normal)"}
+                  {Number(waistCm) >= 100
+                    ? "≥ 100 cm (High)"
+                    : Number(waistCm) >= 90
+                      ? "90–100 cm (Mod)"
+                      : "< 90 cm (Normal)"}
                 </span>
               </div>
               <Input
@@ -731,7 +841,9 @@ export function MemberAssessmentForm({
             {/* Family History */}
             <div className="card-surface p-4 rounded-2xl border border-border/70 space-y-2.5">
               <div className="flex justify-between items-center">
-                <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Family Medical History</Label>
+                <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Family Medical History
+                </Label>
                 {familyHistory === "Yes" && (
                   <button
                     type="button"
@@ -753,8 +865,12 @@ export function MemberAssessmentForm({
                 }}
                 className="justify-start bg-surface-muted p-1 rounded-xl w-full border border-border/50"
               >
-                <ToggleGroupItem value="No" className="rounded-lg flex-1 text-xs font-semibold">No Family History</ToggleGroupItem>
-                <ToggleGroupItem value="Yes" className="rounded-lg flex-1 text-xs font-semibold">Yes, Present</ToggleGroupItem>
+                <ToggleGroupItem value="No" className="rounded-lg flex-1 text-xs font-semibold">
+                  No Family History
+                </ToggleGroupItem>
+                <ToggleGroupItem value="Yes" className="rounded-lg flex-1 text-xs font-semibold">
+                  Yes, Present
+                </ToggleGroupItem>
               </ToggleGroup>
             </div>
 
@@ -796,14 +912,20 @@ export function MemberAssessmentForm({
         {step === 3 && (
           <div className="space-y-5">
             <div>
-              <h2 className="font-display text-lg font-bold text-foreground">Step 3: Height, Weight & BMI</h2>
-              <p className="text-xs text-muted-foreground mt-0.5">Automatic BMI computation and category classification.</p>
+              <h2 className="font-display text-lg font-bold text-foreground">
+                Step 3: Height, Weight & BMI
+              </h2>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Automatic BMI computation and category classification.
+              </p>
             </div>
 
             <div className="card-surface p-5 rounded-2xl border border-border/70 space-y-4">
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Height (cm)</Label>
+                  <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    Height (cm)
+                  </Label>
                   <Input
                     type="number"
                     inputMode="numeric"
@@ -814,7 +936,9 @@ export function MemberAssessmentForm({
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Weight (kg)</Label>
+                  <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    Weight (kg)
+                  </Label>
                   <Input
                     type="number"
                     inputMode="numeric"
@@ -828,9 +952,15 @@ export function MemberAssessmentForm({
 
               {bmiNum != null && (
                 <div className="p-4 rounded-2xl bg-surface-muted border border-border/60 text-center space-y-1 animate-in zoom-in-95">
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Derived Body Mass Index</span>
-                  <p className="font-display font-bold text-3xl text-foreground font-mono">{bmiNum}</p>
-                  <p className={cn("text-xs font-bold", bmiCategory?.color)}>{bmiCategory?.label}</p>
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                    Derived Body Mass Index
+                  </span>
+                  <p className="font-display font-bold text-3xl text-foreground font-mono">
+                    {bmiNum}
+                  </p>
+                  <p className={cn("text-xs font-bold", bmiCategory?.color)}>
+                    {bmiCategory?.label}
+                  </p>
                 </div>
               )}
             </div>
@@ -841,10 +971,16 @@ export function MemberAssessmentForm({
                 <span className="text-[10px] font-bold uppercase tracking-widest text-amber-600 dark:text-amber-400">
                   Calculated Lifestyle Risk Score
                 </span>
-                <p className="font-display font-bold text-xl text-foreground">{lifestyleRiskScore} / 25</p>
+                <p className="font-display font-bold text-xl text-foreground">
+                  {lifestyleRiskScore} / 25
+                </p>
               </div>
               <span className="px-3 py-1 rounded-full text-xs font-bold bg-amber-500/10 text-amber-600 border border-amber-500/20">
-                {lifestyleRiskScore >= 8 ? "High Risk" : lifestyleRiskScore >= 4 ? "Moderate Risk" : "Low Risk"}
+                {lifestyleRiskScore >= 8
+                  ? "High Risk"
+                  : lifestyleRiskScore >= 4
+                    ? "Moderate Risk"
+                    : "Low Risk"}
               </span>
             </div>
           </div>
@@ -854,8 +990,12 @@ export function MemberAssessmentForm({
         {step === 4 && (
           <div className="space-y-5">
             <div>
-              <h2 className="font-display text-lg font-bold text-foreground">Step 4: Clinical Vital Signs</h2>
-              <p className="text-xs text-muted-foreground mt-0.5">Accurate blood pressure and blood glucose screening.</p>
+              <h2 className="font-display text-lg font-bold text-foreground">
+                Step 4: Clinical Vital Signs
+              </h2>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Accurate blood pressure and blood glucose screening.
+              </p>
             </div>
 
             {/* Blood Pressure Card */}
@@ -864,7 +1004,11 @@ export function MemberAssessmentForm({
                 <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
                   <Heart className="size-4 text-rose-500" /> Blood Pressure (mmHg)
                 </Label>
-                <RiskFactorsSheetButton title="VIEW BP RISK FACTORS" type="bp" currentValue={systolic && diastolic ? `${systolic}/${diastolic}` : null} />
+                <RiskFactorsSheetButton
+                  title="VIEW BP RISK FACTORS"
+                  type="bp"
+                  currentValue={systolic && diastolic ? `${systolic}/${diastolic}` : null}
+                />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
@@ -898,7 +1042,11 @@ export function MemberAssessmentForm({
                 <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
                   <Activity className="size-4 text-amber-500" /> Random Blood Sugar (mg/dL)
                 </Label>
-                <RiskFactorsSheetButton title="VIEW SUGAR RISK FACTORS" type="sugar" currentValue={sugar ? `${sugar} mg/dL` : null} />
+                <RiskFactorsSheetButton
+                  title="VIEW SUGAR RISK FACTORS"
+                  type="sugar"
+                  currentValue={sugar ? `${sugar} mg/dL` : null}
+                />
               </div>
               <div className="space-y-1">
                 <Input
@@ -914,7 +1062,9 @@ export function MemberAssessmentForm({
 
             {/* Optional Extra Vitals */}
             <div className="card-surface p-4 rounded-2xl border border-border/70 space-y-3">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Additional Vitals (Optional)</span>
+              <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                Additional Vitals (Optional)
+              </span>
               <div className="grid grid-cols-3 gap-2">
                 <div className="space-y-1">
                   <Label className="text-[10px] text-muted-foreground">Pulse (bpm)</Label>
@@ -955,15 +1105,23 @@ export function MemberAssessmentForm({
         {step === 5 && (
           <div className="space-y-5">
             <div>
-              <h2 className="font-display text-lg font-bold text-foreground">Step 5: Facility Referral & Notes</h2>
-              <p className="text-xs text-muted-foreground mt-0.5">Facility referral and surveyor observations.</p>
+              <h2 className="font-display text-lg font-bold text-foreground">
+                Step 5: Facility Referral & Notes
+              </h2>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Facility referral and surveyor observations.
+              </p>
             </div>
 
             <div className="card-surface p-4 rounded-2xl border border-border/70 space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-semibold text-foreground">REFER TO CLINIC / HOSPITAL?</p>
-                  <p className="text-xs text-muted-foreground">Check if doctor consultation is indicated.</p>
+                  <p className="text-sm font-semibold text-foreground">
+                    REFER TO CLINIC / HOSPITAL?
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Check if doctor consultation is indicated.
+                  </p>
                 </div>
                 <Switch checked={referralNeeded} onCheckedChange={setReferralNeeded} />
               </div>
@@ -984,17 +1142,21 @@ export function MemberAssessmentForm({
                             "w-full p-3 rounded-xl border text-left text-xs font-semibold flex items-center justify-between transition-all",
                             referralDestinationId === dest.id
                               ? "bg-primary/10 border-primary text-primary shadow-xs ring-1 ring-primary/20"
-                              : "bg-surface text-foreground border-border hover:bg-surface-muted"
+                              : "bg-surface text-foreground border-border hover:bg-surface-muted",
                           )}
                         >
                           <div className="flex items-center gap-2">
                             <Building2 className="size-4 shrink-0 text-muted-foreground" />
                             <div>
                               <p className="font-bold">{dest.name}</p>
-                              <p className="text-[10px] text-muted-foreground font-normal">{dest.address}</p>
+                              <p className="text-[10px] text-muted-foreground font-normal">
+                                {dest.address}
+                              </p>
                             </div>
                           </div>
-                          {referralDestinationId === dest.id && <CheckCircle2 className="size-4 text-primary shrink-0" />}
+                          {referralDestinationId === dest.id && (
+                            <CheckCircle2 className="size-4 text-primary shrink-0" />
+                          )}
                         </button>
                       ))}
                     </div>
@@ -1002,7 +1164,9 @@ export function MemberAssessmentForm({
 
                   {referralDestinationId === "dest_other" && (
                     <div className="space-y-1 pt-1">
-                      <Label className="text-[11px] text-muted-foreground">Custom Destination Name</Label>
+                      <Label className="text-[11px] text-muted-foreground">
+                        Custom Destination Name
+                      </Label>
                       <Input
                         value={customDestination}
                         onChange={(e) => setCustomDestination(e.target.value)}
@@ -1013,7 +1177,9 @@ export function MemberAssessmentForm({
                   )}
 
                   <div className="space-y-1 pt-1">
-                    <Label className="text-[11px] text-muted-foreground">Referral Clinical Notes</Label>
+                    <Label className="text-[11px] text-muted-foreground">
+                      Referral Clinical Notes
+                    </Label>
                     <Textarea
                       value={referralNotes}
                       onChange={(e) => setReferralNotes(e.target.value)}
@@ -1045,19 +1211,27 @@ export function MemberAssessmentForm({
         {step === 6 && (
           <div className="space-y-5">
             <div>
-              <h2 className="font-display text-lg font-bold text-foreground">Step 6: Review & Finalize</h2>
-              <p className="text-xs text-muted-foreground mt-0.5">Verify derived risk tier and submit assessment.</p>
+              <h2 className="font-display text-lg font-bold text-foreground">
+                Step 6: Review & Finalize
+              </h2>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Verify derived risk tier and submit assessment.
+              </p>
             </div>
 
             <div className="card-surface p-5 rounded-2xl border border-border/70 space-y-4">
               <div className="flex items-center justify-between pb-3 border-b border-border/50">
-                <span className="text-sm font-semibold text-foreground">Derived Clinical Risk Tier</span>
+                <span className="text-sm font-semibold text-foreground">
+                  Derived Clinical Risk Tier
+                </span>
                 <RiskBadge level={riskResult.level} />
               </div>
 
               {riskResult.reasons.length > 0 ? (
                 <div className="space-y-1.5">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Contributing Factors</span>
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                    Contributing Factors
+                  </span>
                   {riskResult.reasons.map((reason, i) => (
                     <p key={i} className="text-xs text-foreground flex items-center gap-1.5">
                       <span className="size-1.5 rounded-full bg-primary" /> {reason}
@@ -1065,13 +1239,17 @@ export function MemberAssessmentForm({
                   ))}
                 </div>
               ) : (
-                <p className="text-xs text-muted-foreground">No elevated clinical risk criteria detected.</p>
+                <p className="text-xs text-muted-foreground">
+                  No elevated clinical risk criteria detected.
+                </p>
               )}
 
               <div className="grid grid-cols-3 gap-2 pt-2 border-t border-border/50 text-center font-mono text-xs">
                 <div className="bg-surface-muted p-2.5 rounded-xl">
                   <span className="text-[10px] text-muted-foreground uppercase block">BP</span>
-                  <span className="font-bold">{systolic && diastolic ? `${systolic}/${diastolic}` : "—"}</span>
+                  <span className="font-bold">
+                    {systolic && diastolic ? `${systolic}/${diastolic}` : "—"}
+                  </span>
                 </div>
                 <div className="bg-surface-muted p-2.5 rounded-xl">
                   <span className="text-[10px] text-muted-foreground uppercase block">Sugar</span>
@@ -1083,7 +1261,6 @@ export function MemberAssessmentForm({
                 </div>
               </div>
             </div>
-
           </div>
         )}
       </main>
@@ -1103,7 +1280,10 @@ export function MemberAssessmentForm({
         {step < totalSteps ? (
           <Button
             onClick={handleNext}
-            className={cn("h-12 rounded-xl text-base font-semibold shadow-sm flex items-center justify-center gap-2", step > 1 ? "w-2/3" : "w-full")}
+            className={cn(
+              "h-12 rounded-xl text-base font-semibold shadow-sm flex items-center justify-center gap-2",
+              step > 1 ? "w-2/3" : "w-full",
+            )}
           >
             Next <ArrowRight className="size-4" />
           </Button>
@@ -1111,7 +1291,10 @@ export function MemberAssessmentForm({
           <Button
             onClick={() => mutation.mutate()}
             disabled={mutation.isPending || !isCHW}
-            className={cn("h-12 rounded-xl text-base font-bold shadow-md bg-primary text-white", step > 1 ? "w-2/3" : "w-full")}
+            className={cn(
+              "h-12 rounded-xl text-base font-bold shadow-md bg-primary text-white",
+              step > 1 ? "w-2/3" : "w-full",
+            )}
           >
             {mutation.isPending ? "Submitting…" : "Save"}
             <Save className="size-4 ml-2" />

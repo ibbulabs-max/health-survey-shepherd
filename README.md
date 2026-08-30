@@ -190,7 +190,7 @@ The goal is:
 
 EXISTING DATABASE
 
-+
+-
 
 ONLY REQUIRED MISSING COMPONENTS
 
@@ -268,7 +268,7 @@ Example structure:
 
 supabase/
 
-  migrations/
+migrations/
 
     001_initial_changes.sql
 
@@ -508,17 +508,17 @@ Example concept:
 
 config/
 
-  app.ts
+app.ts
 
-  database.ts
+database.ts
 
-  followups.ts
+followups.ts
 
-  risk.ts
+risk.ts
 
-  import.ts
+import.ts
 
-  map.ts
+map.ts
 
 Use the appropriate structure for the actual project.
 
@@ -558,7 +558,7 @@ The goal should be:
 
 CHANGE ENVIRONMENT CONFIGURATION
 
-+
+-
 
 RUN DATABASE MIGRATIONS
 
@@ -1214,7 +1214,7 @@ UNDERSTAND IT FIRST.
 
 REUSE IT FIRST.
 
-ONLY THEN ADD WHAT IS ACTUALLY MISSING.                                                                                         ==================================================
+ONLY THEN ADD WHAT IS ACTUALLY MISSING. ==================================================
 
 FIRST LOGIN / INITIAL ACCOUNT SETUP
 
@@ -1312,7 +1312,7 @@ ADMIN
 
 SUPERVISOR
 
-CSW / CHW                                                                                                                                                           BUILD A COMPLETE PRODUCTION-READY PWA
+CSW / CHW BUILD A COMPLETE PRODUCTION-READY PWA
 
 APP NAME: MANAGEMENT APP
 
@@ -2928,7 +2928,7 @@ Working hours:
 
 If a due date falls on Sunday:
 
-Automatically move it to the next   valid working day.
+Automatically move it to the next valid working day.
 
 Admin may configure working hours later.
 
@@ -2986,8 +2986,6 @@ When completed:
 
 39. NOTIFICATIONS & REMINDERS
 
-
-
 Create a Notifications / Reminders center.
 
 Show:
@@ -3009,8 +3007,6 @@ Show:
 - Important system alerts
 
 Notifications should be role-aware.
-
-
 
 40. REPORTS PAGE
 

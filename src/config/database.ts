@@ -6,7 +6,12 @@
  * environment variables) and run the SQL migrations. No component changes.
  */
 
-const env = import.meta.env as Record<string, string | undefined>;
+const env: Record<string, string | undefined> =
+  typeof import.meta !== "undefined" && import.meta.env
+    ? (import.meta.env as Record<string, string | undefined>)
+    : typeof process !== "undefined" && process.env
+      ? (process.env as Record<string, string | undefined>)
+      : {};
 
 export const databaseConfig = {
   url: env["VITE_SUPABASE_URL"] ?? "",
@@ -41,4 +46,6 @@ export const tables = {
   importBatches: "import_batches",
   importConflicts: "import_conflicts",
   activityLogs: "activity_logs",
+  healthThresholdSettings: "health_threshold_settings",
+  holidays: "holidays",
 } as const;

@@ -32,10 +32,14 @@ export type FollowUpStatus = "due" | "overdue" | "completed" | "missed";
 import { addDays, isWeekend, format, parseISO } from "date-fns";
 
 /** Shifts a date off Sunday (and any non-working day) to the next working day. */
-export function toWorkingDay(date: Date, workingDays: readonly number[] = followUpConfig.workingDays, holidays: string[] = []) {
+export function toWorkingDay(
+  date: Date,
+  workingDays: readonly number[] = followUpConfig.workingDays,
+  holidays: string[] = [],
+) {
   let d = new Date(date);
   let guard = 0;
-  
+
   while (guard < 30) {
     const dayOfWeek = d.getDay();
     const isWorkingDay = workingDays.includes(dayOfWeek);
@@ -55,7 +59,7 @@ export function nextDueDate(
   from: Date,
   risk: RiskLevel,
   intervals: Record<RiskLevel, number> = followUpConfig.intervalDays,
-  holidays: string[] = []
+  holidays: string[] = [],
 ) {
   const d = addDays(from, intervals[risk]);
   return toWorkingDay(d, followUpConfig.workingDays, holidays);

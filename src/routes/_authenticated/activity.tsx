@@ -32,7 +32,9 @@ function ActivityPage() {
   });
 
   if (!can("view_audit_log"))
-    return <EmptyState title="Restricted" description="Only administrators can view the audit log." />;
+    return (
+      <EmptyState title="Restricted" description="Only administrators can view the audit log." />
+    );
   if (query.isLoading) return <LoadingState label="Loading activity…" />;
   if (query.error)
     return (

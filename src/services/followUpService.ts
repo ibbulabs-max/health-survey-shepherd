@@ -1,51 +1,74 @@
 import { tables } from "@/config/database";
-import { followUpConfig, nextDueDate, toWorkingDay } from "@/config/followups";
+import { followUpConfig } from "@/config/followups";
 import type { RiskLevel } from "@/config/risk";
 import { supabase } from "@/db/client";
 import type { FollowUp } from "@/db/types";
-import { toDateKey, calculateRisk } from "@/lib/domain";
+import { calculateRisk } from "@/lib/domain";
+import {
+  calculateNextFollowUpDate,
+  isEligibleForFollowUp,
+  parseDateSafe,
+  toDateKeySafe,
+} from "@/lib/followUpEngine";
 import { logActivity } from "@/services/activityService";
 import { useSettings } from "@/hooks/useSettings";
+import { getHealthThresholdSettings } from "@/services/settingsService";
 
 export interface ScheduleFollowUpInput {
   houseUuid: string | null;
   memberUuid: string | null;
   risk: RiskLevel;
   reason: string;
-  dueDate?: Date;
+  dueDate?: Date | string;
   notes?: string | null;
   createdBy?: string | null;
 }
 
+/** Returns interval days for a given risk level (High: 15, Moderate: 30, Normal: 180). */
+export function getRiskInterval(risk: RiskLevel): number {
+  const intervals = useSettings.getState().followUpIntervals;
+  return intervals?.[risk] ?? followUpConfig.intervalDays[risk] ?? 30;
+}
+
+/**
+ * Checks if a member is eligible for follow‑up (strictly age >= 30).
+ */
+export function isEligible(age: number | null | undefined): boolean {
+  return isEligibleForFollowUp(age, 30);
+}
+
 /**
  * Creates a follow-up record in the database.
- * DB `follow_ups.status` only accepts: pending | completed | missed
+ * DB `follow_ups.status` accepts: pending | completed | missed
  */
 export async function scheduleFollowUp(input: ScheduleFollowUpInput) {
   const intervals = useSettings.getState().followUpIntervals;
-  const due = input.dueDate
-    ? toWorkingDay(input.dueDate)
-    : nextDueDate(new Date(), input.risk, intervals);
+  const dueDateKey = input.dueDate
+    ? toDateKeySafe(input.dueDate)
+    : calculateNextFollowUpDate(new Date(), input.risk, intervals);
+
   const { data: auth } = await supabase.auth.getUser();
+  const userId = input.createdBy ?? auth.user?.id ?? null;
 
   const { data, error } = await supabase
     .from(tables.followUps)
     .insert({
       house_uuid: input.houseUuid,
       member_uuid: input.memberUuid,
-      due_date: toDateKey(due),
+      due_date: dueDateKey,
       reason: input.reason,
       risk_level: input.risk,
-      status: "pending", // DB-valid: pending | completed | missed
+      status: "pending",
       notes: input.notes ?? null,
-      created_by: input.createdBy ?? auth.user?.id ?? null,
+      created_by: userId,
     })
     .select("*")
     .single();
+
   if (error) throw error;
   await logActivity("followup.scheduled", { id: data.id, due_date: data.due_date });
-  
-  // Create task for this follow-up
+
+  // Synchronize task
   await supabase.from(tables.tasks).insert({
     house_uuid: input.houseUuid,
     member_uuid: input.memberUuid,
@@ -53,7 +76,7 @@ export async function scheduleFollowUp(input: ScheduleFollowUpInput) {
     task_type: "follow_up",
     status: "pending",
     due_date: data.due_date,
-    created_by: input.createdBy ?? auth.user?.id ?? null,
+    created_by: userId,
   });
 
   return data as FollowUp;
@@ -61,37 +84,46 @@ export async function scheduleFollowUp(input: ScheduleFollowUpInput) {
 
 export async function completeFollowUp(params: {
   id: string;
-  notes?: string;
-  vitals?: { systolic: number; diastolic: number; bloodSugar: number | null };
-  holidays?: string[];
+  notes?: string | undefined;
+  vitals?: { systolic: number; diastolic: number; bloodSugar: number | null } | undefined;
 }) {
-  const { id, notes, vitals, holidays = [] } = params;
+  const { id, notes, vitals } = params;
 
-  // 1. Get the current follow-up details to know member, house, risk
+  // 1. Get current follow-up details
   const { data: current, error: fetchError } = await supabase
     .from(tables.followUps)
-    .select("*, house_members(data)")
+    .select("*, house_members(id, data)")
     .eq("id", id)
     .single();
-    
+
   if (fetchError) throw fetchError;
-  
-  // 2. Mark current as completed
+
+  const completedAt = new Date().toISOString();
+
+  // 2. Mark current follow-up as completed
   const { error } = await supabase
     .from(tables.followUps)
-    .update({ status: "completed", notes: notes ?? null, updated_at: new Date().toISOString() })
+    .update({
+      status: "completed",
+      notes: notes ?? current.notes ?? null,
+      updated_at: completedAt,
+    })
     .eq("id", id);
   if (error) throw error;
-  
-  // Update task status
+
+  // Update associated task status
   await supabase
     .from(tables.tasks)
-    .update({ status: "completed", completed_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+    .update({
+      status: "completed",
+      completed_at: completedAt,
+      updated_at: completedAt,
+    })
     .eq("follow_up_id", id);
-  
-  let currentRisk = current.risk_level as RiskLevel;
 
-  // 3. Handle vitals if provided
+  let currentRisk = (current.risk_level as RiskLevel) || "low";
+
+  // 3. Dynamic Vitals / Risk Loop
   if (vitals) {
     const { data: latestAssessment } = await supabase
       .from(tables.memberAssessments)
@@ -99,24 +131,44 @@ export async function completeFollowUp(params: {
       .eq("member_uuid", current.member_uuid)
       .order("assessed_at", { ascending: false })
       .limit(1)
-      .single();
-      
-    // Re-evaluate risk
-    const existingConditions = latestAssessment?.known_history 
-      ? (typeof latestAssessment.known_history === 'string' 
-          ? latestAssessment.known_history.split(',') 
-          : latestAssessment.known_history)
+      .maybeSingle();
+
+    const existingConditions = latestAssessment?.known_history
+      ? typeof latestAssessment.known_history === "string"
+        ? latestAssessment.known_history.split(",")
+        : latestAssessment.known_history
       : [];
-      
-    const newRiskResult = calculateRisk({
-      systolic: vitals.systolic,
-      diastolic: vitals.diastolic,
-      bloodSugar: vitals.bloodSugar,
-      conditions: Array.isArray(existingConditions) ? existingConditions : []
-    });
-    
+
+    // Use DB-configured thresholds when available (server authoritative)
+    let thresholds;
+    try {
+      const settings = await getHealthThresholdSettings();
+      thresholds = {
+        bp: {
+          high: { systolic: settings.systolic_high_min, diastolic: settings.diastolic_high_min },
+          moderate: {
+            systolic: settings.systolic_moderate_min,
+            diastolic: settings.diastolic_moderate_min,
+          },
+        },
+        sugar: { high: settings.sugar_high_min, moderate: settings.sugar_moderate_min },
+      };
+    } catch (e) {
+      thresholds = undefined;
+    }
+
+    const newRiskResult = calculateRisk(
+      {
+        systolic: vitals.systolic,
+        diastolic: vitals.diastolic,
+        bloodSugar: vitals.bloodSugar,
+        conditions: Array.isArray(existingConditions) ? existingConditions : [],
+      },
+      thresholds,
+    );
+
     currentRisk = newRiskResult.level;
-    
+
     if (latestAssessment) {
       await supabase
         .from(tables.memberAssessments)
@@ -125,32 +177,39 @@ export async function completeFollowUp(params: {
           diastolic: vitals.diastolic,
           blood_sugar: vitals.bloodSugar,
           risk_level: currentRisk,
-          updated_at: new Date().toISOString()
+          updated_at: completedAt,
         })
         .eq("id", latestAssessment.id);
     } else {
-      await supabase
-        .from(tables.memberAssessments)
-        .insert({
-          member_uuid: current.member_uuid,
-          house_uuid: current.house_uuid,
-          systolic: vitals.systolic,
-          diastolic: vitals.diastolic,
-          blood_sugar: vitals.bloodSugar,
-          risk_level: currentRisk,
-          assessed_at: new Date().toISOString()
-        });
+      await supabase.from(tables.memberAssessments).insert({
+        member_uuid: current.member_uuid,
+        house_uuid: current.house_uuid,
+        systolic: vitals.systolic,
+        diastolic: vitals.diastolic,
+        blood_sugar: vitals.bloodSugar,
+        risk_level: currentRisk,
+        assessed_at: completedAt,
+      });
     }
   }
+  // NOTE: If vitals were skipped, currentRisk remains unchanged! Never downgrade or assume normal.
 
-  // 4. Check eligibility - Age >= 29
+  // 4. Check eligibility - Age >= 30
   const memberData = (current.house_members as any)?.data as Record<string, unknown> | undefined;
   const age = memberData?.["age"] != null ? Number(memberData["age"]) : null;
-  const isEligibleVal = isEligible(age);
-  
-  // 5. Calculate next follow-up
-  if (isEligibleVal && current.house_uuid && current.member_uuid && currentRisk) {
-    // Check for existing pending follow-up to prevent duplicates
+  // Respect DB-configured minimum eligible age when available.
+  let minEligibleAge = undefined as number | undefined;
+  try {
+    const s = await getHealthThresholdSettings();
+    minEligibleAge = s.minimum_eligible_age;
+  } catch (e) {
+    // ignore and fall back to existing logic
+  }
+  const eligible =
+    typeof minEligibleAge === "number" ? age != null && age >= minEligibleAge : isEligible(age);
+
+  // 5. Automatically generate next recurring follow-up if eligible
+  if (eligible && current.house_uuid && current.member_uuid && currentRisk) {
     const { data: existingPending } = await supabase
       .from(tables.followUps)
       .select("id")
@@ -160,19 +219,50 @@ export async function completeFollowUp(params: {
       .maybeSingle();
 
     if (!existingPending) {
-      const intervals = useSettings.getState().followUpIntervals;
-      const nextDate = nextDueDate(new Date(), currentRisk, intervals, holidays);
-      
-      const { data: newFup } = await supabase.from(tables.followUps).insert({
-        house_uuid: current.house_uuid,
-        member_uuid: current.member_uuid,
-        due_date: toDateKey(nextDate),
-        reason: `Routine ${currentRisk} risk follow-up`,
-        risk_level: currentRisk,
-        status: "pending",
-        created_by: current.created_by,
-      }).select("id").single();
-      
+      let intervals = useSettings.getState().followUpIntervals;
+      let holidaysSet: Set<string> | undefined;
+      let workingDays: string[] | undefined;
+
+      try {
+        const settings = await getHealthThresholdSettings();
+        intervals = {
+          high: settings.interval_high,
+          moderate: settings.interval_moderate,
+          low: settings.interval_low,
+        };
+        workingDays = settings.working_days;
+
+        const { fetchHolidays } = await import("@/services/holidayService");
+        const holidaysList = await fetchHolidays();
+        holidaysSet = new Set(holidaysList.map((h) => h.holiday_date));
+      } catch (e) {
+        // Fall back to frontend state if fetch fails
+      }
+
+      // Use the recorded completion timestamp as the recurrence anchor
+      // so next follow-up is calculated from the actual completed date.
+      const nextDateKey = calculateNextFollowUpDate(
+        completedAt,
+        currentRisk,
+        intervals,
+        holidaysSet,
+        workingDays,
+      );
+
+      const { data: newFup } = await supabase
+        .from(tables.followUps)
+        .insert({
+          house_uuid: current.house_uuid,
+          member_uuid: current.member_uuid,
+          due_date: nextDateKey,
+          reason: `Routine ${currentRisk} risk follow-up`,
+          risk_level: currentRisk,
+          status: "pending",
+          created_by: current.created_by,
+        })
+        .select("id")
+        .single();
+
       if (newFup) {
         await supabase.from(tables.tasks).insert({
           house_uuid: current.house_uuid,
@@ -180,272 +270,288 @@ export async function completeFollowUp(params: {
           follow_up_id: newFup.id,
           task_type: "follow_up",
           status: "pending",
-          due_date: toDateKey(nextDate),
+          due_date: nextDateKey,
           created_by: current.created_by,
         });
       }
     }
   }
-  
-  await logActivity("followup.completed", { id });
+
+  await logActivity("followup.completed", { id, risk: currentRisk });
 }
 
 /**
- * Moves a pending follow-up to the next working day without changing the status.
- * (The DB has no "rescheduled" status — we just update the due_date.)
+ * Moves a pending follow-up to a new date without changing status or duplicating.
  */
-export async function postponeFollowUp(id: string, date: Date, notes?: string, holidays: string[] = []) {
+export async function postponeFollowUp(id: string, date: Date | string, notes?: string) {
+  const dateKey = toDateKeySafe(date);
+  const updatedAt = new Date().toISOString();
+
   const { error } = await supabase
     .from(tables.followUps)
     .update({
       status: "pending",
-      due_date: toDateKey(toWorkingDay(date, followUpConfig.workingDays, holidays)),
+      due_date: dateKey,
       notes: notes ?? null,
-      updated_at: new Date().toISOString(),
+      updated_at: updatedAt,
     })
     .eq("id", id);
   if (error) throw error;
-  
+
   await supabase
     .from(tables.tasks)
     .update({
-      due_date: toDateKey(toWorkingDay(date, followUpConfig.workingDays, holidays)),
-      updated_at: new Date().toISOString(),
+      due_date: dateKey,
+      updated_at: updatedAt,
     })
     .eq("follow_up_id", id);
 
-  await logActivity("followup.postponed", { id, due_date: toDateKey(toWorkingDay(date, followUpConfig.workingDays, holidays)) });
+  await logActivity("followup.postponed", { id, due_date: dateKey });
 }
 
+export const rescheduleFollowUp = postponeFollowUp;
+
 /**
- * Marks a follow-up as missed (DB-valid status, replaces the former "skipped").
+ * Marks a follow-up as missed.
  */
 export async function markFollowUpMissed(id: string, notes?: string) {
+  const updatedAt = new Date().toISOString();
   const { error } = await supabase
     .from(tables.followUps)
-    .update({ status: "missed", notes: notes ?? null, updated_at: new Date().toISOString() })
+    .update({
+      status: "missed",
+      notes: notes ?? null,
+      updated_at: updatedAt,
+    })
     .eq("id", id);
   if (error) throw error;
 
   await supabase
     .from(tables.tasks)
-    .update({ status: "missed", updated_at: new Date().toISOString() })
+    .update({
+      status: "missed",
+      updated_at: updatedAt,
+    })
     .eq("follow_up_id", id);
 
   await logActivity("followup.missed", { id });
 }
 
-/** @deprecated Use postponeFollowUp instead */
-export const rescheduleFollowUp = postponeFollowUp;
-
-/** @deprecated Use markFollowUpMissed instead */
 export const skipFollowUp = markFollowUpMissed;
 
-/** Suggested workload split across the next working days. */
-export function planWorkload(count: number, dailyTarget = followUpConfig.defaultDailyTarget) {
-  const days: { date: string; load: number }[] = [];
-  let remaining = count;
-  let cursor = new Date();
-  let guard = 0;
-  
-  // Import dynamically if needed or rely on previous imports if they exist.
-  // We'll just use the standard JS for now but with safe addDays approach using the existing date-fns from config if it were there.
-  // Actually planWorkload is in followUpService.ts, let's use the standard date-fns addDays since it is available if we import it.
-  
-  while (remaining > 0 && guard < 60) {
-    const day = toWorkingDay(cursor);
-    const load = Math.min(dailyTarget, remaining);
-    days.push({ date: toDateKey(day), load });
-    remaining -= load;
-    
-    // safe cursor increment
-    cursor = new Date(day);
-    cursor.setDate(cursor.getDate() + 1);
-    guard += 1;
+/**
+ * Recalculates pending follow‑up for a member after a new assessment or import.
+ */
+export async function recalculatePendingFollowUp(memberUuid: string) {
+  const { data: member, error: memErr } = await supabase
+    .from(tables.houseMembers)
+    .select("*, houses!inner(id, house_uuid)")
+    .eq("id", memberUuid)
+    .single();
+  if (memErr) throw memErr;
+
+  const data = (member?.data ?? {}) as Record<string, any>;
+  const age = data["age"] != null ? Number(data["age"]) : null;
+  if (!isEligible(age)) return; // not eligible
+
+  const { data: assessment } = await supabase
+    .from(tables.memberAssessments)
+    .select("systolic, diastolic, blood_sugar, risk_level, assessed_at")
+    .eq("member_uuid", memberUuid)
+    .order("assessed_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const risk = (assessment?.risk_level as RiskLevel) ?? "low";
+  let intervals = useSettings.getState().followUpIntervals;
+  let holidaysSet: Set<string> | undefined;
+  let workingDays: string[] | undefined;
+
+  try {
+    const settings = await getHealthThresholdSettings();
+    intervals = {
+      high: settings.interval_high,
+      moderate: settings.interval_moderate,
+      low: settings.interval_low,
+    };
+    workingDays = settings.working_days;
+
+    const { fetchHolidays } = await import("@/services/holidayService");
+    const holidaysList = await fetchHolidays();
+    holidaysSet = new Set(holidaysList.map((h) => h.holiday_date));
+  } catch (e) {
+    // Fall back to frontend state if fetch fails
   }
-  return days;
-}
 
-/**
- * Checks if a member is eligible for follow‑up (age >= 29).
- */
-export function isEligible(age: number | null): boolean {
-  return age != null && age >= 29;
-}
+  const baseDate = assessment?.assessed_at
+    ? (parseDateSafe(assessment.assessed_at) ?? new Date())
+    : new Date();
+  const nextDueDateKey = calculateNextFollowUpDate(
+    baseDate,
+    risk,
+    intervals,
+    holidaysSet,
+    workingDays,
+  );
 
-/** Returns interval days for a given risk level. */
-export function getRiskInterval(risk: RiskLevel): number {
-  const intervals = useSettings.getState().followUpIntervals;
-  return intervals[risk] ?? followUpConfig.intervalDays[risk];
-}
-
-/**
- * Insert a pending follow‑up if none exists for the member on the target date,
- * otherwise update the existing record (e.g., risk or reason changes).
- */
-export async function createOrUpdatePendingFollowUp(params: {
-  memberUuid: string;
-  houseUuid: string | null;
-  risk: RiskLevel;
-  reason: string;
-  dueDate: Date;
-}) {
-  const { memberUuid, houseUuid, risk, reason, dueDate } = params;
   const existing = await supabase
     .from(tables.followUps)
     .select("id, due_date")
     .eq("member_uuid", memberUuid)
     .eq("status", "pending")
-    .single();
-  if (existing.data) {
-    // Update if due_date differs or risk changed
+    .maybeSingle();
+
+  if (existing?.data) {
     await supabase
       .from(tables.followUps)
       .update({
-        house_uuid: houseUuid,
-        due_date: toDateKey(dueDate),
+        due_date: nextDueDateKey,
         risk_level: risk,
-        reason,
+        reason: `Routine ${risk} risk follow‑up`,
         updated_at: new Date().toISOString(),
       })
       .eq("id", existing.data.id);
-      
-    await supabase.from(tables.tasks).update({
-      due_date: toDateKey(dueDate),
-      updated_at: new Date().toISOString()
-    }).eq("follow_up_id", existing.data.id);
+
+    await supabase
+      .from(tables.tasks)
+      .update({
+        due_date: nextDueDateKey,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("follow_up_id", existing.data.id);
   } else {
     await scheduleFollowUp({
-      houseUuid,
+      houseUuid: member?.house_uuid ?? null,
       memberUuid,
       risk,
-      reason,
-      dueDate,
+      reason: `Routine ${risk} risk follow‑up`,
+      dueDate: nextDueDateKey,
     });
   }
 }
 
-/** Recalculates pending follow‑up for a member after a new assessment or import. */
-export async function recalculatePendingFollowUp(memberUuid: string, holidays: string[] = []) {
-  // Fetch member data & most recent assessment
-  const { data: member, error: memErr } = await supabase
-    .from(tables.houseMembers)
-    .select("*, houses!inner(id, house_uuid)")
-    .eq("member_uuid", memberUuid)
-    .single();
-  if (memErr) throw memErr;
-
-  const data = member?.data;
-  const age = data && "age" in data ? (data as any).age : null;
-  if (!isEligible(age)) return; // not eligible
-
-  // Get latest assessment for vitals
-  const { data: assessment } = await supabase
-    .from(tables.memberAssessments)
-    .select("systolic, diastolic, blood_sugar, risk_level")
-    .eq("member_uuid", memberUuid)
-    .order("assessed_at", { ascending: false })
-    .limit(1)
-    .single();
-  if (!assessment) return;
-
-  const risk = (assessment.risk_level as RiskLevel) ?? "low";
-  const interval = getRiskInterval(risk);
-  const baseDate = new Date();
-  
-  // Use a proper record literal that satisfies Record<RiskLevel, number>
-  const intervals: Record<RiskLevel, number> = {
-    ...followUpConfig.intervalDays,
-    [risk]: interval
-  };
-  
-  const dueDate = nextDueDate(baseDate, risk, intervals, holidays);
-
-  await createOrUpdatePendingFollowUp({
-    memberUuid,
-    houseUuid: member?.house_uuid ?? null,
-    risk,
-    reason: `Routine ${risk} risk follow‑up`,
-    dueDate,
-  });
-}
-
 /**
- * Manually update the last follow-up date for a member (from Member Summary).
- * 1. Closes any existing pending follow-up (marks missed/superseded) or creates a completed history record.
- * 2. Calculates the new next follow-up based on current risk and the provided date.
- * 3. Creates exactly one active pending follow-up.
+ * Manually updates the last follow-up date for a member (from Member Profile).
+ * 1. Closes any existing pending follow-up (superseded).
+ * 2. Inserts a completed history record.
+ * 3. Calculates the next follow-up based on current risk and the provided last date.
+ * 4. Creates exactly one active pending follow-up and synchronized task.
  */
-export async function updateLastFollowUpDate(memberUuid: string, lastDateStr: string, riskLevel: RiskLevel, holidays: string[] = []) {
-  // 1. Get current pending follow-ups to supersede them
+export async function updateLastFollowUpDate(
+  memberUuid: string,
+  lastDateStr: string,
+  riskLevel: RiskLevel,
+) {
+  // 1. Get current pending follow-ups to supersede
   const { data: pendings } = await supabase
     .from(tables.followUps)
     .select("id")
     .eq("member_uuid", memberUuid)
     .eq("status", "pending");
 
-  // Mark existing pendings as missed/superseded
   if (pendings && pendings.length > 0) {
     for (const p of pendings) {
-      await supabase.from(tables.followUps).update({ status: "missed", notes: "Superseded by manual last follow-up date update", updated_at: new Date().toISOString() }).eq("id", p.id);
+      await supabase
+        .from(tables.followUps)
+        .update({
+          status: "missed",
+          notes: "Superseded by manual last follow-up date update",
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", p.id);
     }
   }
 
-  // 2. Insert a historical completed record for the given last date
+  // 2. Fetch member to check eligibility and house_uuid
   const { data: member } = await supabase
     .from(tables.houseMembers)
-    .select("house_uuid")
-    .eq("member_uuid", memberUuid)
+    .select("house_uuid, data")
+    .eq("id", memberUuid)
     .single();
 
   const { data: auth } = await supabase.auth.getUser();
-  const userId = auth.user?.id;
+  const userId = auth.user?.id ?? null;
+  const nowIso = new Date().toISOString();
 
+  // 3. Insert historical completed record
   await supabase.from(tables.followUps).insert({
     member_uuid: memberUuid,
     house_uuid: member?.house_uuid ?? null,
     risk_level: riskLevel,
-    due_date: lastDateStr,
+    due_date: toDateKeySafe(lastDateStr),
     status: "completed",
     reason: "Manual history entry",
     notes: "Manual update of last follow-up date",
     created_by: userId,
-    completed_at: new Date().toISOString(),
-    updated_at: new Date().toISOString()
+    completed_at: nowIso,
+    updated_at: nowIso,
   });
 
-  // 3. Calculate next follow-up
-  const baseDate = new Date(lastDateStr + "T00:00:00");
-  const interval = getRiskInterval(riskLevel);
-  const targetDate = new Date(baseDate);
-  targetDate.setDate(targetDate.getDate() + interval);
-  
-  const finalDate = toWorkingDay(targetDate, followUpConfig.workingDays, holidays);
+  // 4. Check eligibility before scheduling next
+  const memberData = (member?.data ?? {}) as Record<string, any>;
+  const age = memberData["age"] != null ? Number(memberData["age"]) : null;
 
-  // 4. Create the new pending follow-up
-  const { data: insertedFup } = await supabase.from(tables.followUps).insert({
-    member_uuid: memberUuid,
-    house_uuid: member?.house_uuid ?? null,
-    risk_level: riskLevel,
-    reason: `Routine ${riskLevel} risk follow-up`,
-    due_date: toDateKey(finalDate),
-    status: "pending",
-    notes: "Auto-scheduled from manual last follow-up update",
-    created_by: userId,
-    updated_at: new Date().toISOString(),
-  }).select("id").single();
-  
-  if (insertedFup) {
-    await supabase.from(tables.tasks).insert({
-      house_uuid: member?.house_uuid ?? null,
-      member_uuid: memberUuid,
-      follow_up_id: insertedFup.id,
-      task_type: "follow_up",
-      status: "pending",
-      due_date: toDateKey(finalDate),
-      created_by: userId,
+  if (isEligible(age)) {
+    let intervals = useSettings.getState().followUpIntervals;
+    let holidaysSet: Set<string> | undefined;
+    let workingDays: string[] | undefined;
+
+    try {
+      const settings = await getHealthThresholdSettings();
+      intervals = {
+        high: settings.interval_high,
+        moderate: settings.interval_moderate,
+        low: settings.interval_low,
+      };
+      workingDays = settings.working_days;
+
+      const { fetchHolidays } = await import("@/services/holidayService");
+      const holidaysList = await fetchHolidays();
+      holidaysSet = new Set(holidaysList.map((h) => h.holiday_date));
+    } catch (e) {
+      // Fall back to frontend state if fetch fails
+    }
+
+    const nextDateKey = calculateNextFollowUpDate(
+      lastDateStr,
+      riskLevel,
+      intervals,
+      holidaysSet,
+      workingDays,
+    );
+
+    const { data: insertedFup } = await supabase
+      .from(tables.followUps)
+      .insert({
+        member_uuid: memberUuid,
+        house_uuid: member?.house_uuid ?? null,
+        risk_level: riskLevel,
+        reason: `Routine ${riskLevel} risk follow-up`,
+        due_date: nextDateKey,
+        status: "pending",
+        notes: "Auto-scheduled from manual last follow-up update",
+        created_by: userId,
+        updated_at: nowIso,
+      })
+      .select("id")
+      .single();
+
+    if (insertedFup) {
+      await supabase.from(tables.tasks).insert({
+        house_uuid: member?.house_uuid ?? null,
+        member_uuid: memberUuid,
+        follow_up_id: insertedFup.id,
+        task_type: "follow_up",
+        status: "pending",
+        due_date: nextDateKey,
+        created_by: userId,
+      });
+    }
+
+    await logActivity("followup.manual_update", {
+      memberUuid,
+      lastDateStr,
+      nextDueDate: nextDateKey,
     });
   }
-
-  await logActivity("followup.manual_update", { memberUuid, lastDateStr, nextDueDate: toDateKey(finalDate) });
 }

@@ -1,5 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import {
   CalendarDays,
   Check,
@@ -12,17 +12,17 @@ import {
   ChevronLeft,
   ChevronRight,
   RotateCcw,
-  User,
-  Home,
-  Activity,
-  Droplets,
-  CalendarClock,
-  XCircle,
-  ArrowRight,
-  Filter,
+  Download,
+  MapPin,
+  Calendar as CalendarIcon,
+  LayoutGrid,
+  List,
+  Plus,
+  Target,
 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
+import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
 
 import { RiskBadge } from "@/components/common/RiskBadge";
 import { Button } from "@/components/ui/button";
@@ -42,31 +42,33 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
-import {
-  Drawer,
-  DrawerContent,
-} from "@/components/ui/drawer";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { tables } from "@/config/database";
-import { followUpConfig } from "@/config/followups";
+import { Drawer, DrawerContent } from "@/components/ui/drawer";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import type { RiskLevel } from "@/config/risk";
 import { useDataset, useRefreshDataset } from "@/hooks/useDataset";
 import { useAuth } from "@/hooks/useAuth";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useSettings } from "@/hooks/useSettings";
 import { useUsers } from "@/hooks/useUsers";
 import { getUserDisplayName } from "@/services/userService";
-import { asRisk, followUpStatus, toDateKey, type MemberView, type HouseView } from "@/lib/domain";
+import { fetchHolidays } from "@/services/holidayService";
 import { cn } from "@/lib/utils";
+import { completeFollowUp, postponeFollowUp } from "@/services/followUpService";
 import {
-  completeFollowUp,
-  postponeFollowUp,
-} from "@/services/followUpService";
-import { FollowUpTarget } from "@/components/followups/FollowUpTarget";
-import type { FollowUp } from "@/db/types";
+  daysDiff,
+  extractMemberFollowUpSummary,
+  formatDisplayDate,
+  isEligibleForFollowUp,
+  type MemberFollowUpSummary,
+  toDateKeySafe,
+} from "@/lib/followUpEngine";
+import type { MemberView, HouseView } from "@/lib/domain";
+
+import { FollowUpCard } from "@/components/followups/FollowUpCard";
+import { FollowUpKpi } from "@/components/followups/FollowUpKpi";
+import { FollowUpSkeleton } from "@/components/followups/FollowUpSkeleton";
+import { MiniCalendarGrid } from "@/components/followups/MiniCalendarGrid";
+import type { EnrichedFollowUpItem } from "@/components/followups/types";
 
 export const Route = createFileRoute("/_authenticated/followups")({
   head: () => ({
@@ -83,149 +85,84 @@ export const Route = createFileRoute("/_authenticated/followups")({
 });
 
 /* -------------------------------------------------------------------------- */
-/*                                  Types                                     */
+/*                              Filter Types                                  */
 /* -------------------------------------------------------------------------- */
 
-type StatusTab = "high" | "moderate" | "normal" | "completed";
-
-interface EnrichedFollowUp {
-  followUp: FollowUp;
-  member: MemberView | null;
-  house: HouseView | null;
-  assignedChwName: string | null;
-  daysOverdue: number;
-  statusLabel: string;
-}
+type RiskFilter = "all" | "high" | "moderate" | "normal";
+type StatusFilter = "all" | "today" | "upcoming" | "due" | "completed";
 
 /* -------------------------------------------------------------------------- */
-/*                             Date Helpers                                   */
-/* -------------------------------------------------------------------------- */
-
-function formatFullDate(d: Date): string {
-  return d.toLocaleDateString("en-US", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
-}
-
-function formatShortDate(dateStr: string): string {
-  const d = new Date(dateStr + "T00:00:00");
-  return d.toLocaleDateString("en-US", { day: "numeric", month: "short", year: "numeric" });
-}
-
-function daysBetween(a: string, b: string): number {
-  const da = new Date(a + "T00:00:00");
-  const db = new Date(b + "T00:00:00");
-  return Math.floor((db.getTime() - da.getTime()) / 86400000);
-}
-
-function getDueDateLabel(dueDate: string | null, today: string): string {
-  if (!dueDate) return "No date";
-  if (dueDate === today) return "Due Today";
-  const diff = daysBetween(today, dueDate);
-  if (diff === 1) return "Tomorrow";
-  if (diff === -1) return "Yesterday";
-  if (diff < 0) return `${Math.abs(diff)} days overdue`;
-  if (diff <= 7) return `In ${diff} days`;
-  return formatShortDate(dueDate);
-}
-
-function getMonthDays(year: number, month: number): Date[] {
-  const days: Date[] = [];
-  const first = new Date(year, month, 1);
-  const startPad = first.getDay();
-  for (let i = startPad - 1; i >= 0; i--) {
-    const d = new Date(year, month, -i);
-    days.push(d);
-  }
-  const lastDate = new Date(year, month + 1, 0).getDate();
-  for (let i = 1; i <= lastDate; i++) {
-    days.push(new Date(year, month, i));
-  }
-  while (days.length % 7 !== 0) {
-    const last = days[days.length - 1]!;
-    const next = new Date(last);
-    next.setDate(next.getDate() + 1);
-    days.push(next);
-  }
-  return days;
-}
-
-/* -------------------------------------------------------------------------- */
-/*                          Reduced Motion Hook                               */
-/* -------------------------------------------------------------------------- */
-
-function usePrefersReducedMotion(): boolean {
-  const [prefersReduced, setPrefersReduced] = useState(false);
-  useEffect(() => {
-    const mql = window.matchMedia("(prefers-reduced-motion: reduce)");
-    setPrefersReduced(mql.matches);
-    const handler = (e: MediaQueryListEvent) => setPrefersReduced(e.matches);
-    mql.addEventListener("change", handler);
-    return () => mql.removeEventListener("change", handler);
-  }, []);
-  return prefersReduced;
-}
-
-/* -------------------------------------------------------------------------- */
-/*                            MAIN PAGE COMPONENT                             */
+/*                              Page Component                                */
 /* -------------------------------------------------------------------------- */
 
 function FollowUpsPage() {
-  const { data, isLoading, error, refetch } = useDataset();
+  const navigate = useNavigate();
+  const { data, isLoading, error } = useDataset();
   const refresh = useRefreshDataset();
   const { role, isAdmin, user } = useAuth();
   const isMobile = useIsMobile();
-  const prefersReduced = usePrefersReducedMotion();
   const { data: users } = useUsers();
 
-  const [tab, setTab] = useState<StatusTab>("high");
-  const [searchQuery, setSearchQuery] = useState("");
-  const [riskFilter, setRiskFilter] = useState<string>("all");
-  const [chwFilter, setChwFilter] = useState<string>("all");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [houseFilter, setHouseFilter] = useState<string>("all");
-  const [datePreset, setDatePreset] = useState<string>("all");
-  const [dateFrom, setDateFrom] = useState("");
-  const [dateTo, setDateTo] = useState("");
+  // Settings
+  const { minEligibleAge, followUpIntervals, dailyTarget, loadSettings, thresholds } =
+    useSettings();
+  const [holidaysSet, setHolidaysSet] = useState<Set<string>>(new Set());
 
-  const [holidays, setHolidays] = useState<string[]>([]);
   useEffect(() => {
-    import("@/services/holidayService").then((m) => {
-      m.fetchHolidays().then((h) => setHolidays(h.map((x) => x.holiday_date)));
-    });
-  }, []);
+    loadSettings(user?.userId, role ?? undefined, undefined);
+    fetchHolidays()
+      .then((hols) => setHolidaysSet(new Set(hols.map((h) => h.holiday_date))))
+      .catch(console.error);
+  }, [loadSettings, user?.userId, role]);
 
-  // Calendar state
-  const now = new Date();
-  const todayKey = toDateKey(now);
+  const isCHW = role === "survey_user";
+  const isSupervisor = role === "supervisor";
+
+  /* -------- DUAL FILTER STATE (Level 1: Risk, Level 2: Status) ----------- */
+  const [riskFilter, setRiskFilter] = useState<RiskFilter>("all");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+
+  /* -------- OTHER FILTER STATE ------------------------------------------- */
+  const [searchQuery, setSearchQuery] = useState("");
+  const [houseFilter, setHouseFilter] = useState<string>("all");
+  const [conditionFilter, setConditionFilter] = useState<string>("all");
+  const [sortBy, setSortBy] = useState<string>("dueDate");
+  const [viewMode, setViewMode] = useState<"list" | "grid">("list");
+  const [showFiltersBar, setShowFiltersBar] = useState(false);
+  const [showMobileSearch, setShowMobileSearch] = useState(false);
+
+  /* -------- CALENDAR STATE ----------------------------------------------- */
+  const now = useMemo(() => new Date(), []);
+  const todayKey = useMemo(() => toDateKeySafe(now), [now]);
   const [calMonth, setCalMonth] = useState(now.getMonth());
   const [calYear, setCalYear] = useState(now.getFullYear());
   const [selectedCalDate, setSelectedCalDate] = useState<string | null>(null);
-  const [showCalendar, setShowCalendar] = useState(!isMobile);
+  const [showCalendarDrawer, setShowCalendarDrawer] = useState(false);
 
-  // Mobile filter drawer
-  const [showMobileFilters, setShowMobileFilters] = useState(false);
-
-  // Complete dialog
-  const [completeTarget, setCompleteTarget] = useState<EnrichedFollowUp | null>(null);
+  /* -------- MODAL STATE -------------------------------------------------- */
+  const [completeTarget, setCompleteTarget] = useState<EnrichedFollowUpItem | null>(null);
   const [completeSystolic, setCompleteSystolic] = useState("");
   const [completeDiastolic, setCompleteDiastolic] = useState("");
   const [completeSugar, setCompleteSugar] = useState("");
+  const [completeNotes, setCompleteNotes] = useState("");
 
-  // Reschedule dialog
-  const [rescheduleTarget, setRescheduleTarget] = useState<EnrichedFollowUp | null>(null);
+  const [rescheduleTarget, setRescheduleTarget] = useState<EnrichedFollowUpItem | null>(null);
   const [rescheduleDate, setRescheduleDate] = useState("");
 
-  // Success animation
-  const [showSuccess, setShowSuccess] = useState<string | null>(null);
+  // Ctrl+K search focus shortcut
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
-  const animClass = prefersReduced ? "" : "animate-in fade-in slide-in-from-bottom-2 duration-300";
-  const animClassFast = prefersReduced ? "" : "animate-in fade-in duration-200";
-
-  // User lookup
+  /* -------- USER MAP ----------------------------------------------------- */
   const userMap = useMemo(() => {
     const m = new Map<string, string>();
     if (users) {
@@ -236,1525 +173,1558 @@ function FollowUpsPage() {
     return m;
   }, [users]);
 
-  // Enrich follow-ups
-  const enriched = useMemo<EnrichedFollowUp[]>(() => {
+  /* -------- BUILD ALL FOLLOW-UP ITEMS ------------------------------------ */
+  const allFollowUpItems = useMemo<EnrichedFollowUpItem[]>(() => {
     if (!data) return [];
-    return data.followUps.map((f) => {
-      const member = f.member_uuid ? data.byMemberId.get(f.member_uuid) ?? null : null;
-      const house = f.house_uuid ? data.byHouseUuid.get(f.house_uuid) ?? null : null;
-      const chwId = house?.house?.assigned_csw_id ?? f.created_by ?? null;
-      const chwName = chwId ? userMap.get(chwId) ?? null : null;
-      const daysOverdue =
-        f.due_date && f.due_date < todayKey && (f.status ?? "pending") === "pending"
-          ? daysBetween(f.due_date, todayKey)
-          : 0;
-      return {
-        followUp: f,
+
+    const items: EnrichedFollowUpItem[] = [];
+
+    for (const member of data.members) {
+      const house = member.houseUuid ? (data.byHouseUuid.get(member.houseUuid) ?? null) : null;
+      const summary = extractMemberFollowUpSummary(
+        member,
+        member.assessment,
+        data.followUps,
+        minEligibleAge,
+        followUpIntervals,
+        holidaysSet,
+        undefined,
+        thresholds?.working_days,
+      );
+
+      const chwId = house?.house?.assigned_csw_id ?? null;
+      const chwName = chwId ? (userMap.get(chwId) ?? null) : null;
+      const diff = summary.nextFollowUpDate ? daysDiff(todayKey, summary.nextFollowUpDate) : 0;
+
+      items.push({
+        id: summary.activeFollowUpId ?? member.id,
         member,
         house,
+        summary,
         assignedChwName: chwName,
-        daysOverdue,
-        statusLabel: getDueDateLabel(f.due_date, todayKey),
-      };
-    });
-  }, [data, todayKey, userMap]);
+        dueDate: summary.nextFollowUpDate,
+        displayDueDate: summary.nextFollowUpDateFormatted,
+        surveyDate: summary.surveyDate,
+        displaySurveyDate: summary.surveyDateFormatted,
+        status: summary.status,
+        risk: member.risk,
+        vitalsToCheck: summary.vitalsToCheck,
+        daysDiffFromToday: diff,
+      });
+    }
 
-  // Categorize
-  const categorized = useMemo(() => {
-    const groups: Record<StatusTab, EnrichedFollowUp[]> = {
-      high: [],
-      moderate: [],
-      normal: [],
-      completed: [],
-    };
-    for (const e of enriched) {
-      // 29+ Eligibility Check (Age 28 is NOT eligible, 29+ IS eligible)
-      const age = e.member?.age;
-      const isEligible = age != null && age >= 29;
+    return items;
+  }, [
+    data,
+    todayKey,
+    userMap,
+    minEligibleAge,
+    followUpIntervals,
+    holidaysSet,
+    thresholds?.working_days,
+  ]);
 
-      const s = followUpStatus(e.followUp.status, e.followUp.due_date);
-      if (s === "completed" || s === "missed") {
-        groups.completed.push(e);
-      } else if (isEligible) { // Only show eligible members in active tabs
-        const risk = asRisk(e.followUp.risk_level ?? e.member?.risk ?? "low");
-        if (risk === "high") groups.high.push(e);
-        else if (risk === "moderate") groups.moderate.push(e);
-        else groups.normal.push(e);
+  const isSearching = searchQuery.trim().length > 0;
+
+  /* -------- BASE FOLLOW-UPS (RBAC + Eligibility) ------------------------- */
+  const baseFollowUps = useMemo(() => {
+    let list = allFollowUpItems;
+
+    // RBAC filtering
+    if (!isAdmin && user) {
+      if (isSupervisor) {
+        list = list.filter(
+          (item) =>
+            item.house?.house?.supervisor_id === user.id ||
+            item.house?.house?.assigned_csw_id === user.id,
+        );
+      } else if (isCHW) {
+        list = list.filter((item) => item.house?.house?.assigned_csw_id === user.id);
       }
     }
-    
-    // Sort all active by next follow-up date ascending
-    const sortByDate = (a: EnrichedFollowUp, b: EnrichedFollowUp) => 
-      (a.followUp.due_date ?? "").localeCompare(b.followUp.due_date ?? "");
 
-    groups.high.sort(sortByDate);
-    groups.moderate.sort(sortByDate);
-    groups.normal.sort(sortByDate);
-
-    // Sort completed by most recent first
-    groups.completed.sort((a, b) =>
-      (b.followUp.updated_at ?? b.followUp.created_at ?? "").localeCompare(
-        a.followUp.updated_at ?? a.followUp.created_at ?? "",
-      ),
-    );
-    return groups;
-  }, [enriched]);
-
-  // Follow-up dates for calendar indicators
-  const followUpDateCounts = useMemo(() => {
-    const counts = new Map<string, number>();
-    for (const e of enriched) {
-      const d = e.followUp.due_date;
-      if (d) counts.set(d, (counts.get(d) ?? 0) + 1);
+    // Eligibility filter (only when not searching)
+    if (!isSearching) {
+      list = list.filter((item) => item.summary.isEligible && item.dueDate != null);
     }
-    return counts;
-  }, [enriched]);
 
-  // Apply filters
-  const applyFilters = useCallback(
-    (items: EnrichedFollowUp[]): EnrichedFollowUp[] => {
-      let filtered = items;
+    return list;
+  }, [allFollowUpItems, isAdmin, user, isSupervisor, isCHW, isSearching]);
 
-      // Role-based filtering
-      if (!isAdmin && user) {
-        if (role === "supervisor") {
-          filtered = filtered.filter(
-            (e) =>
-              e.house?.house?.supervisor_id === user.id ||
-              e.house?.house?.assigned_csw_id === user.id ||
-              e.followUp.created_by === user.id
-          );
-        } else if (role === "chw") {
-          filtered = filtered.filter(
-            (e) =>
-              e.house?.house?.assigned_csw_id === user.id ||
-              e.followUp.created_by === user.id
-          );
+  /* -------- KPI COUNTERS ------------------------------------------------- */
+  const counters = useMemo(() => {
+    let dueToday = 0;
+    let upcoming = 0;
+    let overdue = 0;
+    let completed = 0;
+    let high = 0;
+    let moderate = 0;
+    let normal = 0;
+
+    if (data) {
+      completed = data.followUps.filter((f) => f.status === "completed").length;
+    }
+
+    for (const item of baseFollowUps) {
+      if (item.summary.isEligible) {
+        if (item.risk === "high") high++;
+        else if (item.risk === "moderate") moderate++;
+        else normal++;
+
+        if (item.status === "today") dueToday++;
+        else if (item.status === "overdue") overdue++;
+        else if (item.status === "upcoming") {
+          if (item.daysDiffFromToday >= 0 && item.daysDiffFromToday <= 7) {
+            upcoming++;
+          }
         }
       }
-
-      // Calendar date filter
-      if (selectedCalDate) {
-        filtered = filtered.filter((e) => e.followUp.due_date === selectedCalDate);
-      }
-
-      // Search
-      if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase().trim();
-        filtered = filtered.filter((e) => {
-          const name = e.member?.name?.toLowerCase() ?? "";
-          const memberId = e.member?.memberId?.toLowerCase() ?? "";
-          const houseId = e.house?.house?.house_id?.toLowerCase() ?? "";
-          const houseNumber = e.house?.house?.house_number?.toLowerCase() ?? "";
-          return (
-            name.includes(q) ||
-            memberId.includes(q) ||
-            houseId.includes(q) ||
-            houseNumber.includes(q)
-          );
-        });
-      }
-
-      // Risk filter
-      if (riskFilter !== "all") {
-        filtered = filtered.filter((e) => {
-          const risk = asRisk(e.followUp.risk_level ?? e.member?.risk ?? "low");
-          return risk === riskFilter;
-        });
-      }
-
-      // CHW filter
-      if (chwFilter !== "all") {
-        filtered = filtered.filter(
-          (e) =>
-            e.house?.house?.assigned_csw_id === chwFilter ||
-            e.followUp.created_by === chwFilter,
-        );
-      }
-
-      // Status filter
-      if (statusFilter !== "all") {
-        filtered = filtered.filter(
-          (e) => (e.followUp.status ?? "pending") === statusFilter,
-        );
-      }
-
-      // House filter
-      if (houseFilter !== "all") {
-        filtered = filtered.filter(
-          (e) => e.followUp.house_uuid === houseFilter,
-        );
-      }
-
-      // Date preset
-      if (datePreset === "today") {
-        filtered = filtered.filter((e) => e.followUp.due_date === todayKey);
-      } else if (datePreset === "this_week") {
-        const weekStart = new Date(now);
-        weekStart.setDate(now.getDate() - now.getDay());
-        const weekEnd = new Date(weekStart);
-        weekEnd.setDate(weekStart.getDate() + 6);
-        const ws = toDateKey(weekStart);
-        const we = toDateKey(weekEnd);
-        filtered = filtered.filter(
-          (e) =>
-            e.followUp.due_date &&
-            e.followUp.due_date >= ws &&
-            e.followUp.due_date <= we,
-        );
-      } else if (datePreset === "this_month") {
-        const ms = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
-        const me = toDateKey(new Date(now.getFullYear(), now.getMonth() + 1, 0));
-        filtered = filtered.filter(
-          (e) =>
-            e.followUp.due_date &&
-            e.followUp.due_date >= ms &&
-            e.followUp.due_date <= me,
-        );
-      } else if (datePreset === "custom" && dateFrom && dateTo) {
-        filtered = filtered.filter(
-          (e) =>
-            e.followUp.due_date &&
-            e.followUp.due_date >= dateFrom &&
-            e.followUp.due_date <= dateTo,
-        );
-      }
-
-      return filtered;
-    },
-    [
-      selectedCalDate,
-      searchQuery,
-      riskFilter,
-      chwFilter,
-      statusFilter,
-      houseFilter,
-      datePreset,
-      dateFrom,
-      dateTo,
-      todayKey,
-      now,
-    ],
-  );
-
-  const completedTodayCount = useMemo(() => {
-    return categorized.completed.filter(e => {
-      // Completed date should be derived from updated_at, fall back to created_at
-      const dateStr = e.followUp.updated_at ?? e.followUp.created_at;
-      return dateStr && dateStr.startsWith(todayKey);
-    }).length;
-  }, [categorized.completed, todayKey]);
-
-  const visibleItems = useMemo(() => applyFilters(categorized[tab]), [applyFilters, categorized, tab]);
-
-  // Unique CHWs for filter
-  const chwOptions = useMemo(() => {
-    const ids = new Set<string>();
-    for (const e of enriched) {
-      const id = e.house?.house?.assigned_csw_id ?? e.followUp.created_by;
-      if (id) ids.add(id);
     }
-    return Array.from(ids).map((id) => ({
-      id,
-      name: userMap.get(id) ?? id.slice(0, 8),
-    }));
-  }, [enriched, userMap]);
 
-  // Unique houses for filter
+    return {
+      total: baseFollowUps.length,
+      dueToday,
+      upcoming,
+      overdue,
+      completed,
+      high,
+      moderate,
+      normal,
+    };
+  }, [baseFollowUps, data]);
+
+  /* -------- CALENDAR DATE COUNTS ----------------------------------------- */
+  const followUpDateCounts = useMemo(() => {
+    const counts = new Map<
+      string,
+      { total: number; high: number; moderate: number; normal: number }
+    >();
+    for (const item of baseFollowUps) {
+      if (item.dueDate) {
+        const curr = counts.get(item.dueDate) ?? { total: 0, high: 0, moderate: 0, normal: 0 };
+        curr.total++;
+        if (item.risk === "high") curr.high++;
+        else if (item.risk === "moderate") curr.moderate++;
+        else curr.normal++;
+        counts.set(item.dueDate, curr);
+      }
+    }
+    return counts;
+  }, [baseFollowUps]);
+
+  /* -------- VISIBLE ITEMS (Combined filters) ------------------------------ */
+  const visibleItems = useMemo(() => {
+    let list = baseFollowUps;
+
+    // 1. Search filter
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      list = list.filter((item) => {
+        const name = item.member?.name?.toLowerCase() ?? "";
+        const memberId = item.member?.memberId?.toLowerCase() ?? "";
+        const houseId = item.house?.house?.house_id?.toLowerCase() ?? "";
+        const houseNumber = item.house?.house?.house_number?.toLowerCase() ?? "";
+        return (
+          name.includes(q) || memberId.includes(q) || houseId.includes(q) || houseNumber.includes(q)
+        );
+      });
+    }
+
+    // 2. LEVEL 1 — Risk Filter
+    if (!isSearching) {
+      if (riskFilter === "high") {
+        list = list.filter((i) => i.risk === "high");
+      } else if (riskFilter === "moderate") {
+        list = list.filter((i) => i.risk === "moderate");
+      } else if (riskFilter === "normal") {
+        list = list.filter((i) => i.risk === "low");
+      }
+    }
+
+    // 3. LEVEL 2 — Status/Date Filter
+    // Business definitions:
+    // "today"    = follow-up date is today
+    // "upcoming" = follow-up date is in the future (> today)
+    // "due"      = has an ACTIVE PENDING follow-up record in the DB (status=pending)
+    //              This means follow-up has been formally scheduled and awaits completion.
+    //              Distinct from "overdue" (which is a date-past condition).
+    // "completed"= follow-up occurrence has been completed
+    if (!isSearching) {
+      if (statusFilter === "today") {
+        list = list.filter((i) => i.dueDate === todayKey);
+      } else if (statusFilter === "upcoming") {
+        list = list.filter((i) => i.daysDiffFromToday > 0 && i.status !== "completed");
+      } else if (statusFilter === "due") {
+        // "Due" = members with a formal active pending follow-up record in DB
+        // i.e. summary.activeFollowUpId is set (DB status = 'pending')
+        list = list.filter((i) => Boolean(i.summary.activeFollowUpId));
+      } else if (statusFilter === "completed") {
+        list = list.filter((i) => i.status === "completed" || i.summary.history.length > 0);
+      }
+      // "all" = show everything
+    }
+
+    // 4. House filter
+    if (houseFilter !== "all") {
+      list = list.filter((i) => i.member?.houseUuid === houseFilter);
+    }
+
+    // 5. Condition filter
+    if (conditionFilter !== "all") {
+      list = list.filter((i) => {
+        const conds = i.member?.conditions?.map((c) => c.toLowerCase()) || [];
+        const hasBP = conds.some(
+          (c) => c.includes("hyper") || c.includes("bp") || c.includes("press"),
+        );
+        const hasSugar = conds.some((c) => c.includes("diabet") || c.includes("sugar"));
+        if (conditionFilter === "bp") return hasBP && !hasSugar;
+        if (conditionFilter === "sugar") return hasSugar && !hasBP;
+        if (conditionFilter === "bp_sugar") return hasBP && hasSugar;
+        if (conditionFilter === "other") return conds.length > 0 && !hasBP && !hasSugar;
+        return true;
+      });
+    }
+
+    // 6. Calendar date filter
+    if (selectedCalDate) {
+      list = list.filter((i) => i.dueDate === selectedCalDate);
+    }
+
+    // 7. Sort
+    list = [...list].sort((a, b) => {
+      if (sortBy === "dueDate") return (a.dueDate ?? "9999").localeCompare(b.dueDate ?? "9999");
+      if (sortBy === "risk") {
+        const rank = { high: 0, moderate: 1, low: 2 };
+        return rank[a.risk] - rank[b.risk];
+      }
+      if (sortBy === "name") return (a.member?.name ?? "").localeCompare(b.member?.name ?? "");
+      if (sortBy === "surveyDate") return (b.surveyDate ?? "").localeCompare(a.surveyDate ?? "");
+      return 0;
+    });
+
+    return list;
+  }, [
+    baseFollowUps,
+    searchQuery,
+    isSearching,
+    riskFilter,
+    statusFilter,
+    houseFilter,
+    conditionFilter,
+    selectedCalDate,
+    todayKey,
+    sortBy,
+  ]);
+
+  /* -------- HOUSE / OPTIONS ----------------------------------------------- */
   const houseOptions = useMemo(() => {
     const map = new Map<string, string>();
-    for (const e of enriched) {
-      if (e.followUp.house_uuid && e.house) {
+    for (const item of allFollowUpItems) {
+      if (item.member?.houseUuid && item.house?.house) {
         map.set(
-          e.followUp.house_uuid,
-          e.house.house.house_number ?? e.house.house.house_id ?? e.followUp.house_uuid.slice(0, 8),
+          item.member.houseUuid,
+          item.house.house.house_id || item.house.house.house_number || "House",
         );
       }
     }
-    return Array.from(map.entries()).map(([id, label]) => ({ id, label }));
-  }, [enriched]);
+    return Array.from(map.entries()).map(([id, name]) => ({ id, name }));
+  }, [allFollowUpItems]);
 
-  // Mutations
+  /* -------- CHW WORKLOAD -------------------------------------------------- */
+  const completedTodayCount = useMemo(() => {
+    if (!data) return 0;
+    return data.followUps.filter(
+      (f) => f.status === "completed" && f.updated_at && toDateKeySafe(f.updated_at) === todayKey,
+    ).length;
+  }, [data, todayKey]);
+
+  const todayCHWFollowUps = useMemo(() => {
+    if (!isCHW) return [];
+    return baseFollowUps.filter((i) => i.dueDate === todayKey);
+  }, [baseFollowUps, isCHW, todayKey]);
+
+  /* -------- SELECTED DATE STATS ------------------------------------------ */
+  const selectedDateStats = useMemo(() => {
+    const targetDate = selectedCalDate || todayKey;
+    const dateItems = baseFollowUps.filter((i) => i.dueDate === targetDate);
+    const high = dateItems.filter((i) => i.risk === "high").length;
+    const moderate = dateItems.filter((i) => i.risk === "moderate").length;
+    const normal = dateItems.filter((i) => i.risk === "low").length;
+    const pieData = [
+      { name: "High Risk", value: high, color: "#ef4444" },
+      { name: "Moderate Risk", value: moderate, color: "#f97316" },
+      { name: "Normal Risk", value: normal, color: "#3b82f6" },
+    ].filter((d) => d.value > 0);
+    return {
+      date: targetDate,
+      displayDate: formatDisplayDate(targetDate),
+      total: dateItems.length,
+      high,
+      moderate,
+      normal,
+      pieData,
+    };
+  }, [baseFollowUps, selectedCalDate, todayKey]);
+
+  /* -------- MUTATIONS ------------------------------------------------------- */
   const completeMutation = useMutation({
-    mutationFn: (params: { id: string; vitals?: { systolic: number; diastolic: number; bloodSugar: number | null }; holidays?: string[] }) => 
-      completeFollowUp(params),
+    mutationFn: async ({
+      id,
+      vitals,
+      notes,
+    }: {
+      id: string;
+      vitals?: { systolic: number; diastolic: number; bloodSugar: number | null } | undefined;
+      notes?: string | undefined;
+    }) => {
+      await completeFollowUp({ id, vitals, notes });
+    },
     onSuccess: () => {
-      setShowSuccess("completed");
-      setTimeout(() => setShowSuccess(null), 2000);
-      toast.success("Follow-up marked as completed.");
+      toast.success("Follow-up completed and next visit scheduled!");
       setCompleteTarget(null);
       setCompleteSystolic("");
       setCompleteDiastolic("");
       setCompleteSugar("");
+      setCompleteNotes("");
       void refresh();
     },
-    onError: (e) => toast.error(e instanceof Error ? e.message : "Could not complete follow-up."),
+    onError: (e: any) => toast.error(e.message || "Failed to complete follow-up"),
   });
 
   const rescheduleMutation = useMutation({
-    mutationFn: ({ id, date }: { id: string; date: Date }) => postponeFollowUp(id, date),
+    mutationFn: async ({ id, date }: { id: string; date: string }) => {
+      await postponeFollowUp(id, date);
+    },
     onSuccess: () => {
-      setShowSuccess("rescheduled");
-      setTimeout(() => setShowSuccess(null), 2000);
-      toast.success("Follow-up rescheduled successfully.");
+      toast.success("Follow-up rescheduled successfully!");
       setRescheduleTarget(null);
       setRescheduleDate("");
       void refresh();
     },
-    onError: (e) => toast.error(e instanceof Error ? e.message : "Could not reschedule."),
+    onError: (e: any) => toast.error(e.message || "Failed to reschedule follow-up"),
   });
 
-  const clearFilters = () => {
+  /* -------- HELPERS --------------------------------------------------------- */
+  const handleResetFilters = () => {
     setSearchQuery("");
-    setRiskFilter("all");
-    setChwFilter("all");
-    setStatusFilter("all");
     setHouseFilter("all");
-    setDatePreset("all");
-    setDateFrom("");
-    setDateTo("");
+    setConditionFilter("all");
+    setRiskFilter("all");
+    setStatusFilter("all");
     setSelectedCalDate(null);
   };
 
-  const hasActiveFilters =
-    searchQuery ||
-    riskFilter !== "all" ||
-    chwFilter !== "all" ||
-    statusFilter !== "all" ||
-    houseFilter !== "all" ||
-    datePreset !== "all" ||
-    selectedCalDate;
+  const handleExportCSV = () => {
+    if (visibleItems.length === 0) {
+      toast.error("No records to export.");
+      return;
+    }
+    const rows = [
+      [
+        "Member Name",
+        "Member ID",
+        "House ID",
+        "Risk Level",
+        "Survey Date",
+        "Follow-up Date",
+        "Status",
+        "Assigned CHW",
+      ],
+      ...visibleItems.map((item) => [
+        `"${item.member?.name || ""}"`,
+        `"${item.member?.memberId || ""}"`,
+        `"${item.house?.house?.house_id || item.member?.houseId || ""}"`,
+        `"${item.risk.toUpperCase()}"`,
+        `"${item.displaySurveyDate}"`,
+        `"${item.displayDueDate}"`,
+        `"${item.status.toUpperCase()}"`,
+        `"${item.assignedChwName || "Unassigned"}"`,
+      ]),
+    ];
+    const csvContent = "data:text/csv;charset=utf-8," + rows.map((e) => e.join(",")).join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `followups_${todayKey}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.success("Exported follow-ups successfully.");
+  };
 
-  /* ======================================================================== */
-  /*                             LOADING STATE                                */
-  /* ======================================================================== */
+  /* ========================================================================= */
+  /*                             SKELETON STATE                                */
+  /* ========================================================================= */
 
   if (isLoading) {
-    return (
-      <div className={cn("space-y-4 pb-6", animClassFast)}>
-        <SkeletonHeader />
-        <SkeletonStatusNav />
-        <SkeletonFilters />
-        <div className="grid gap-3">
+    return isMobile ? (
+      <div className="flex flex-col h-screen bg-background animate-in fade-in duration-300">
+        {/* Mobile skeleton header */}
+        <div className="flex-none px-4 pt-4 pb-3 border-b border-border/50 space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="h-7 w-28 bg-muted rounded-lg animate-pulse" />
+            <div className="flex gap-2">
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="size-9 bg-muted rounded-xl animate-pulse" />
+              ))}
+            </div>
+          </div>
+          <div className="flex gap-2">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="h-10 flex-1 bg-muted rounded-xl animate-pulse" />
+            ))}
+          </div>
+          <div className="flex gap-2">
+            {[1, 2, 3, 4, 5].map((i) => (
+              <div key={i} className="h-8 flex-1 bg-muted rounded-xl animate-pulse" />
+            ))}
+          </div>
+        </div>
+        <div className="flex-1 overflow-hidden p-4 space-y-3">
           {[1, 2, 3, 4].map((i) => (
-            <SkeletonCard key={i} />
+            <FollowUpSkeleton key={i} />
           ))}
         </div>
       </div>
+    ) : (
+      <div className="flex flex-col h-[calc(100vh-4rem)] overflow-hidden bg-surface-muted/10 animate-in fade-in duration-300">
+        <div className="flex-none px-6 pt-6 space-y-6">
+          <div className="h-8 w-48 bg-muted rounded-lg animate-pulse" />
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="h-24 bg-muted rounded-2xl animate-pulse" />
+            ))}
+          </div>
+        </div>
+        <div className="flex-1 overflow-hidden px-6 pt-4 pb-4">
+          <div className="grid grid-cols-12 gap-6 h-full">
+            <div className="w-full lg:col-span-8 flex flex-col gap-4 h-full">
+              <div className="h-[72px] bg-muted rounded-2xl animate-pulse" />
+              <div className="flex-1 overflow-y-auto min-h-0 space-y-3">
+                {[1, 2, 3, 4].map((i) => (
+                  <FollowUpSkeleton key={i} />
+                ))}
+              </div>
+            </div>
+            <div className="col-span-4 flex flex-col gap-4">
+              <div className="h-[340px] bg-muted rounded-3xl animate-pulse" />
+            </div>
+          </div>
+        </div>
+      </div>
     );
   }
-
-  /* ======================================================================== */
-  /*                             ERROR STATE                                  */
-  /* ======================================================================== */
 
   if (error) {
     return (
-      <div className={cn("flex flex-col items-center justify-center py-20 px-6 text-center", animClass)}>
-        <div className="ios-glass p-8 max-w-sm w-full space-y-4">
-          <div className="mx-auto w-14 h-14 rounded-2xl bg-risk-high-soft flex items-center justify-center">
-            <AlertTriangle className="size-7 text-risk-high" />
-          </div>
+      <div className="flex flex-col items-center justify-center py-20 px-6 text-center">
+        <div className="p-8 max-w-sm w-full space-y-4 bg-white rounded-3xl border border-border/60 shadow-card">
+          <AlertTriangle className="size-10 text-risk-high mx-auto" />
           <h2 className="font-display text-lg font-semibold text-foreground">
-            Unable to load follow-ups
+            Failed to load follow-ups
           </h2>
-          <p className="text-sm text-muted-foreground">
-            {error instanceof Error ? error.message : "An unexpected error occurred."}
+          <p className="text-xs text-muted-foreground">
+            {error instanceof Error ? error.message : "Error"}
           </p>
-          <Button
-            onClick={() => void refetch()}
-            className="w-full rounded-2xl font-semibold"
-            size="lg"
-          >
-            <RotateCcw className="size-4 mr-2" />
-            Retry
+          <Button onClick={() => void refresh()} className="w-full rounded-xl">
+            <RotateCcw className="size-4 mr-2" /> Retry
           </Button>
         </div>
       </div>
     );
   }
 
-  if (!data) return null;
+  /* ========================================================================= */
+  /*                           MOBILE RENDER                                   */
+  /* ========================================================================= */
 
-  const tabConfig: { key: StatusTab; label: string; icon: typeof CalendarDays; color: string; bgColor: string; count: number }[] = [
-    {
-      key: "high",
-      label: "HIGH RISK",
-      icon: AlertTriangle,
-      color: "text-risk-high",
-      bgColor: "bg-risk-high-soft",
-      count: categorized.high.length,
-    },
-    {
-      key: "moderate",
-      label: "MODERATE",
-      icon: Clock,
-      color: "text-risk-moderate",
-      bgColor: "bg-risk-moderate-soft",
-      count: categorized.moderate.length,
-    },
-    {
-      key: "normal",
-      label: "NORMAL",
-      icon: CheckCircle2,
-      color: "text-risk-low",
-      bgColor: "bg-risk-low-soft",
-      count: categorized.normal.length,
-    },
-    {
-      key: "completed",
-      label: "COMPLETED",
-      icon: Check,
-      color: "text-muted-foreground",
-      bgColor: "bg-muted/60",
-      count: categorized.completed.length,
-    },
-  ];
+  if (isMobile) {
+    return (
+      <div className="flex flex-col h-screen bg-background overflow-hidden">
+        {/* ================================================================== */}
+        {/* MOBILE HEADER                                                       */}
+        {/* ================================================================== */}
+        <div className="flex-none bg-white border-b border-border/50 px-4 pt-4 pb-3 space-y-3">
+          {/* Top bar: title + action icons */}
+          <div className="flex items-center justify-between gap-2">
+            <h1 className="font-display font-bold text-xl text-foreground">Follow-ups</h1>
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={() => setShowMobileSearch(!showMobileSearch)}
+                className="size-9 flex items-center justify-center rounded-xl bg-surface-muted hover:bg-muted transition-colors"
+                aria-label="Search"
+              >
+                <Search className="size-4 text-foreground" />
+              </button>
+              <button
+                onClick={() => setShowCalendarDrawer(true)}
+                className={cn(
+                  "size-9 flex items-center justify-center rounded-xl transition-colors",
+                  selectedCalDate
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-surface-muted hover:bg-muted",
+                )}
+                aria-label="Calendar"
+              >
+                <CalendarDays
+                  className={cn("size-4", selectedCalDate ? "text-white" : "text-foreground")}
+                />
+              </button>
+              <button
+                onClick={() => setShowFiltersBar(true)}
+                className={cn(
+                  "size-9 flex items-center justify-center rounded-xl transition-colors",
+                  houseFilter !== "all" || conditionFilter !== "all"
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-surface-muted hover:bg-muted",
+                )}
+                aria-label="More filters"
+              >
+                <SlidersHorizontal className="size-4 text-foreground" />
+              </button>
 
-  const filterContent = (
-    <FilterControls
-      riskFilter={riskFilter}
-      setRiskFilter={setRiskFilter}
-      chwFilter={chwFilter}
-      setChwFilter={setChwFilter}
-      statusFilter={statusFilter}
-      setStatusFilter={setStatusFilter}
-      houseFilter={houseFilter}
-      setHouseFilter={setHouseFilter}
-      datePreset={datePreset}
-      setDatePreset={setDatePreset}
-      dateFrom={dateFrom}
-      setDateFrom={setDateFrom}
-      dateTo={dateTo}
-      setDateTo={setDateTo}
-      chwOptions={chwOptions}
-      houseOptions={houseOptions}
-      isMobile={isMobile}
-    />
-  );
+              {/* Role-specific primary action */}
+              {isCHW ? (
+                <Link to="/map" search={{ filter: "today_followups" }}>
+                  <button className="h-9 px-3 flex items-center gap-1.5 rounded-xl bg-primary text-primary-foreground text-xs font-bold shadow-sm">
+                    <MapPin className="size-4" />
+                    <span>Run</span>
+                  </button>
+                </Link>
+              ) : (
+                <button
+                  className="h-9 px-3 flex items-center gap-1.5 rounded-xl bg-primary text-primary-foreground text-xs font-bold shadow-sm"
+                  onClick={() => toast.info("Task builder coming soon")}
+                >
+                  <Plus className="size-4" />
+                  <span>Task</span>
+                </button>
+              )}
+            </div>
+          </div>
 
-  /* ======================================================================== */
-  /*                             RENDER                                       */
-  /* ======================================================================== */
+          {/* Inline search (toggleable) */}
+          {showMobileSearch && (
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+              <Input
+                ref={searchInputRef}
+                autoFocus
+                placeholder="Search name, ID, house…"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9 pr-9 h-10 rounded-xl bg-surface-muted/50 border-border/60 text-sm"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                >
+                  <X className="size-4" />
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* RISK FILTER CHIPS — Level 1 */}
+          <div className="flex gap-2">
+            {(["all", "high", "moderate", "normal"] as RiskFilter[]).map((r) => {
+              const count =
+                r === "all"
+                  ? counters.total
+                  : r === "high"
+                    ? counters.high
+                    : r === "moderate"
+                      ? counters.moderate
+                      : counters.normal;
+              const isActive = riskFilter === r;
+              const colorCls =
+                r === "high"
+                  ? isActive
+                    ? "bg-red-500 text-white border-red-500"
+                    : "bg-red-50 text-red-600 border-red-200"
+                  : r === "moderate"
+                    ? isActive
+                      ? "bg-orange-500 text-white border-orange-500"
+                      : "bg-orange-50 text-orange-600 border-orange-200"
+                    : r === "normal"
+                      ? isActive
+                        ? "bg-blue-500 text-white border-blue-500"
+                        : "bg-blue-50 text-blue-700 border-blue-200"
+                      : isActive
+                        ? "bg-foreground text-background border-foreground"
+                        : "bg-surface-muted text-muted-foreground border-border/60";
+
+              return (
+                <button
+                  key={r}
+                  onClick={() => setRiskFilter(isActive && r !== "all" ? "all" : r)}
+                  className={cn(
+                    "flex-1 flex flex-col items-center py-2 rounded-xl border text-xs font-bold transition-all",
+                    colorCls,
+                  )}
+                >
+                  <span className="text-base font-display font-extrabold leading-none">
+                    {count}
+                  </span>
+                  <span className="mt-0.5 capitalize">{r === "all" ? "Total" : r}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* STATUS FILTER TABS — Level 2 */}
+          <div className="flex gap-1 overflow-x-auto no-scrollbar pb-0.5">
+            {(["all", "today", "upcoming", "due", "completed"] as StatusFilter[]).map((s) => (
+              <button
+                key={s}
+                onClick={() => setStatusFilter(s)}
+                className={cn(
+                  "shrink-0 px-3 py-1.5 rounded-xl text-xs font-semibold capitalize transition-all border",
+                  statusFilter === s
+                    ? "bg-foreground text-background border-foreground"
+                    : "bg-surface-muted text-muted-foreground border-transparent hover:bg-muted",
+                )}
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Calendar date active badge */}
+        {selectedCalDate && (
+          <div className="flex-none mx-4 mt-2 flex items-center justify-between p-2.5 rounded-xl bg-primary/10 border border-primary/20 text-xs font-semibold text-primary">
+            <span className="flex items-center gap-1.5">
+              <CalendarDays className="size-3.5" />
+              Showing {formatDisplayDate(selectedCalDate)}
+            </span>
+            <button onClick={() => setSelectedCalDate(null)} className="hover:underline">
+              Clear
+            </button>
+          </div>
+        )}
+
+        {/* CHW workload card */}
+        {isCHW && (
+          <div className="flex-none mx-4 mt-2 rounded-2xl border border-border/60 bg-white shadow-sm p-3 flex items-center gap-3">
+            <div className="size-10 rounded-xl bg-primary/10 flex items-center justify-center">
+              <Target className="size-5 text-primary" />
+            </div>
+            <div className="flex-1">
+              <p className="text-[11px] font-bold uppercase text-muted-foreground tracking-wider">
+                My Daily Task
+              </p>
+              <p className="text-xs text-muted-foreground">Today's Follow-ups</p>
+            </div>
+            <div className="text-right">
+              <p className="text-2xl font-display font-bold text-foreground leading-none">
+                {dailyTarget}
+              </p>
+              <p className="text-[10px] text-muted-foreground">Total</p>
+            </div>
+            <div className="w-px h-8 bg-border/50" />
+            <div className="text-right">
+              <p className="text-lg font-display font-bold text-emerald-600 leading-none">
+                {completedTodayCount}
+              </p>
+              <p className="text-[10px] text-muted-foreground">Done</p>
+            </div>
+            <div className="text-right">
+              <p className="text-lg font-display font-bold text-primary leading-none">
+                {Math.max(0, dailyTarget - completedTodayCount)}
+              </p>
+              <p className="text-[10px] text-muted-foreground">Left</p>
+            </div>
+          </div>
+        )}
+
+        {/* Results count */}
+        <div className="flex-none px-4 pt-2 pb-1 flex items-center justify-between">
+          <p className="text-xs text-muted-foreground font-semibold">
+            {visibleItems.length} Follow-up{visibleItems.length !== 1 ? "s" : ""}
+          </p>
+          <div className="flex items-center gap-1.5 text-xs">
+            <Select value={sortBy} onValueChange={setSortBy}>
+              <SelectTrigger className="h-7 rounded-lg text-xs bg-white w-[110px] border-border/60">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="dueDate">Follow-up Date</SelectItem>
+                <SelectItem value="risk">Risk Level</SelectItem>
+                <SelectItem value="name">Name</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        {/* ================================================================== */}
+        {/* MOBILE CARD LIST (only this scrolls)                               */}
+        {/* ================================================================== */}
+        <div className="flex-1 overflow-y-auto px-4 pb-6 space-y-3">
+          {visibleItems.length === 0 ? (
+            <div className="py-16 text-center space-y-3">
+              <CalendarDays className="size-10 text-muted-foreground/30 mx-auto" />
+              <h3 className="font-display text-sm font-bold text-foreground">
+                No follow-ups found
+              </h3>
+              <p className="text-xs text-muted-foreground max-w-xs mx-auto">
+                {isSearching
+                  ? "No matching members for your search."
+                  : "No follow-ups match the selected filters."}
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleResetFilters}
+                className="rounded-xl mt-1"
+              >
+                Clear Filters
+              </Button>
+            </div>
+          ) : (
+            visibleItems.map((item) => (
+              <FollowUpCard
+                key={item.id}
+                item={item}
+                minEligibleAge={minEligibleAge}
+                onReschedule={(i) => {
+                  setRescheduleTarget(i);
+                  setRescheduleDate(i.dueDate || todayKey);
+                }}
+                onComplete={(i) => {
+                  setCompleteTarget(i);
+                  setCompleteSystolic(i.member?.systolic?.toString() || "");
+                  setCompleteDiastolic(i.member?.diastolic?.toString() || "");
+                  setCompleteSugar(i.member?.bloodSugar?.toString() || "");
+                  setCompleteNotes("");
+                }}
+              />
+            ))
+          )}
+        </div>
+
+        {/* Mobile dialogs reuse same ones below */}
+        {renderDialogs()}
+        {renderCalendarDrawer()}
+        {renderFiltersSheet()}
+      </div>
+    );
+  }
+
+  /* ========================================================================= */
+  /*                           DESKTOP RENDER                                  */
+  /* ========================================================================= */
 
   return (
-    <div className={cn("pb-8 space-y-5", animClass)}>
-      {/* ================================================================ */}
-      {/*  SUCCESS TOAST OVERLAY                                           */}
-      {/* ================================================================ */}
-      {showSuccess && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none">
-          <div className={cn(
-            "ios-glass px-8 py-6 flex flex-col items-center gap-3 pointer-events-auto",
-            prefersReduced ? "" : "animate-in zoom-in-95 fade-in duration-300",
-          )}>
-            <div className="w-14 h-14 rounded-full bg-risk-low-soft flex items-center justify-center">
-              <CheckCircle2 className="size-8 text-risk-low" />
-            </div>
-            <p className="font-display font-semibold text-foreground">
-              {showSuccess === "completed" ? "Follow-up Completed" : "Follow-up Rescheduled"}
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* ================================================================ */}
-      {/*  1. PAGE HEADER                                                  */}
-      {/* ================================================================ */}
-      <header className="flex flex-col gap-4">
-        <div className="flex flex-col gap-1.5 md:flex-row md:items-end md:justify-between">
+    <div className="flex flex-col h-[calc(100vh-4rem)] overflow-hidden bg-surface-muted/10 animate-in fade-in duration-300">
+      {/* FIXED TOP SECTION */}
+      <div className="flex-none px-6 pt-6 space-y-5">
+        {/* Desktop Header */}
+        <header className="flex items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-foreground md:text-3xl">Follow-ups</h1>
-            <p className="text-sm text-muted-foreground mt-1 max-w-xl">
-              Track scheduled visits based on risk level. High risk requires a visit every 15 days, Moderate every 30 days, and Normal every 180 days.
+            <h1 className="text-3xl font-display font-bold text-foreground">Follow-ups</h1>
+            <p className="text-sm text-muted-foreground mt-0.5">
+              Track and manage scheduled member follow-ups.
             </p>
           </div>
-          <div className="md:w-[300px] lg:w-[350px]">
-            <FollowUpTarget completedTodayCount={completedTodayCount} />
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground bg-surface-muted/60 px-3.5 py-2 rounded-xl border border-border/50">
+              <CalendarIcon className="size-4 text-primary" />
+              <span>
+                {now.toLocaleDateString("en-US", {
+                  weekday: "long",
+                  month: "long",
+                  day: "numeric",
+                  year: "numeric",
+                })}
+              </span>
+            </div>
+            {/* Role-specific primary action */}
+            {isCHW ? (
+              <Link to="/map" search={{ filter: "today_followups" }}>
+                <Button className="rounded-xl h-9 px-4 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-bold gap-1.5 shadow-sm">
+                  <MapPin className="size-4" /> Run Map
+                </Button>
+              </Link>
+            ) : (
+              <Button
+                className="rounded-xl h-9 px-4 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-bold gap-1.5 shadow-sm"
+                onClick={() => toast.info("Task builder coming soon")}
+              >
+                <Plus className="size-4" /> Task Builder
+              </Button>
+            )}
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={handleExportCSV}
+              className="size-9 rounded-xl"
+              title="Export CSV"
+            >
+              <Download className="size-4" />
+            </Button>
+          </div>
+        </header>
+
+        {/* KPI Cards */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <FollowUpKpi
+            title="TODAY"
+            count={counters.dueToday}
+            subtitle="Due today"
+            icon={CalendarDays}
+            colorScheme="blue"
+            isActive={statusFilter === "today"}
+            onClick={() => {
+              setStatusFilter((s) => (s === "today" ? "all" : "today"));
+            }}
+          />
+          <FollowUpKpi
+            title="UPCOMING"
+            count={counters.upcoming}
+            subtitle="Next 7 days"
+            icon={Clock}
+            colorScheme="purple"
+            isActive={statusFilter === "upcoming"}
+            onClick={() => {
+              setStatusFilter((s) => (s === "upcoming" ? "all" : "upcoming"));
+            }}
+          />
+          <FollowUpKpi
+            title="OVERDUE"
+            count={counters.overdue}
+            subtitle="Past due"
+            icon={AlertTriangle}
+            colorScheme="red"
+            isActive={statusFilter === "due"}
+            onClick={() => {
+              setStatusFilter((s) => (s === "due" ? "all" : "due"));
+            }}
+          />
+          <FollowUpKpi
+            title="COMPLETED"
+            count={counters.completed}
+            subtitle="All time"
+            icon={CheckCircle2}
+            colorScheme="emerald"
+            isActive={statusFilter === "completed"}
+            onClick={() => {
+              setStatusFilter((s) => (s === "completed" ? "all" : "completed"));
+            }}
+          />
+        </div>
+      </div>
+
+      {/* SCROLLING CONTENT AREA */}
+      <div className="flex-1 overflow-hidden px-6 pt-4 pb-4">
+        <div className="flex flex-col lg:grid lg:grid-cols-12 gap-5 h-full">
+          {/* ============================================================== */}
+          {/* CENTER COLUMN: Search + Cards                                   */}
+          {/* ============================================================== */}
+          <div className="col-span-8 flex flex-col h-full gap-3">
+            {/* Search + Action Bar */}
+            <div className="shrink-0 flex items-center gap-2.5">
+              <div className="relative flex-1">
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                <Input
+                  ref={searchInputRef}
+                  placeholder="Search name, member ID, house ID… (Ctrl K)"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10 pr-9 rounded-xl bg-white border-border/60 h-11 text-sm"
+                  aria-label="Search members"
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery("")}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  >
+                    <X className="size-4" />
+                  </button>
+                )}
+              </div>
+              <Button
+                variant="outline"
+                onClick={() => setShowFiltersBar(true)}
+                className={cn(
+                  "rounded-xl h-11 px-3.5 border-border/60 text-xs font-semibold gap-1.5",
+                  (conditionFilter !== "all" || houseFilter !== "all") &&
+                    "bg-primary-soft text-primary border-primary/20",
+                )}
+              >
+                <SlidersHorizontal className="size-4" /> Filters
+              </Button>
+            </div>
+
+            {/* Calendar date badge */}
+            {selectedCalDate && (
+              <div className="shrink-0 flex items-center justify-between p-3 rounded-xl bg-primary/10 border border-primary/20 text-xs font-semibold text-primary">
+                <div className="flex items-center gap-2">
+                  <CalendarDays className="size-4" />
+                  <span>Showing follow-ups for {formatDisplayDate(selectedCalDate)}</span>
+                </div>
+                <button
+                  onClick={() => setSelectedCalDate(null)}
+                  className="hover:underline text-[11px]"
+                >
+                  Clear Date Filter
+                </button>
+              </div>
+            )}
+
+            {/* Results header */}
+            <div className="shrink-0 flex items-center justify-between px-1">
+              <div>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-base font-display font-bold text-foreground">
+                    {riskFilter !== "all" ? riskFilter.toUpperCase() : "ALL RISKS"}
+                    {statusFilter !== "all" ? ` — ${statusFilter.toUpperCase()}` : ""}
+                  </h2>
+                  {(riskFilter !== "all" || statusFilter !== "all") && (
+                    <button
+                      onClick={handleResetFilters}
+                      className="text-[10px] text-muted-foreground hover:text-foreground underline"
+                    >
+                      reset
+                    </button>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {visibleItems.length} Follow-up{visibleItems.length !== 1 ? "s" : ""}
+                </p>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-1.5 text-xs">
+                  <span className="text-muted-foreground hidden sm:inline">Sort by:</span>
+                  <Select value={sortBy} onValueChange={setSortBy}>
+                    <SelectTrigger className="h-8 rounded-xl text-xs bg-white w-[130px] border-border/60">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="dueDate">Follow-up Date</SelectItem>
+                      <SelectItem value="risk">Risk Level</SelectItem>
+                      <SelectItem value="name">Member Name</SelectItem>
+                      <SelectItem value="surveyDate">Survey Date</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex items-center rounded-xl bg-surface-muted/60 p-0.5 border border-border/50">
+                  <button
+                    onClick={() => setViewMode("list")}
+                    className={cn(
+                      "p-1.5 rounded-lg transition-all",
+                      viewMode === "list"
+                        ? "bg-white text-primary shadow-xs"
+                        : "text-muted-foreground",
+                    )}
+                    aria-label="List view"
+                  >
+                    <List className="size-4" />
+                  </button>
+                  <button
+                    onClick={() => setViewMode("grid")}
+                    className={cn(
+                      "p-1.5 rounded-lg transition-all",
+                      viewMode === "grid"
+                        ? "bg-white text-primary shadow-xs"
+                        : "text-muted-foreground",
+                    )}
+                    aria-label="Grid view"
+                  >
+                    <LayoutGrid className="size-4" />
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* CARDS — THE ONLY SCROLLING REGION */}
+            <div className="flex-1 overflow-y-auto min-h-0 pr-1 pb-6">
+              {visibleItems.length === 0 ? (
+                <div className="card-surface p-12 rounded-3xl border border-dashed border-border text-center space-y-3 bg-white">
+                  <CalendarDays className="size-10 text-muted-foreground/40 mx-auto" />
+                  <h3 className="font-display text-base font-bold text-foreground">
+                    No follow-ups found
+                  </h3>
+                  <p className="text-xs text-muted-foreground max-w-sm mx-auto">
+                    {isSearching
+                      ? "No matching members for your search query."
+                      : "No scheduled follow-ups match the selected filters."}
+                  </p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleResetFilters}
+                    className="rounded-xl mt-2"
+                  >
+                    Clear Filters
+                  </Button>
+                </div>
+              ) : (
+                <div
+                  className={cn(
+                    "grid gap-3.5",
+                    viewMode === "grid" ? "sm:grid-cols-2" : "grid-cols-1",
+                  )}
+                >
+                  {visibleItems.map((item) => (
+                    <FollowUpCard
+                      key={item.id}
+                      item={item}
+                      minEligibleAge={minEligibleAge}
+                      onReschedule={(i) => {
+                        setRescheduleTarget(i);
+                        setRescheduleDate(i.dueDate || todayKey);
+                      }}
+                      onComplete={(i) => {
+                        setCompleteTarget(i);
+                        setCompleteSystolic(i.member?.systolic?.toString() || "");
+                        setCompleteDiastolic(i.member?.diastolic?.toString() || "");
+                        setCompleteSugar(i.member?.bloodSugar?.toString() || "");
+                        setCompleteNotes("");
+                      }}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* ============================================================== */}
+          {/* RIGHT PANEL — Fixed stable panel                                */}
+          {/* ============================================================== */}
+          <div className="hidden lg:flex lg:col-span-4 flex-col gap-4 h-full overflow-y-auto pr-1 pb-6">
+            {/* FILTERS SECTION */}
+            <div className="card-surface p-4 rounded-2xl border border-border/60 bg-white shadow-card space-y-3">
+              <div className="flex items-center justify-between">
+                <h3 className="font-display font-bold text-xs uppercase tracking-wider text-muted-foreground">
+                  Filters
+                </h3>
+                {(riskFilter !== "all" || statusFilter !== "all") && (
+                  <button
+                    onClick={handleResetFilters}
+                    className="text-[10px] text-primary font-semibold hover:underline flex items-center gap-1"
+                  >
+                    <RotateCcw className="size-3" /> Reset
+                  </button>
+                )}
+              </div>
+
+              {/* Risk filter row */}
+              <div className="flex gap-1.5">
+                {(["high", "moderate", "normal"] as const).map((r) => {
+                  const isActive = riskFilter === r;
+                  const colorCls =
+                    r === "high"
+                      ? isActive
+                        ? "bg-red-500 text-white border-red-500"
+                        : "bg-red-50 text-red-600 border-red-200 hover:bg-red-100"
+                      : r === "moderate"
+                        ? isActive
+                          ? "bg-orange-500 text-white border-orange-500"
+                          : "bg-orange-50 text-orange-600 border-orange-200 hover:bg-orange-100"
+                        : isActive
+                          ? "bg-blue-500 text-white border-blue-500"
+                          : "bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100";
+                  return (
+                    <button
+                      key={r}
+                      onClick={() => setRiskFilter(isActive ? "all" : r)}
+                      className={cn(
+                        "flex-1 py-1.5 rounded-xl border text-[11px] font-bold capitalize transition-all",
+                        colorCls,
+                      )}
+                    >
+                      {r === "normal" ? "Normal" : r.charAt(0).toUpperCase() + r.slice(1)}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Status filter row */}
+              <div className="flex gap-1 flex-wrap">
+                {(["all", "today", "upcoming", "due", "completed"] as StatusFilter[]).map((s) => (
+                  <button
+                    key={s}
+                    onClick={() => setStatusFilter(s)}
+                    className={cn(
+                      "px-2.5 py-1 rounded-xl text-[11px] font-semibold capitalize transition-all border",
+                      statusFilter === s
+                        ? "bg-foreground text-background border-foreground"
+                        : "bg-surface-muted text-muted-foreground border-transparent hover:bg-muted",
+                    )}
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* RUN SECTION */}
+            <div className="card-surface p-4 rounded-2xl border border-border/60 bg-white shadow-card space-y-2">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-display font-bold text-xs uppercase tracking-wider text-muted-foreground">
+                    RUN (Today's Follow-ups)
+                  </h3>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">
+                    Open map with today's route.
+                  </p>
+                </div>
+                <Link to="/map" search={{ filter: "today_followups" }}>
+                  <Button
+                    size="sm"
+                    className="rounded-xl h-8 px-3 text-xs font-bold bg-primary gap-1.5"
+                  >
+                    <MapPin className="size-3.5" /> Run
+                  </Button>
+                </Link>
+              </div>
+              {/* Map preview placeholder */}
+              <div className="h-24 rounded-xl bg-gradient-to-br from-blue-50 to-green-50 border border-border/40 flex items-center justify-center">
+                <p className="text-[10px] text-muted-foreground text-center px-4">
+                  {counters.dueToday > 0
+                    ? `${counters.dueToday} follow-up${counters.dueToday !== 1 ? "s" : ""} due today — click Run for optimized route`
+                    : "No follow-ups for today. No pins to show."}
+                </p>
+              </div>
+            </div>
+
+            {/* CALENDAR */}
+            <div className="card-surface p-4 rounded-2xl border border-border/60 bg-white shadow-card space-y-3">
+              <div className="flex items-center justify-between">
+                <h3 className="font-display font-bold text-xs uppercase tracking-wider text-muted-foreground">
+                  Calendar
+                </h3>
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="size-6 rounded-lg"
+                    onClick={() => {
+                      if (calMonth === 0) {
+                        setCalMonth(11);
+                        setCalYear(calYear - 1);
+                      } else setCalMonth(calMonth - 1);
+                    }}
+                    aria-label="Previous month"
+                  >
+                    <ChevronLeft className="size-3.5" />
+                  </Button>
+                  <span className="text-xs font-bold text-foreground">
+                    {new Date(calYear, calMonth, 1).toLocaleDateString("en-US", {
+                      month: "long",
+                      year: "numeric",
+                    })}
+                  </span>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="size-6 rounded-lg"
+                    onClick={() => {
+                      if (calMonth === 11) {
+                        setCalMonth(0);
+                        setCalYear(calYear + 1);
+                      } else setCalMonth(calMonth + 1);
+                    }}
+                    aria-label="Next month"
+                  >
+                    <ChevronRight className="size-3.5" />
+                  </Button>
+                </div>
+              </div>
+              <MiniCalendarGrid
+                year={calYear}
+                month={calMonth}
+                todayKey={todayKey}
+                selectedDate={selectedCalDate}
+                onSelectDate={(d) => setSelectedCalDate(selectedCalDate === d ? null : d)}
+                countsMap={followUpDateCounts}
+              />
+              {selectedCalDate && (
+                <button
+                  onClick={() => setSelectedCalDate(null)}
+                  className="w-full text-[11px] text-primary font-semibold hover:underline"
+                >
+                  Clear date filter
+                </button>
+              )}
+            </div>
+
+            {/* QUICK STATS */}
+            <div className="card-surface p-4 rounded-2xl border border-border/60 bg-white shadow-card space-y-2">
+              <h3 className="font-display font-bold text-xs uppercase tracking-wider text-muted-foreground">
+                {selectedCalDate ? `${formatDisplayDate(selectedCalDate)}` : "Today's Summary"}
+              </h3>
+              {[
+                {
+                  label: "Due Today",
+                  value: counters.dueToday,
+                  color: "text-blue-600",
+                  icon: CalendarDays,
+                  action: () => setStatusFilter("today"),
+                },
+                {
+                  label: "Overdue",
+                  value: counters.overdue,
+                  color: "text-red-600",
+                  icon: AlertTriangle,
+                  action: () => setStatusFilter("due"),
+                },
+                {
+                  label: "Upcoming (7d)",
+                  value: counters.upcoming,
+                  color: "text-purple-600",
+                  icon: Clock,
+                  action: () => setStatusFilter("upcoming"),
+                },
+                {
+                  label: "Completed",
+                  value: counters.completed,
+                  color: "text-emerald-600",
+                  icon: CheckCircle2,
+                  action: () => setStatusFilter("completed"),
+                },
+              ].map(({ label, value, color, icon: Icon, action }) => (
+                <button
+                  key={label}
+                  onClick={action}
+                  className="w-full flex items-center justify-between p-2 rounded-xl hover:bg-surface-muted/70 transition-colors text-xs font-semibold"
+                >
+                  <span className={cn("flex items-center gap-2", color)}>
+                    <Icon className="size-3.5" /> {label}
+                  </span>
+                  <span className={cn("font-bold", color)}>{value}</span>
+                </button>
+              ))}
+            </div>
           </div>
         </div>
-      </header>
+      </div>
 
-      {/* ================================================================ */}
-      {/*  2. STATUS NAVIGATION                                            */}
-      {/* ================================================================ */}
-      <nav
-        className="grid grid-cols-4 gap-2"
-        aria-label="Follow-up status categories"
-      >
-        {tabConfig.map((t) => {
-          const Icon = t.icon;
-          const isActive = tab === t.key;
-          return (
-            <button
-              key={t.key}
-              onClick={() => setTab(t.key)}
-              aria-current={isActive ? "page" : undefined}
-              className={cn(
-                "relative flex flex-col items-center gap-1.5 rounded-2xl px-2 py-3 transition-all duration-200 touch-target",
-                "border",
-                isActive
-                  ? "bg-white border-primary/20 shadow-card"
-                  : "bg-white/60 border-border/40 hover:bg-white hover:border-border",
-              )}
-            >
-              <div
-                className={cn(
-                  "w-9 h-9 rounded-xl flex items-center justify-center transition-colors",
-                  isActive ? t.bgColor : "bg-muted/60",
-                )}
-              >
-                <Icon className={cn("size-4", isActive ? t.color : "text-muted-foreground")} />
+      {renderDialogs()}
+      {renderFiltersSheet()}
+      {renderCalendarDrawer()}
+    </div>
+  );
+
+  /* ========================================================================= */
+  /*                         SHARED DIALOG HELPERS                             */
+  /* ========================================================================= */
+
+  function renderDialogs() {
+    return (
+      <>
+        {/* Complete Dialog */}
+        <Dialog
+          open={Boolean(completeTarget)}
+          onOpenChange={(open) => !open && setCompleteTarget(null)}
+        >
+          <DialogContent className="sm:max-w-md rounded-3xl">
+            <DialogHeader>
+              <DialogTitle className="font-display text-lg">Complete Follow-up Visit</DialogTitle>
+              <DialogDescription>
+                Record new clinical vitals for {completeTarget?.member?.name}. Enter readings or
+                skip to preserve existing risk.
+              </DialogDescription>
+            </DialogHeader>
+            {completeTarget && (
+              <div className="space-y-4 py-2">
+                <div className="p-3 rounded-xl bg-surface-muted/50 border border-border/50 flex items-center justify-between text-xs">
+                  <div>
+                    <p className="font-bold text-foreground">{completeTarget.member?.name}</p>
+                    <p className="text-muted-foreground">
+                      House ID:{" "}
+                      {completeTarget.house?.house?.house_id ||
+                        completeTarget.member?.houseId ||
+                        "—"}
+                    </p>
+                  </div>
+                  <RiskBadge level={completeTarget.risk} />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-foreground">Systolic BP</label>
+                    <Input
+                      type="number"
+                      value={completeSystolic}
+                      onChange={(e) => setCompleteSystolic(e.target.value)}
+                      placeholder="e.g. 120"
+                      className="h-10 rounded-xl"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-foreground">Diastolic BP</label>
+                    <Input
+                      type="number"
+                      value={completeDiastolic}
+                      onChange={(e) => setCompleteDiastolic(e.target.value)}
+                      placeholder="e.g. 80"
+                      className="h-10 rounded-xl"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-foreground">
+                    Blood Sugar (mg/dL)
+                  </label>
+                  <Input
+                    type="number"
+                    value={completeSugar}
+                    onChange={(e) => setCompleteSugar(e.target.value)}
+                    placeholder="e.g. 110"
+                    className="h-10 rounded-xl"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-foreground">Follow-up Notes</label>
+                  <Input
+                    value={completeNotes}
+                    onChange={(e) => setCompleteNotes(e.target.value)}
+                    placeholder="e.g. Rechecked BP, advised low sodium diet"
+                    className="h-10 rounded-xl"
+                  />
+                </div>
               </div>
-              <span
-                className={cn(
-                  "text-[10px] font-semibold uppercase tracking-wider",
-                  isActive ? "text-foreground" : "text-muted-foreground",
-                )}
+            )}
+            <DialogFooter className="gap-2 sm:gap-2 flex-col sm:flex-row">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  if (completeTarget)
+                    completeMutation.mutate({
+                      id: completeTarget.id,
+                      notes: completeNotes || "Vitals skipped during follow-up",
+                    });
+                }}
+                disabled={completeMutation.isPending}
+                className="rounded-xl font-semibold flex-1 text-xs"
               >
-                {t.label}
-              </span>
-              <span
-                className={cn(
-                  "text-lg font-bold font-display",
-                  isActive ? t.color : "text-foreground",
-                )}
+                SKIP VITALS
+              </Button>
+              <Button
+                onClick={() => {
+                  if (completeTarget) {
+                    const sys = parseInt(completeSystolic, 10);
+                    const dia = parseInt(completeDiastolic, 10);
+                    const sug = completeSugar ? parseInt(completeSugar, 10) : null;
+                    if (!isNaN(sys) && !isNaN(dia)) {
+                      completeMutation.mutate({
+                        id: completeTarget.id,
+                        vitals: { systolic: sys, diastolic: dia, bloodSugar: sug },
+                        notes: completeNotes || undefined,
+                      });
+                    } else {
+                      toast.error(
+                        "Please enter both Systolic and Diastolic BP, or click 'Skip Vitals'.",
+                      );
+                    }
+                  }
+                }}
+                disabled={completeMutation.isPending}
+                className="rounded-xl font-semibold flex-1 text-xs bg-emerald-600 hover:bg-emerald-700 text-white"
               >
-                {t.count}
-              </span>
-              {isActive && (
-                <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-8 h-0.5 rounded-full bg-primary" />
-              )}
-            </button>
-          );
-        })}
-      </nav>
+                {completeMutation.isPending ? "Saving..." : "SAVE & COMPLETE"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
-      {/* ================================================================ */}
-      {/*  3. SEARCH + FILTERS                                             */}
-      {/* ================================================================ */}
-      <div className="space-y-3">
-        <div className="flex gap-2">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-            <Input
-              placeholder="Search name, member ID, house ID..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 rounded-xl bg-white border-border/60 h-11"
-              aria-label="Search follow-ups"
-            />
-            {searchQuery && (
-              <button
-                onClick={() => setSearchQuery("")}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                aria-label="Clear search"
+        {/* Reschedule Dialog */}
+        <Dialog
+          open={Boolean(rescheduleTarget)}
+          onOpenChange={(open) => !open && setRescheduleTarget(null)}
+        >
+          <DialogContent className="sm:max-w-md rounded-3xl">
+            <DialogHeader>
+              <DialogTitle className="font-display text-lg">Reschedule Follow-up</DialogTitle>
+              <DialogDescription>
+                Select a new follow-up date for {rescheduleTarget?.member?.name}.
+              </DialogDescription>
+            </DialogHeader>
+            {rescheduleTarget && (
+              <div className="space-y-4 py-2">
+                <div className="p-3 rounded-xl bg-surface-muted/50 border border-border/50 text-xs">
+                  <p className="font-bold text-foreground">{rescheduleTarget.member?.name}</p>
+                  <p className="text-muted-foreground mt-0.5">
+                    Current Due Date: {rescheduleTarget.displayDueDate}
+                  </p>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-foreground">
+                    New Follow-up Date
+                  </label>
+                  <Input
+                    type="date"
+                    value={rescheduleDate}
+                    min={todayKey}
+                    onChange={(e) => setRescheduleDate(e.target.value)}
+                    className="rounded-xl h-11"
+                  />
+                </div>
+              </div>
+            )}
+            <DialogFooter className="gap-2">
+              <Button variant="ghost" onClick={() => setRescheduleTarget(null)}>
+                Cancel
+              </Button>
+              <Button
+                onClick={() => {
+                  if (rescheduleTarget && rescheduleDate)
+                    rescheduleMutation.mutate({ id: rescheduleTarget.id, date: rescheduleDate });
+                }}
+                disabled={rescheduleMutation.isPending || !rescheduleDate}
+                className="rounded-xl font-semibold"
               >
-                <X className="size-4" />
+                {rescheduleMutation.isPending ? "Rescheduling..." : "Save Date"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </>
+    );
+  }
+
+  function renderCalendarDrawer() {
+    return (
+      <Drawer open={showCalendarDrawer} onOpenChange={setShowCalendarDrawer}>
+        <DrawerContent className="max-w-lg mx-auto rounded-t-3xl border-border bg-white p-5 space-y-4">
+          <div className="mx-auto w-12 h-1.5 bg-muted-foreground/30 rounded-full mb-1" />
+          <div className="flex items-center justify-between">
+            <h3 className="font-display font-bold text-base">Select Follow-up Date</h3>
+            {selectedCalDate && (
+              <button
+                onClick={() => {
+                  setSelectedCalDate(null);
+                  setShowCalendarDrawer(false);
+                }}
+                className="text-xs text-primary font-semibold"
+              >
+                Clear
               </button>
             )}
           </div>
-          {isMobile ? (
-            <div className="flex gap-2 shrink-0">
+          <div className="flex items-center justify-between mb-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-7 rounded-lg"
+              onClick={() => {
+                if (calMonth === 0) {
+                  setCalMonth(11);
+                  setCalYear(calYear - 1);
+                } else setCalMonth(calMonth - 1);
+              }}
+            >
+              <ChevronLeft className="size-4" />
+            </Button>
+            <span className="text-sm font-bold">
+              {new Date(calYear, calMonth, 1).toLocaleDateString("en-US", {
+                month: "long",
+                year: "numeric",
+              })}
+            </span>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-7 rounded-lg"
+              onClick={() => {
+                if (calMonth === 11) {
+                  setCalMonth(0);
+                  setCalYear(calYear + 1);
+                } else setCalMonth(calMonth + 1);
+              }}
+            >
+              <ChevronRight className="size-4" />
+            </Button>
+          </div>
+          <MiniCalendarGrid
+            year={calYear}
+            month={calMonth}
+            todayKey={todayKey}
+            selectedDate={selectedCalDate}
+            onSelectDate={(d) => {
+              setSelectedCalDate(selectedCalDate === d ? null : d);
+              setShowCalendarDrawer(false);
+            }}
+            countsMap={followUpDateCounts}
+          />
+        </DrawerContent>
+      </Drawer>
+    );
+  }
+
+  function renderFiltersSheet() {
+    return (
+      <Sheet open={showFiltersBar} onOpenChange={setShowFiltersBar}>
+        <SheetContent
+          side="right"
+          className="w-full sm:max-w-md bg-white border-l p-0 flex flex-col h-full"
+        >
+          <SheetHeader className="p-5 border-b border-border/50 text-left">
+            <SheetTitle className="font-display font-bold text-xl flex items-center justify-between">
+              Filters
               <Button
-                variant="outline"
+                variant="ghost"
                 size="icon"
-                className="h-11 w-11 rounded-xl border-border/60 shrink-0 touch-target"
-                onClick={() => setShowMobileFilters(true)}
-                aria-label="Open filters"
+                onClick={() => setShowFiltersBar(false)}
+                className="size-8 rounded-full"
               >
-                <Filter className="size-4" />
-                {hasActiveFilters && (
-                  <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-primary" />
-                )}
+                <X className="size-5 text-muted-foreground" />
               </Button>
-              <Popover open={showCalendar} onOpenChange={setShowCalendar}>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className={cn(
-                      "h-11 w-11 rounded-xl border-border/60 shrink-0 touch-target",
-                      selectedCalDate && "bg-primary-soft text-primary border-primary/20"
-                    )}
-                    aria-label="Open calendar"
-                  >
-                    <CalendarDays className="size-4" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-[320px] p-0 rounded-2xl ios-glass border-border/50 shadow-float" align="end">
-                  <FollowUpCalendar
-                    calMonth={calMonth}
-                    calYear={calYear}
-                    setCalMonth={setCalMonth}
-                    setCalYear={setCalYear}
-                    selectedDate={selectedCalDate}
-                    onSelectDate={(d) => setSelectedCalDate(selectedCalDate === d ? null : d)}
-                    followUpDateCounts={followUpDateCounts}
-                    todayKey={todayKey}
-                    onToday={() => {
-                      setCalMonth(now.getMonth());
-                      setCalYear(now.getFullYear());
-                      setSelectedCalDate(todayKey);
-                    }}
-                  />
-                </PopoverContent>
-              </Popover>
+            </SheetTitle>
+          </SheetHeader>
+          <div className="flex-1 overflow-y-auto p-5 space-y-6">
+            <div className="space-y-3">
+              <label className="text-xs uppercase font-bold text-muted-foreground tracking-wider">
+                Condition
+              </label>
+              <Select value={conditionFilter} onValueChange={setConditionFilter}>
+                <SelectTrigger className="h-11 rounded-xl bg-surface-muted/30">
+                  <SelectValue placeholder="All Conditions" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Conditions</SelectItem>
+                  <SelectItem value="bp">BP / Hypertension</SelectItem>
+                  <SelectItem value="sugar">Sugar / Diabetes</SelectItem>
+                  <SelectItem value="bp_sugar">BP + Sugar</SelectItem>
+                  <SelectItem value="other">Other conditions</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-          ) : (
-            <Popover open={showCalendar} onOpenChange={setShowCalendar}>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className={cn(
-                    "h-11 w-11 rounded-xl border-border/60 shrink-0 touch-target",
-                    selectedCalDate && "bg-primary-soft text-primary border-primary/20"
-                  )}
-                  aria-label="Open calendar"
-                >
-                  <CalendarDays className="size-4" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0 rounded-2xl ios-glass border-border/50 shadow-float" align="end">
-                <FollowUpCalendar
-                  calMonth={calMonth}
-                  calYear={calYear}
-                  setCalMonth={setCalMonth}
-                  setCalYear={setCalYear}
-                  selectedDate={selectedCalDate}
-                  onSelectDate={(d) => setSelectedCalDate(selectedCalDate === d ? null : d)}
-                  followUpDateCounts={followUpDateCounts}
-                  todayKey={todayKey}
-                  onToday={() => {
-                    setCalMonth(now.getMonth());
-                    setCalYear(now.getFullYear());
-                    setSelectedCalDate(todayKey);
-                  }}
-                />
-              </PopoverContent>
-            </Popover>
-          )}
-        </div>
-
-        {/* Desktop Filters */}
-        {!isMobile && (
-          <div className="ios-glass p-4">
-            {filterContent}
-            {hasActiveFilters && (
-              <div className="flex items-center justify-between mt-3 pt-3 border-t border-border/30">
-                <p className="text-xs text-muted-foreground">
-                  Showing {visibleItems.length} result{visibleItems.length !== 1 ? "s" : ""}
-                </p>
-                <button
-                  onClick={clearFilters}
-                  className="text-xs font-medium text-primary hover:text-primary/80 transition-colors"
-                >
-                  Clear all filters
-                </button>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Calendar date filter indicator */}
-        {selectedCalDate && (
-          <div className={cn("flex items-center gap-2 px-3 py-2 rounded-xl bg-primary-soft border border-primary/10", animClassFast)}>
-            <CalendarDays className="size-4 text-primary" />
-            <span className="text-sm font-medium text-primary">
-              Filtered: {formatShortDate(selectedCalDate)}
-            </span>
-            <button
-              onClick={() => setSelectedCalDate(null)}
-              className="ml-auto text-primary/60 hover:text-primary transition-colors"
-              aria-label="Clear date filter"
-            >
-              <XCircle className="size-4" />
-            </button>
-          </div>
-        )}
-      </div>
-
-      <div className="space-y-5">
-        {/* ============================================================== */}
-        {/*  FOLLOW-UP LIST                                                 */}
-        {/* ============================================================== */}
-        <div className="space-y-3 min-w-0">
-          {/* Result header */}
-          <div className="flex items-center justify-between">
-            <h2 className="font-display text-base font-semibold text-foreground">
-              {selectedCalDate
-                ? `Follow-ups · ${formatShortDate(selectedCalDate)}`
-                : `${tabConfig.find((t) => t.key === tab)?.label} Follow-ups`}
-            </h2>
-            <span className="text-xs text-muted-foreground font-medium">
-              {visibleItems.length} result{visibleItems.length !== 1 ? "s" : ""}
-            </span>
-          </div>
-
-          {/* Cards */}
-          {visibleItems.length === 0 ? (
-            <EmptyStateCard tab={tab} hasFilters={Boolean(hasActiveFilters)} />
-          ) : (
-            <div className="grid gap-3">
-              {visibleItems.map((e, idx) => (
-                <FollowUpCard
-                  key={e.followUp.id}
-                  item={e}
-                  tab={tab}
-                  todayKey={todayKey}
-                  onComplete={() => setCompleteTarget(e)}
-                  onReschedule={() => {
-                    setRescheduleTarget(e);
-                    setRescheduleDate("");
-                  }}
-                  animClass={animClass}
-                  animDelay={prefersReduced ? 0 : Math.min(idx * 50, 300)}
-                />
-              ))}
+            <div className="space-y-3">
+              <label className="text-xs uppercase font-bold text-muted-foreground tracking-wider">
+                House
+              </label>
+              <Select value={houseFilter} onValueChange={setHouseFilter}>
+                <SelectTrigger className="h-11 rounded-xl bg-surface-muted/30">
+                  <SelectValue placeholder="All Houses" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Houses</SelectItem>
+                  {houseOptions.map((h) => (
+                    <SelectItem key={h.id} value={h.id}>
+                      {h.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-          )}
-        </div>
-
-        {/* Mobile calendar button */}
-        {isMobile && (
-          <Button
-            variant="outline"
-            className="w-full rounded-2xl h-12 border-border/60 font-semibold"
-            onClick={() => setShowCalendar(true)}
-          >
-            <CalendarDays className="size-4 mr-2" />
-            Open Calendar
-          </Button>
-        )}
-      </div>
-
-      {/* ================================================================ */}
-      {/*  MOBILE FILTER DRAWER                                            */}
-      {/* ================================================================ */}
-      <Drawer open={showMobileFilters} onOpenChange={setShowMobileFilters}>
-        <DrawerContent className="max-w-lg mx-auto rounded-t-3xl border-border bg-background/95 backdrop-blur-2xl">
-          <div className="px-5 pb-8 pt-2 space-y-5 max-h-[80vh] overflow-y-auto">
-            <div className="mx-auto w-12 h-1.5 bg-muted-foreground/30 rounded-full mb-1" />
-            <div className="flex items-center justify-between">
-              <h3 className="font-display font-bold text-lg">Filters</h3>
-              {hasActiveFilters && (
-                <button
-                  onClick={clearFilters}
-                  className="text-xs font-medium text-primary"
-                >
-                  Clear all
-                </button>
-              )}
-            </div>
-            {filterContent}
-            <Button
-              onClick={() => setShowMobileFilters(false)}
-              className="w-full rounded-2xl h-12 font-semibold"
-            >
-              Apply Filters ({visibleItems.length} results)
-            </Button>
           </div>
-        </DrawerContent>
-      </Drawer>
-
-      {/* ================================================================ */}
-      {/*  MOBILE CALENDAR DRAWER                                          */}
-      {/* ================================================================ */}
-      <Drawer open={isMobile && showCalendar} onOpenChange={setShowCalendar}>
-        <DrawerContent className="max-w-lg mx-auto rounded-t-3xl border-border bg-background/95 backdrop-blur-2xl">
-          <div className="px-5 pb-8 pt-2 space-y-4 max-h-[80vh] overflow-y-auto">
-            <div className="mx-auto w-12 h-1.5 bg-muted-foreground/30 rounded-full mb-1" />
-            <FollowUpCalendar
-              calMonth={calMonth}
-              calYear={calYear}
-              setCalMonth={setCalMonth}
-              setCalYear={setCalYear}
-              selectedDate={selectedCalDate}
-              onSelectDate={(d) => {
-                setSelectedCalDate(selectedCalDate === d ? null : d);
-                setShowCalendar(false);
-              }}
-              followUpDateCounts={followUpDateCounts}
-              todayKey={todayKey}
-              onToday={() => {
-                setCalMonth(now.getMonth());
-                setCalYear(now.getFullYear());
-                setSelectedCalDate(todayKey);
-                setShowCalendar(false);
-              }}
-            />
-          </div>
-        </DrawerContent>
-      </Drawer>
-
-      {/* ================================================================ */}
-      {/*  COMPLETE DIALOG                                                 */}
-      {/* ================================================================ */}
-      <Dialog open={Boolean(completeTarget)} onOpenChange={(open) => !open && setCompleteTarget(null)}>
-        <DialogContent className="sm:max-w-md rounded-3xl border-border/50 ios-glass">
-          <DialogHeader>
-            <DialogTitle className="font-display text-lg">Complete Follow-up</DialogTitle>
-            <DialogDescription>
-              Optional: Enter new vitals to recalculate member risk.
-            </DialogDescription>
-          </DialogHeader>
-          {completeTarget && (
-            <div className="space-y-4 py-2">
-              <InfoRow label="Member" value={completeTarget.member?.name ?? "—"} />
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="text-xs font-medium text-foreground">Systolic BP</label>
-                  <Input 
-                    type="number"
-                    value={completeSystolic}
-                    onChange={(e) => setCompleteSystolic(e.target.value)}
-                    placeholder={completeTarget.member?.systolic?.toString() || ""}
-                    className="h-11 rounded-xl"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-medium text-foreground">Diastolic BP</label>
-                  <Input 
-                    type="number"
-                    value={completeDiastolic}
-                    onChange={(e) => setCompleteDiastolic(e.target.value)}
-                    placeholder={completeTarget.member?.diastolic?.toString() || ""}
-                    className="h-11 rounded-xl"
-                  />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <label className="text-xs font-medium text-foreground">Blood Sugar (RBS)</label>
-                <Input 
-                  type="number"
-                  value={completeSugar}
-                  onChange={(e) => setCompleteSugar(e.target.value)}
-                  placeholder={completeTarget.member?.bloodSugar?.toString() || ""}
-                  className="h-11 rounded-xl"
-                />
-              </div>
-            </div>
-          )}
-          <DialogFooter className="gap-2 sm:gap-2 flex-col sm:flex-row">
+          <div className="p-5 border-t border-border/50 bg-surface-muted/10">
             <Button
               variant="outline"
               onClick={() => {
-                if (completeTarget) {
-                  completeMutation.mutate({ id: completeTarget.followUp.id, holidays });
-                }
+                handleResetFilters();
+                setShowFiltersBar(false);
               }}
-              disabled={completeMutation.isPending}
-              className="rounded-xl font-semibold flex-1 uppercase tracking-wider"
+              className="w-full h-11 rounded-xl text-sm font-semibold border-border/60 bg-white"
             >
-              SKIP VITALS
+              <RotateCcw className="size-4 mr-2 text-muted-foreground" /> Clear All Filters
             </Button>
-            <Button
-              onClick={() => {
-                if (completeTarget) {
-                  const sys = parseInt(completeSystolic);
-                  const dia = parseInt(completeDiastolic);
-                  const sug = completeSugar ? parseInt(completeSugar) : null;
-                  if (!isNaN(sys) && !isNaN(dia)) {
-                    completeMutation.mutate({
-                      id: completeTarget.followUp.id,
-                      vitals: { systolic: sys, diastolic: dia, bloodSugar: sug },
-                      holidays
-                    });
-                  } else {
-                    toast.error("Please enter both Systolic and Diastolic BP, or skip.");
-                  }
-                }
-              }}
-              disabled={completeMutation.isPending}
-              className="rounded-xl font-semibold flex-1 uppercase tracking-wider"
-            >
-              {completeMutation.isPending ? (
-                <span className="size-4 animate-spin rounded-full border-2 border-white border-t-transparent mr-2" />
-              ) : (
-                <Check className="size-4 mr-2" />
-              )}
-              SAVE VITALS & COMPLETE
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* ================================================================ */}
-      {/*  RESCHEDULE DIALOG                                               */}
-      {/* ================================================================ */}
-      <Dialog open={Boolean(rescheduleTarget)} onOpenChange={(open) => !open && setRescheduleTarget(null)}>
-        <DialogContent className="sm:max-w-md rounded-3xl border-border/50 ios-glass">
-          <DialogHeader>
-            <DialogTitle className="font-display text-lg">Reschedule Follow-up</DialogTitle>
-            <DialogDescription>
-              Choose a new date for this follow-up.
-            </DialogDescription>
-          </DialogHeader>
-          {rescheduleTarget && (
-            <div className="space-y-4 py-2">
-              <InfoRow label="Member" value={rescheduleTarget.member?.name ?? "—"} />
-              <InfoRow
-                label="Current Date"
-                value={rescheduleTarget.followUp.due_date ? formatShortDate(rescheduleTarget.followUp.due_date) : "—"}
-              />
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground" htmlFor="reschedule-date">
-                  New Date
-                </label>
-                <Input
-                  id="reschedule-date"
-                  type="date"
-                  value={rescheduleDate}
-                  onChange={(e) => setRescheduleDate(e.target.value)}
-                  min={todayKey}
-                  className="rounded-xl h-11"
-                />
-              </div>
-            </div>
-          )}
-          <DialogFooter className="gap-2 sm:gap-2">
-            <Button
-              variant="outline"
-              onClick={() => setRescheduleTarget(null)}
-              className="rounded-xl"
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={() => {
-                if (rescheduleTarget && rescheduleDate) {
-                  rescheduleMutation.mutate({
-                    id: rescheduleTarget.followUp.id,
-                    date: new Date(rescheduleDate + "T12:00:00"),
-                  });
-                }
-              }}
-              disabled={rescheduleMutation.isPending || !rescheduleDate}
-              className="rounded-xl font-semibold"
-            >
-              {rescheduleMutation.isPending ? (
-                <span className="size-4 animate-spin rounded-full border-2 border-white border-t-transparent mr-2" />
-              ) : (
-                <CalendarClock className="size-4 mr-2" />
-              )}
-              Save
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
-  );
-}
-
-/* ========================================================================== */
-/*                       FOLLOW-UP CARD COMPONENT                             */
-/* ========================================================================== */
-
-function FollowUpCard({
-  item,
-  tab,
-  todayKey,
-  onComplete,
-  onReschedule,
-  animClass,
-  animDelay,
-}: {
-  item: EnrichedFollowUp;
-  tab: StatusTab;
-  todayKey: string;
-  onComplete: () => void;
-  onReschedule: () => void;
-  animClass: string;
-  animDelay: number;
-}) {
-  const { followUp: f, member, house, assignedChwName, daysOverdue, statusLabel } = item;
-  const risk = asRisk(f.risk_level ?? member?.risk ?? "low");
-  const isOverdue = daysOverdue > 0;
-  const isPending = (f.status ?? "pending") === "pending";
-
-  const assessmentDate = member?.screenedAt ? formatShortDate(member.screenedAt) : "—";
-  const lastFollowUpDate = f.updated_at ? formatShortDate(f.updated_at.split("T")[0]!) : (f.created_at ? formatShortDate(f.created_at.split("T")[0]!) : "—");
-  const nextFollowUpDate = f.due_date ? formatShortDate(f.due_date) : "—";
-
-  return (
-    <div
-      className={cn(
-        "ios-glass p-5 space-y-4 transition-all hover:shadow-float group relative overflow-hidden",
-        animClass,
-      )}
-      style={{ animationDelay: `${animDelay}ms` }}
-      role="article"
-      aria-label={`Follow-up for ${member?.name ?? "Unknown"}`}
-    >
-      {/* Decorative risk accent line */}
-      <div className={cn(
-        "absolute left-0 top-0 bottom-0 w-1.5",
-        risk === "high" ? "bg-risk-high" : risk === "moderate" ? "bg-risk-moderate" : "bg-risk-low"
-      )} />
-
-      {/* Header: Member Name & Risk Badge */}
-      <div className="flex items-start justify-between gap-3 pl-2">
-        <div className="min-w-0 flex-1">
-          <p className="font-display font-semibold text-foreground text-base truncate">
-            {member?.name ?? "Unknown Member"}
-          </p>
-          <div className="flex items-center gap-2 mt-0.5 text-xs text-muted-foreground flex-wrap">
-            {member?.age != null && <span>Age {member.age}</span>}
-            <span className="inline-flex items-center gap-1 font-mono uppercase">
-              <Home className="size-3" />
-              {house?.house?.house_number ?? house?.house?.house_id ?? "—"}
-            </span>
           </div>
-        </div>
-        <div className="shrink-0 text-right">
-          <RiskBadge level={risk} />
-          {isOverdue && (
-             <p className="text-[10px] font-bold text-risk-high mt-1 uppercase tracking-wider">
-               {daysOverdue} day{daysOverdue > 1 ? "s" : ""} overdue
-             </p>
-          )}
-        </div>
-      </div>
-
-      {/* Reason for Follow-up & History */}
-      <div className="pl-2 space-y-2">
-        {(f.reason || (f.status && f.status !== "pending")) && (
-          <div>
-            <span className="inline-block px-2.5 py-1 rounded-md bg-secondary text-secondary-foreground text-xs font-medium">
-                {f.reason ? f.reason : `Status: ${f.status}`}
-            </span>
-          </div>
-        )}
-        {member?.conditions && member.conditions.length > 0 && (
-          <div className="flex flex-wrap gap-1">
-            {member.conditions.map((c, i) => (
-              <span key={i} className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-muted/60 text-muted-foreground uppercase tracking-wider">
-                {c}
-              </span>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Divider */}
-      <div className="h-px bg-border/40 ml-2" />
-
-      {/* Critical Dates Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pl-2">
-        <div className="flex flex-col bg-surface-muted/50 p-2.5 rounded-xl border border-border/40">
-          <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Survey Date</span>
-          <span className="text-sm font-medium text-foreground mt-0.5 truncate">{assessmentDate}</span>
-        </div>
-        <div className="flex flex-col bg-surface-muted/50 p-2.5 rounded-xl border border-border/40">
-          <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Last Follow-up</span>
-          <span className="text-sm font-medium text-foreground mt-0.5 truncate">{lastFollowUpDate}</span>
-        </div>
-        <div className={cn(
-          "flex flex-col p-2.5 rounded-xl border",
-          isOverdue ? "bg-risk-high-soft/30 border-risk-high/30" : f.due_date === todayKey ? "bg-info-soft/30 border-info/30" : "bg-primary-soft/30 border-primary/20"
-        )}>
-          <span className={cn(
-            "text-[10px] font-semibold uppercase tracking-wider",
-            isOverdue ? "text-risk-high" : f.due_date === todayKey ? "text-info" : "text-primary"
-          )}>Next Follow-up</span>
-          <span className={cn(
-            "text-sm font-bold mt-0.5 truncate",
-            isOverdue ? "text-risk-high" : f.due_date === todayKey ? "text-info" : "text-primary"
-          )}>{nextFollowUpDate}</span>
-        </div>
-      </div>
-
-      {/* Vitals & Assigned CHW */}
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 pl-2 mt-2">
-        {member?.systolic != null && member.diastolic != null ? (
-          <div className="flex items-center gap-1.5 bg-background/50 px-2.5 py-1 rounded-lg border border-border/40 shadow-xs">
-            <Activity className="size-3.5 text-risk-high" />
-            <span className="text-xs font-semibold text-foreground">
-              {member.systolic}/{member.diastolic} <span className="text-[10px] font-normal text-muted-foreground">mmHg</span>
-            </span>
-          </div>
-        ) : null}
-        {member?.bloodSugar != null ? (
-          <div className="flex items-center gap-1.5 bg-background/50 px-2.5 py-1 rounded-lg border border-border/40 shadow-xs">
-            <Droplets className="size-3.5 text-risk-moderate" />
-            <span className="text-xs font-semibold text-foreground">
-              {member.bloodSugar} <span className="text-[10px] font-normal text-muted-foreground">mg/dL</span>
-            </span>
-          </div>
-        ) : null}
-        {assignedChwName && (
-          <div className="flex items-center gap-1.5 ml-auto bg-background/50 px-2.5 py-1 rounded-lg border border-border/40">
-            <User className="size-3.5 text-muted-foreground" />
-            <span className="text-xs font-medium text-muted-foreground">{assignedChwName}</span>
-          </div>
-        )}
-      </div>
-
-      {/* Actions */}
-      <div className="flex flex-wrap items-center gap-2 pt-3 border-t border-border/40 pl-2">
-        {member && (
-          <Link
-            to="/members/$memberId"
-            params={{ memberId: member.id }}
-            className="inline-flex items-center gap-1.5 rounded-xl bg-surface-muted px-4 py-2.5 text-xs font-bold text-foreground hover:bg-secondary transition-colors touch-target shadow-xs border border-border/50 active:scale-95"
-          >
-            <User className="size-4" />
-            View Member
-          </Link>
-        )}
-        {isPending && (
-          <>
-            <Button
-              onClick={onComplete}
-              className="rounded-xl font-bold text-xs h-10 px-4 shadow-sm bg-primary text-primary-foreground hover:bg-primary/90 active:scale-95 transition-all ml-auto"
-            >
-              <Check className="size-4 mr-1.5 stroke-[3]" />
-              Complete
-            </Button>
-            <Button
-              variant="outline"
-              onClick={onReschedule}
-              className="rounded-xl text-xs font-bold h-10 px-4 active:scale-95 transition-all shadow-xs"
-            >
-              <CalendarClock className="size-4 mr-1.5" />
-              Reschedule
-            </Button>
-          </>
-        )}
-        {!isPending && (
-          <span className="text-xs text-muted-foreground font-bold ml-auto px-3 py-1.5 bg-muted/50 rounded-lg">
-            {(f.status ?? "pending").toUpperCase()}
-          </span>
-        )}
-      </div>
-    </div>
-  );
-}
-
-/* ========================================================================== */
-/*                              CALENDAR                                      */
-/* ========================================================================== */
-
-function FollowUpCalendar({
-  calMonth,
-  calYear,
-  setCalMonth,
-  setCalYear,
-  selectedDate,
-  onSelectDate,
-  followUpDateCounts,
-  todayKey,
-  onToday,
-}: {
-  calMonth: number;
-  calYear: number;
-  setCalMonth: (m: number) => void;
-  setCalYear: (y: number) => void;
-  selectedDate: string | null;
-  onSelectDate: (d: string) => void;
-  followUpDateCounts: Map<string, number>;
-  todayKey: string;
-  onToday: () => void;
-}) {
-  const days = useMemo(() => getMonthDays(calYear, calMonth), [calYear, calMonth]);
-  const monthName = new Date(calYear, calMonth).toLocaleDateString("en-US", {
-    month: "long",
-    year: "numeric",
-  });
-  const weekDays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-
-  const prevMonth = () => {
-    if (calMonth === 0) {
-      setCalMonth(11);
-      setCalYear(calYear - 1);
-    } else {
-      setCalMonth(calMonth - 1);
-    }
-  };
-
-  const nextMonth = () => {
-    if (calMonth === 11) {
-      setCalMonth(0);
-      setCalYear(calYear + 1);
-    } else {
-      setCalMonth(calMonth + 1);
-    }
-  };
-
-  return (
-    <div className="ios-glass p-4 space-y-3" role="region" aria-label="Follow-up calendar">
-      {/* Calendar Header */}
-      <div className="flex items-center justify-between">
-        <button
-          onClick={prevMonth}
-          className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-muted transition-colors touch-target"
-          aria-label="Previous month"
-        >
-          <ChevronLeft className="size-4" />
-        </button>
-        <h3 className="font-display font-semibold text-sm text-foreground">{monthName}</h3>
-        <button
-          onClick={nextMonth}
-          className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-muted transition-colors touch-target"
-          aria-label="Next month"
-        >
-          <ChevronRight className="size-4" />
-        </button>
-      </div>
-
-      {/* Today Button */}
-      <button
-        onClick={onToday}
-        className="w-full text-center text-xs font-semibold text-primary hover:text-primary/80 py-1 transition-colors"
-      >
-        Today
-      </button>
-
-      {/* Weekday headers */}
-      <div className="grid grid-cols-7 gap-0">
-        {weekDays.map((d) => (
-          <div key={d} className="text-center text-[10px] font-medium text-muted-foreground py-1">
-            {d}
-          </div>
-        ))}
-      </div>
-
-      {/* Day grid */}
-      <div className="grid grid-cols-7 gap-0">
-        {days.map((day, idx) => {
-          const key = toDateKey(day);
-          const isCurrentMonth = day.getMonth() === calMonth;
-          const isToday = key === todayKey;
-          const isSelected = key === selectedDate;
-          const count = followUpDateCounts.get(key) ?? 0;
-          const hasFollowUps = count > 0;
-
-          return (
-            <button
-              key={idx}
-              onClick={() => onSelectDate(key)}
-              aria-label={`${day.toLocaleDateString("en-US", { month: "long", day: "numeric" })}${count > 0 ? `, ${count} follow-ups` : ""}`}
-              aria-pressed={isSelected}
-              className={cn(
-                "relative flex flex-col items-center justify-center py-1.5 rounded-lg text-xs transition-all",
-                "hover:bg-muted/60",
-                !isCurrentMonth && "opacity-30",
-                isToday && !isSelected && "bg-accent font-bold text-accent-foreground",
-                isSelected && "bg-primary text-primary-foreground font-bold shadow-xs",
-                !isToday && !isSelected && "text-foreground",
-              )}
-            >
-              <span>{day.getDate()}</span>
-              {hasFollowUps && (
-                <span
-                  className={cn(
-                    "absolute bottom-0.5 w-1 h-1 rounded-full",
-                    isSelected ? "bg-primary-foreground" : "bg-primary",
-                  )}
-                />
-              )}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Clear date filter */}
-      {selectedDate && (
-        <button
-          onClick={() => onSelectDate(selectedDate)}
-          className="w-full text-center text-xs font-medium text-muted-foreground hover:text-foreground py-1 transition-colors border-t border-border/30 pt-2"
-        >
-          Clear Date Filter
-        </button>
-      )}
-    </div>
-  );
-}
-
-/* ========================================================================== */
-/*                           FILTER CONTROLS                                  */
-/* ========================================================================== */
-
-function FilterControls({
-  riskFilter,
-  setRiskFilter,
-  chwFilter,
-  setChwFilter,
-  statusFilter,
-  setStatusFilter,
-  houseFilter,
-  setHouseFilter,
-  datePreset,
-  setDatePreset,
-  dateFrom,
-  setDateFrom,
-  dateTo,
-  setDateTo,
-  chwOptions,
-  houseOptions,
-  isMobile,
-}: {
-  riskFilter: string;
-  setRiskFilter: (v: string) => void;
-  chwFilter: string;
-  setChwFilter: (v: string) => void;
-  statusFilter: string;
-  setStatusFilter: (v: string) => void;
-  houseFilter: string;
-  setHouseFilter: (v: string) => void;
-  datePreset: string;
-  setDatePreset: (v: string) => void;
-  dateFrom: string;
-  setDateFrom: (v: string) => void;
-  dateTo: string;
-  setDateTo: (v: string) => void;
-  chwOptions: { id: string; name: string }[];
-  houseOptions: { id: string; label: string }[];
-  isMobile: boolean;
-}) {
-  return (
-    <div className={cn("gap-3", isMobile ? "space-y-3" : "grid grid-cols-3 lg:grid-cols-6")}>
-      <div className="space-y-1">
-        <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-          Risk
-        </label>
-        <Select value={riskFilter} onValueChange={setRiskFilter}>
-          <SelectTrigger className="h-9 rounded-lg text-xs" aria-label="Filter by risk">
-            <SelectValue placeholder="All Risks" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Risks</SelectItem>
-            <SelectItem value="high">High</SelectItem>
-            <SelectItem value="moderate">Moderate</SelectItem>
-            <SelectItem value="low">Low</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div className="space-y-1">
-        <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-          Status
-        </label>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="h-9 rounded-lg text-xs" aria-label="Filter by status">
-            <SelectValue placeholder="All Statuses" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Statuses</SelectItem>
-            <SelectItem value="pending">Pending</SelectItem>
-            <SelectItem value="completed">Completed</SelectItem>
-            <SelectItem value="missed">Missed</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div className="space-y-1">
-        <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-          CHW / CSW
-        </label>
-        <Select value={chwFilter} onValueChange={setChwFilter}>
-          <SelectTrigger className="h-9 rounded-lg text-xs" aria-label="Filter by CHW">
-            <SelectValue placeholder="All CHWs" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All CHWs</SelectItem>
-            {chwOptions.map((o) => (
-              <SelectItem key={o.id} value={o.id}>
-                {o.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div className="space-y-1">
-        <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-          House
-        </label>
-        <Select value={houseFilter} onValueChange={setHouseFilter}>
-          <SelectTrigger className="h-9 rounded-lg text-xs" aria-label="Filter by house">
-            <SelectValue placeholder="All Houses" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Houses</SelectItem>
-            {houseOptions.map((o) => (
-              <SelectItem key={o.id} value={o.id}>
-                {o.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div className="space-y-1">
-        <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-          Date
-        </label>
-        <Select value={datePreset} onValueChange={setDatePreset}>
-          <SelectTrigger className="h-9 rounded-lg text-xs" aria-label="Filter by date">
-            <SelectValue placeholder="All Dates" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Dates</SelectItem>
-            <SelectItem value="today">Today</SelectItem>
-            <SelectItem value="this_week">This Week</SelectItem>
-            <SelectItem value="this_month">This Month</SelectItem>
-            <SelectItem value="custom">Custom Range</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
-      {datePreset === "custom" && (
-        <div className={cn("space-y-1", isMobile ? "" : "col-span-2 lg:col-span-1")}>
-          <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-            Range
-          </label>
-          <div className="flex gap-1">
-            <Input
-              type="date"
-              value={dateFrom}
-              onChange={(e) => setDateFrom(e.target.value)}
-              className="h-9 rounded-lg text-xs flex-1"
-              aria-label="From date"
-            />
-            <Input
-              type="date"
-              value={dateTo}
-              onChange={(e) => setDateTo(e.target.value)}
-              className="h-9 rounded-lg text-xs flex-1"
-              aria-label="To date"
-            />
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-/* ========================================================================== */
-/*                           EMPTY STATES                                     */
-/* ========================================================================== */
-
-function EmptyStateCard({ tab, hasFilters }: { tab: StatusTab; hasFilters: boolean }) {
-  const config: Record<StatusTab, { title: string; description: string; icon: typeof CalendarDays }> = {
-    high: {
-      title: "No High Risk follow-ups found",
-      description: hasFilters
-        ? "Try adjusting your filters to see more results."
-        : "There are no high risk follow-ups currently scheduled.",
-      icon: AlertTriangle,
-    },
-    moderate: {
-      title: "No Moderate Risk follow-ups found",
-      description: hasFilters
-        ? "Try adjusting your filters to see more results."
-        : "There are no moderate risk follow-ups currently scheduled.",
-      icon: Clock,
-    },
-    normal: {
-      title: "No Normal follow-ups found",
-      description: hasFilters
-        ? "Try adjusting your filters to see more results."
-        : "There are no normal risk follow-ups currently scheduled.",
-      icon: CheckCircle2,
-    },
-    completed: {
-      title: "No completed follow-ups yet",
-      description: hasFilters
-        ? "Try adjusting your filters to see more results."
-        : "Completed follow-ups will appear here after visits are marked done.",
-      icon: CheckCircle2,
-    },
-  };
-  const c = config[tab];
-  const Icon = c.icon;
-
-  return (
-    <div className="ios-glass flex flex-col items-center justify-center py-14 px-6 text-center">
-      <div className="w-14 h-14 rounded-2xl bg-muted/60 flex items-center justify-center mb-4">
-        <Icon className="size-7 text-muted-foreground" />
-      </div>
-      <h3 className="font-display text-base font-semibold text-foreground">{c.title}</h3>
-      <p className="text-sm text-muted-foreground mt-1 max-w-xs">{c.description}</p>
-    </div>
-  );
-}
-
-/* ========================================================================== */
-/*                           INFO ROW                                         */
-/* ========================================================================== */
-
-function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
-  return (
-    <div className="flex items-center justify-between py-1.5">
-      <span className="text-xs text-muted-foreground font-medium">{label}</span>
-      <span className="text-xs font-semibold text-foreground">{typeof value === "string" ? value : value}</span>
-    </div>
-  );
-}
-
-/* ========================================================================== */
-/*                          SKELETON COMPONENTS                               */
-/* ========================================================================== */
-
-function SkeletonHeader() {
-  return (
-    <div className="space-y-2">
-      <div className="h-7 bg-border/40 rounded-lg w-36 animate-pulse" />
-      <div className="h-4 bg-border/30 rounded w-64 animate-pulse" />
-      <div className="h-3 bg-border/20 rounded w-44 animate-pulse" />
-    </div>
-  );
-}
-
-function SkeletonStatusNav() {
-  return (
-    <div className="grid grid-cols-4 gap-2">
-      {[1, 2, 3, 4].map((i) => (
-        <div key={i} className="rounded-2xl border border-border/40 p-3 space-y-2">
-          <div className="w-9 h-9 rounded-xl bg-border/30 mx-auto animate-pulse" />
-          <div className="h-3 bg-border/30 rounded w-14 mx-auto animate-pulse" />
-          <div className="h-5 bg-border/40 rounded w-8 mx-auto animate-pulse" />
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function SkeletonFilters() {
-  return (
-    <div className="space-y-3">
-      <div className="h-11 bg-border/30 rounded-xl animate-pulse" />
-    </div>
-  );
-}
-
-function SkeletonCard() {
-  return (
-    <div className="ios-glass p-4 space-y-3">
-      <div className="flex items-start justify-between">
-        <div className="space-y-1.5 flex-1">
-          <div className="h-3 bg-border/30 rounded w-28 animate-pulse" />
-          <div className="h-3 bg-border/20 rounded w-52 animate-pulse" />
-        </div>
-        <div className="h-8 w-16 bg-border/30 rounded-lg animate-pulse" />
-      </div>
-      <div className="h-px bg-border/20" />
-      <div className="flex items-center gap-3">
-        <div className="h-4 bg-border/30 rounded w-32 animate-pulse" />
-        <div className="h-5 w-16 bg-border/20 rounded-full animate-pulse ml-auto" />
-      </div>
-      <div className="flex gap-3">
-        <div className="h-3 bg-border/20 rounded w-20 animate-pulse" />
-        <div className="h-3 bg-border/20 rounded w-20 animate-pulse" />
-      </div>
-      <div className="h-px bg-border/20" />
-      <div className="flex gap-2">
-        <div className="h-8 bg-border/20 rounded-xl w-24 animate-pulse" />
-        <div className="h-8 bg-border/30 rounded-xl w-20 animate-pulse" />
-        <div className="h-8 bg-border/20 rounded-xl w-24 animate-pulse" />
-      </div>
-    </div>
-  );
+        </SheetContent>
+      </Sheet>
+    );
+  }
 }

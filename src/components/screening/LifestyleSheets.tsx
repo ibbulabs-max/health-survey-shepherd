@@ -1,6 +1,14 @@
 import { useState } from "react";
 import { Info, Check, Sparkles } from "lucide-react";
-import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription, DrawerFooter, DrawerClose } from "@/components/ui/drawer";
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerDescription,
+  DrawerFooter,
+  DrawerClose,
+} from "@/components/ui/drawer";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
@@ -54,7 +62,7 @@ export function LifestyleFrequencySheet({
                   "w-full p-3.5 rounded-2xl border text-left flex items-center justify-between transition-all",
                   active
                     ? "bg-primary/10 border-primary text-primary shadow-xs ring-1 ring-primary/30"
-                    : "bg-surface text-foreground border-border/70 hover:bg-surface-muted"
+                    : "bg-surface text-foreground border-border/70 hover:bg-surface-muted",
                 )}
               >
                 <div>
@@ -69,7 +77,9 @@ export function LifestyleFrequencySheet({
 
         <DrawerFooter className="px-6 pb-8 pt-4">
           <DrawerClose asChild>
-            <Button variant="ghost" className="w-full rounded-xl">Cancel</Button>
+            <Button variant="ghost" className="w-full rounded-xl">
+              Cancel
+            </Button>
           </DrawerClose>
         </DrawerFooter>
       </DrawerContent>
@@ -115,7 +125,9 @@ export function FamilyHistorySheet({
       <DrawerContent className="max-w-md mx-auto rounded-t-3xl border-border bg-background/95 backdrop-blur-xl">
         <div className="mx-auto w-12 h-1.5 bg-muted-foreground/30 rounded-full mt-3 mb-1" />
         <DrawerHeader className="text-left px-6">
-          <DrawerTitle className="font-display text-lg font-bold">Family Medical History</DrawerTitle>
+          <DrawerTitle className="font-display text-lg font-bold">
+            Family Medical History
+          </DrawerTitle>
           <DrawerDescription className="text-xs">
             Select conditions present in first-degree relatives (Parents, Siblings).
           </DrawerDescription>
@@ -133,7 +145,7 @@ export function FamilyHistorySheet({
                   "p-3 rounded-2xl border text-left text-xs font-semibold flex items-center justify-between transition-all",
                   active
                     ? "bg-primary/10 border-primary text-primary shadow-xs ring-1 ring-primary/30"
-                    : "bg-surface text-foreground border-border/70 hover:bg-surface-muted"
+                    : "bg-surface text-foreground border-border/70 hover:bg-surface-muted",
                 )}
               >
                 <span className="truncate">{cond}</span>
@@ -202,7 +214,8 @@ export function RiskFactorsSheetButton({
           <DrawerHeader className="text-left px-6">
             <DrawerTitle className="font-display text-lg font-bold">{title}</DrawerTitle>
             <DrawerDescription className="text-xs">
-              Clinical guidance & risk factor indicators for {type === "bp" ? "Blood Pressure" : "Blood Sugar"}.
+              Clinical guidance & risk factor indicators for{" "}
+              {type === "bp" ? "Blood Pressure" : "Blood Sugar"}.
             </DrawerDescription>
           </DrawerHeader>
 
@@ -232,7 +245,8 @@ export function RiskFactorsSheetButton({
             </div>
 
             <div className="p-3 bg-primary-soft/30 border border-primary/20 rounded-xl text-[11px] text-muted-foreground">
-              Clinical rules are dynamically applied during assessment submission to derive the final risk tier.
+              Clinical rules are dynamically applied during assessment submission to derive the
+              final risk tier.
             </div>
           </div>
 

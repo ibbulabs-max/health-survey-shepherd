@@ -12,7 +12,12 @@ export function AnimatedPage({
   className?: string;
 }) {
   return (
-    <div className={cn("animate-in fade-in slide-in-from-bottom-2 duration-500 ease-out fill-mode-both", className)}>
+    <div
+      className={cn(
+        "animate-in fade-in slide-in-from-bottom-2 duration-500 ease-out fill-mode-both",
+        className,
+      )}
+    >
       {children}
     </div>
   );
@@ -31,7 +36,7 @@ export function AnimatedCard({
     <div
       className={cn(
         "animate-in fade-in zoom-in-95 duration-400 ease-out fill-mode-both transition-transform active:scale-[0.98]",
-        className
+        className,
       )}
       style={{ animationDelay: `${delay}ms` }}
     >
@@ -61,7 +66,10 @@ export function AnimatedListItem({
 }) {
   return (
     <div
-      className={cn("animate-in fade-in slide-in-from-bottom-3 duration-400 ease-out fill-mode-both", className)}
+      className={cn(
+        "animate-in fade-in slide-in-from-bottom-3 duration-400 ease-out fill-mode-both",
+        className,
+      )}
       style={{ animationDelay: `${index * 50}ms` }}
     >
       {children}

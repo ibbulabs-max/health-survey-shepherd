@@ -80,7 +80,7 @@ export function useAnalytics() {
 
     if (filters.scope === "by_chw" && filters.chwId) {
       scopedHouses = scopedHouses.filter(
-        (h) => h.house.assigned_csw_id === filters.chwId || h.house.uploaded_by === filters.chwId
+        (h) => h.house.assigned_csw_id === filters.chwId || h.house.uploaded_by === filters.chwId,
       );
       const houseIds = new Set(scopedHouses.map((h) => h.house.id));
       scopedMembers = scopedMembers.filter((m) => m.houseUuid && houseIds.has(m.houseUuid));
@@ -121,7 +121,9 @@ export function useAnalytics() {
       }
 
       // Gender normalization (Male, Female, Other)
-      const rawGender = String(m.gender ?? m.extraFields["gender"] ?? "").trim().toLowerCase();
+      const rawGender = String(m.gender ?? m.extraFields["gender"] ?? "")
+        .trim()
+        .toLowerCase();
       let normalizedGender = "Other";
       if (rawGender.startsWith("m")) normalizedGender = "Male";
       else if (rawGender.startsWith("f")) normalizedGender = "Female";
@@ -181,7 +183,9 @@ export function useAnalytics() {
       const smk = String(m.extraFields["smoking"] || m.assessment?.smoking || "").toLowerCase();
       const alc = String(m.extraFields["alcohol"] || m.assessment?.alcohol || "").toLowerCase();
       const tob = String(m.extraFields["tobacco"] || m.assessment?.tobacco || "").toLowerCase();
-      const act = String(m.extraFields["physical_activity"] || m.extraFields["activity"] || "").toLowerCase();
+      const act = String(
+        m.extraFields["physical_activity"] || m.extraFields["activity"] || "",
+      ).toLowerCase();
 
       if (smk && (smk.includes("yes") || smk.includes("daily") || smk.includes("smok"))) {
         lifestyleMap.set("Smoker", [...(lifestyleMap.get("Smoker") ?? []), m]);
@@ -192,8 +196,17 @@ export function useAnalytics() {
       if (tob && (tob.includes("yes") || tob.includes("chew") || tob.includes("tobacco"))) {
         lifestyleMap.set("Tobacco", [...(lifestyleMap.get("Tobacco") ?? []), m]);
       }
-      if (act && (act.includes("inactiv") || act.includes("low") || act.includes("sedentary") || act.includes("no"))) {
-        lifestyleMap.set("Physical Inactive", [...(lifestyleMap.get("Physical Inactive") ?? []), m]);
+      if (
+        act &&
+        (act.includes("inactiv") ||
+          act.includes("low") ||
+          act.includes("sedentary") ||
+          act.includes("no"))
+      ) {
+        lifestyleMap.set("Physical Inactive", [
+          ...(lifestyleMap.get("Physical Inactive") ?? []),
+          m,
+        ]);
       }
       if (m.risk === "low" && m.conditions.length === 0) {
         lifestyleMap.set("Healthy Diet", [...(lifestyleMap.get("Healthy Diet") ?? []), m]);
@@ -203,7 +216,10 @@ export function useAnalytics() {
       if (m.assessment && m.screenedAt) {
         assessmentMap.set("Fully Assessed", [...(assessmentMap.get("Fully Assessed") ?? []), m]);
       } else if (m.systolic != null || m.bloodSugar != null) {
-        assessmentMap.set("Partially Assessed", [...(assessmentMap.get("Partially Assessed") ?? []), m]);
+        assessmentMap.set("Partially Assessed", [
+          ...(assessmentMap.get("Partially Assessed") ?? []),
+          m,
+        ]);
       } else {
         assessmentMap.set("Not Assessed", [...(assessmentMap.get("Not Assessed") ?? []), m]);
       }
@@ -220,7 +236,8 @@ export function useAnalytics() {
 
       // Data Quality issues
       if (m.dataIssues && m.dataIssues.length > 0) invalidRecordsCount++;
-      if (m.dataIssues && m.dataIssues.includes("Possible duplicate record")) duplicateRecordsCount++;
+      if (m.dataIssues && m.dataIssues.includes("Possible duplicate record"))
+        duplicateRecordsCount++;
     });
 
     // Follow-up status aggregation
@@ -232,7 +249,8 @@ export function useAnalytics() {
       const isDueSoon = status === "pending" && !isOverdue;
       if (isOverdue) followUpMap.set("Overdue", (followUpMap.get("Overdue") ?? 0) + 1);
       else if (isDueSoon) followUpMap.set("Due Soon", (followUpMap.get("Due Soon") ?? 0) + 1);
-      else if (status === "completed") followUpMap.set("Completed", (followUpMap.get("Completed") ?? 0) + 1);
+      else if (status === "completed")
+        followUpMap.set("Completed", (followUpMap.get("Completed") ?? 0) + 1);
       else followUpMap.set("Not Due", (followUpMap.get("Not Due") ?? 0) + 1);
     });
 
@@ -268,9 +286,30 @@ export function useAnalytics() {
     }));
 
     const riskItems: AnalyticsItem[] = [
-      { label: "High Risk", value: "high", count: riskMap.high.length, tone: "red" as CandleTone, filterKey: "risk" as keyof ActiveFilters, filterValue: "high" },
-      { label: "Moderate Risk", value: "moderate", count: riskMap.moderate.length, tone: "orange" as CandleTone, filterKey: "risk" as keyof ActiveFilters, filterValue: "moderate" },
-      { label: "Low Risk", value: "low", count: riskMap.low.length, tone: "green" as CandleTone, filterKey: "risk" as keyof ActiveFilters, filterValue: "low" },
+      {
+        label: "High Risk",
+        value: "high",
+        count: riskMap.high.length,
+        tone: "red" as CandleTone,
+        filterKey: "risk" as keyof ActiveFilters,
+        filterValue: "high",
+      },
+      {
+        label: "Moderate Risk",
+        value: "moderate",
+        count: riskMap.moderate.length,
+        tone: "orange" as CandleTone,
+        filterKey: "risk" as keyof ActiveFilters,
+        filterValue: "moderate",
+      },
+      {
+        label: "Low Risk",
+        value: "low",
+        count: riskMap.low.length,
+        tone: "green" as CandleTone,
+        filterKey: "risk" as keyof ActiveFilters,
+        filterValue: "low",
+      },
     ].filter((i) => i.count > 0);
 
     const bpItems: AnalyticsItem[] = Array.from(bpMap.entries())
@@ -278,7 +317,8 @@ export function useAnalytics() {
         const [sys = 0, dia = 0] = bp.split("/").map(Number);
         let tone: CandleTone = "green";
         if (sys >= riskConfig.bp.high.systolic || dia >= riskConfig.bp.high.diastolic) tone = "red";
-        else if (sys >= riskConfig.bp.moderate.systolic || dia >= riskConfig.bp.moderate.diastolic) tone = "orange";
+        else if (sys >= riskConfig.bp.moderate.systolic || dia >= riskConfig.bp.moderate.diastolic)
+          tone = "orange";
         return {
           label: bp,
           value: bp,
@@ -310,7 +350,16 @@ export function useAnalytics() {
       })
       .sort((a, b) => Number(a.value) - Number(b.value));
 
-    const bmiOrder = ["<18.5", "18.5-22.9", "23-24.9", "25-26.9", "27-29.9", "30-34.9", "35-39.9", "≥40"];
+    const bmiOrder = [
+      "<18.5",
+      "18.5-22.9",
+      "23-24.9",
+      "25-26.9",
+      "27-29.9",
+      "30-34.9",
+      "35-39.9",
+      "≥40",
+    ];
     const bmiItems: AnalyticsItem[] = Array.from(bmiMap.entries())
       .map(([cat, members]) => {
         let tone: CandleTone = "green";
@@ -388,7 +437,11 @@ export function useAnalytics() {
         label: status,
         value: status,
         count: members.length,
-        tone: (status === "Fully Assessed" ? "blue" : status === "Partially Assessed" ? "cyan" : "teal") as CandleTone,
+        tone: (status === "Fully Assessed"
+          ? "blue"
+          : status === "Partially Assessed"
+            ? "cyan"
+            : "teal") as CandleTone,
         filterKey: "assessmentStatus" as keyof ActiveFilters,
         filterValue: status,
       }))
@@ -408,7 +461,9 @@ export function useAnalytics() {
       if (filters.age != null && m.age !== filters.age) return false;
 
       if (filters.gender != null) {
-        const g = String(m.gender ?? m.extraFields["gender"] ?? "").trim().toLowerCase();
+        const g = String(m.gender ?? m.extraFields["gender"] ?? "")
+          .trim()
+          .toLowerCase();
         let norm = "Other";
         if (g.startsWith("m")) norm = "Male";
         else if (g.startsWith("f")) norm = "Female";
@@ -438,12 +493,18 @@ export function useAnalytics() {
       }
 
       if (filters.dataQuality != null) {
-        if (filters.dataQuality === "missing_bp" && (m.systolic != null && m.diastolic != null)) return false;
+        if (filters.dataQuality === "missing_bp" && m.systolic != null && m.diastolic != null)
+          return false;
         if (filters.dataQuality === "missing_sugar" && m.bloodSugar != null) return false;
         if (filters.dataQuality === "missing_age" && m.age != null) return false;
         if (filters.dataQuality === "missing_gender" && m.gender != null) return false;
-        if (filters.dataQuality === "invalid" && (!m.dataIssues || m.dataIssues.length === 0)) return false;
-        if (filters.dataQuality === "duplicate" && (!m.dataIssues || !m.dataIssues.includes("Possible duplicate record"))) return false;
+        if (filters.dataQuality === "invalid" && (!m.dataIssues || m.dataIssues.length === 0))
+          return false;
+        if (
+          filters.dataQuality === "duplicate" &&
+          (!m.dataIssues || !m.dataIssues.includes("Possible duplicate record"))
+        )
+          return false;
       }
 
       if (filters.search) {
@@ -461,11 +522,18 @@ export function useAnalytics() {
       kpi: {
         totalMembers: totalScopedMembers,
         highRisk: riskMap.high.length,
-        highRiskPct: totalScopedMembers > 0 ? ((riskMap.high.length / totalScopedMembers) * 100).toFixed(2) : "0",
+        highRiskPct:
+          totalScopedMembers > 0
+            ? ((riskMap.high.length / totalScopedMembers) * 100).toFixed(2)
+            : "0",
         followUps: allFollowUps.length,
-        followUpsPct: totalScopedMembers > 0 ? ((allFollowUps.length / totalScopedMembers) * 100).toFixed(2) : "0",
+        followUpsPct:
+          totalScopedMembers > 0
+            ? ((allFollowUps.length / totalScopedMembers) * 100).toFixed(2)
+            : "0",
         referrals: referredCount,
-        referralsPct: totalScopedMembers > 0 ? ((referredCount / totalScopedMembers) * 100).toFixed(2) : "0",
+        referralsPct:
+          totalScopedMembers > 0 ? ((referredCount / totalScopedMembers) * 100).toFixed(2) : "0",
       },
       ages: ageItems,
       genders: genderItems,

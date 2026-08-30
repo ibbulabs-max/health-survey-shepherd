@@ -44,8 +44,11 @@ export function POIDetailSheet({ poi, open, onOpenChange }: POIDetailSheetProps)
               </h3>
               <p className="text-xs text-muted-foreground mt-0.5 truncate">{addressDisplay}</p>
             </div>
-            
-            <div className="size-10 rounded-2xl flex items-center justify-center shrink-0 shadow-xs" style={{ backgroundColor: `${config.color}20`, color: config.color }}>
+
+            <div
+              className="size-10 rounded-2xl flex items-center justify-center shrink-0 shadow-xs"
+              style={{ backgroundColor: `${config.color}20`, color: config.color }}
+            >
               <MapPin className="size-5" />
             </div>
           </div>
@@ -53,12 +56,16 @@ export function POIDetailSheet({ poi, open, onOpenChange }: POIDetailSheetProps)
           <div className="p-4 rounded-2xl bg-surface-muted border border-border/50 text-xs">
             <div className="space-y-3">
               <div>
-                <span className="text-[10px] text-muted-foreground block uppercase font-medium">Category</span>
+                <span className="text-[10px] text-muted-foreground block uppercase font-medium">
+                  Category
+                </span>
                 <span className="font-bold text-foreground">{config.label}</span>
               </div>
-              
+
               <div>
-                <span className="text-[10px] text-muted-foreground block uppercase font-medium">Mapped By</span>
+                <span className="text-[10px] text-muted-foreground block uppercase font-medium">
+                  Mapped By
+                </span>
                 <span className="font-bold text-foreground">{poi.house.mapped_by || "System"}</span>
               </div>
             </div>

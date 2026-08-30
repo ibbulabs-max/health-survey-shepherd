@@ -1,6 +1,15 @@
 import React, { useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { X, Search, SlidersHorizontal, Download, FileText, ChevronLeft, ChevronRight, User } from "lucide-react";
+import {
+  X,
+  Search,
+  SlidersHorizontal,
+  Download,
+  FileText,
+  ChevronLeft,
+  ChevronRight,
+  User,
+} from "lucide-react";
 import type { MemberView, HouseView } from "@/lib/domain";
 import type { ActiveFilters } from "@/hooks/useAnalytics";
 import { useDataset } from "@/hooks/useDataset";
@@ -38,16 +47,24 @@ export function AnalyticsMemberPanel({
   const activeChips: { key: keyof ActiveFilters; label: string }[] = [];
   if (filters.age != null) activeChips.push({ key: "age", label: `Age: ${filters.age}` });
   if (filters.gender != null) activeChips.push({ key: "gender", label: `${filters.gender}` });
-  if (filters.risk != null) activeChips.push({ key: "risk", label: `${filters.risk.toUpperCase()} Risk` });
+  if (filters.risk != null)
+    activeChips.push({ key: "risk", label: `${filters.risk.toUpperCase()} Risk` });
   if (filters.bp != null) activeChips.push({ key: "bp", label: `BP: ${filters.bp}` });
   if (filters.sugar != null) activeChips.push({ key: "sugar", label: `Sugar: ${filters.sugar}` });
-  if (filters.bmiCategory != null) activeChips.push({ key: "bmiCategory", label: `BMI: ${filters.bmiCategory}` });
-  if (filters.condition != null) activeChips.push({ key: "condition", label: `${filters.condition}` });
-  if (filters.lifestyleKey != null) activeChips.push({ key: "lifestyleKey", label: `${filters.lifestyleKey}` });
-  if (filters.followUpStatus != null) activeChips.push({ key: "followUpStatus", label: `Follow-up: ${filters.followUpStatus}` });
-  if (filters.referralStatus != null) activeChips.push({ key: "referralStatus", label: `Referral: ${filters.referralStatus}` });
-  if (filters.assessmentStatus != null) activeChips.push({ key: "assessmentStatus", label: `${filters.assessmentStatus}` });
-  if (filters.dataQuality != null) activeChips.push({ key: "dataQuality", label: `Issue: ${filters.dataQuality}` });
+  if (filters.bmiCategory != null)
+    activeChips.push({ key: "bmiCategory", label: `BMI: ${filters.bmiCategory}` });
+  if (filters.condition != null)
+    activeChips.push({ key: "condition", label: `${filters.condition}` });
+  if (filters.lifestyleKey != null)
+    activeChips.push({ key: "lifestyleKey", label: `${filters.lifestyleKey}` });
+  if (filters.followUpStatus != null)
+    activeChips.push({ key: "followUpStatus", label: `Follow-up: ${filters.followUpStatus}` });
+  if (filters.referralStatus != null)
+    activeChips.push({ key: "referralStatus", label: `Referral: ${filters.referralStatus}` });
+  if (filters.assessmentStatus != null)
+    activeChips.push({ key: "assessmentStatus", label: `${filters.assessmentStatus}` });
+  if (filters.dataQuality != null)
+    activeChips.push({ key: "dataQuality", label: `Issue: ${filters.dataQuality}` });
 
   // Pagination calculation
   const totalMembers = members.length;
@@ -58,7 +75,18 @@ export function AnalyticsMemberPanel({
 
   const handleExportCsv = () => {
     if (members.length === 0) return;
-    const headers = ["Member Name", "Member ID", "House ID", "Age", "Gender", "Risk Level", "Systolic", "Diastolic", "Blood Sugar", "Conditions"];
+    const headers = [
+      "Member Name",
+      "Member ID",
+      "House ID",
+      "Age",
+      "Gender",
+      "Risk Level",
+      "Systolic",
+      "Diastolic",
+      "Blood Sugar",
+      "Conditions",
+    ];
     const rows = members.map((m) => [
       `"${m.name.replace(/"/g, '""')}"`,
       `"${m.memberId}"`,
@@ -105,13 +133,16 @@ export function AnalyticsMemberPanel({
     <aside
       className={cn(
         "bg-surface rounded-2xl border border-border/70 shadow-xs flex flex-col h-full max-h-[860px] overflow-hidden transition-all",
-        className
+        className,
       )}
     >
       {/* Header */}
       <div className="p-4 border-b border-border/50 flex items-center justify-between gap-2">
         <h3 className="font-display text-sm font-bold text-foreground">
-          Member List {activeChips.length > 0 && <span className="font-normal text-muted-foreground">({activeChips[0]?.label})</span>}
+          Member List{" "}
+          {activeChips.length > 0 && (
+            <span className="font-normal text-muted-foreground">({activeChips[0]?.label})</span>
+          )}
         </h3>
         {onClose && (
           <button
@@ -128,7 +159,9 @@ export function AnalyticsMemberPanel({
       {activeChips.length > 0 && (
         <div className="px-4 py-2.5 bg-surface-muted/40 border-b border-border/40 flex items-center justify-between gap-2 flex-wrap">
           <div className="flex items-center gap-1.5 flex-wrap">
-            <span className="text-[11px] font-semibold text-muted-foreground uppercase">Active Filters</span>
+            <span className="text-[11px] font-semibold text-muted-foreground uppercase">
+              Active Filters
+            </span>
             {activeChips.map((chip) => (
               <span
                 key={chip.key}
@@ -205,7 +238,7 @@ export function AnalyticsMemberPanel({
                 onClick={() => setSelectedMemberId(m.id)}
                 className={cn(
                   "p-3 flex items-center justify-between gap-2 hover:bg-surface-muted/50 cursor-pointer transition-colors text-xs select-none",
-                  isSelected && "bg-primary/5 ring-1 ring-inset ring-primary/30"
+                  isSelected && "bg-primary/5 ring-1 ring-inset ring-primary/30",
                 )}
               >
                 {/* Left: Avatar & Identity */}
@@ -233,7 +266,8 @@ export function AnalyticsMemberPanel({
 
                 {/* Middle: Age & Gender */}
                 <div className="text-right shrink-0 text-[11px] text-muted-foreground px-2">
-                  <span className="font-medium text-foreground">{m.age ?? "?"}y</span> • {m.gender ?? "—"}
+                  <span className="font-medium text-foreground">{m.age ?? "?"}y</span> •{" "}
+                  {m.gender ?? "—"}
                 </div>
 
                 {/* Right: Risk Badge & Vitals */}
@@ -244,8 +278,8 @@ export function AnalyticsMemberPanel({
                       m.risk === "high"
                         ? "bg-risk-high-soft text-risk-high"
                         : m.risk === "moderate"
-                        ? "bg-risk-moderate-soft text-risk-moderate"
-                        : "bg-risk-low-soft text-risk-low"
+                          ? "bg-risk-moderate-soft text-risk-moderate"
+                          : "bg-risk-low-soft text-risk-low",
                     )}
                   >
                     {m.risk}
@@ -264,8 +298,8 @@ export function AnalyticsMemberPanel({
       {/* Pagination Footer */}
       <div className="p-3 bg-surface-muted/30 border-t border-border/50 flex items-center justify-between gap-2 text-xs">
         <span className="text-[11px] text-muted-foreground">
-          Showing {totalMembers > 0 ? startIndex + 1 : 0} to {Math.min(startIndex + PAGE_SIZE, totalMembers)} of{" "}
-          {totalMembers}
+          Showing {totalMembers > 0 ? startIndex + 1 : 0} to{" "}
+          {Math.min(startIndex + PAGE_SIZE, totalMembers)} of {totalMembers}
         </span>
 
         <div className="flex items-center gap-1">
