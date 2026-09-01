@@ -89,7 +89,7 @@ export function HouseDetailSheet({
                 normal
               </span>
               <span className="font-bold font-mono text-sm text-risk-normal">
-                {house.counts.normal}
+                {house.counts.low}
               </span>
             </div>
           </div>

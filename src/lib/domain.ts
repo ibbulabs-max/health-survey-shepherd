@@ -9,15 +9,21 @@ export type { FollowUpStatus };
 /* Shared domain logic — used by every page. Never duplicate this elsewhere.   */
 /* -------------------------------------------------------------------------- */
 
+/**
+ * Converts any risk string to the canonical internal RiskLevel.
+ * Excel values (LOW/MODERATE/HIGH) and stored values (low/moderate/high) are both handled.
+ * "low", "normal", "norm", "" all map to "low" (displayed as "Normal" in UI).
+ */
 export const asRisk = (value: string | null | undefined): RiskLevel => {
   const v = (value ?? "").toLowerCase();
   if (v.startsWith("high")) return "high";
   if (v.startsWith("mod") || v.startsWith("med")) return "moderate";
-  return "normal";
+  // "low", "normal", "norm", "" → internal "low" (displayed as Normal)
+  return "low";
 };
 
 export const highestRisk = (levels: RiskLevel[]): RiskLevel =>
-  levels.reduce<RiskLevel>((acc, l) => (riskOrder[l] > riskOrder[acc] ? l : acc), "normal");
+  levels.reduce<RiskLevel>((acc, l) => (riskOrder[l] > riskOrder[acc] ? l : acc), "low");
 
 export interface RiskResult {
   level: RiskLevel;
@@ -43,7 +49,7 @@ export function calculateRisk(
   },
 ): RiskResult {
   const reasons: string[] = [];
-  let level: RiskLevel = "normal";
+  let level: RiskLevel = "low";
   const escalate = (to: RiskLevel) => {
     if (riskOrder[to] > riskOrder[level]) level = to;
   };
@@ -216,7 +222,7 @@ export function buildHouseView(
   members: MemberView[],
   pendingFollowUps = 0,
 ): HouseView {
-  const counts: Record<RiskLevel, number> = { normal: 0, moderate: 0, high: 0 };
+  const counts: Record<RiskLevel, number> = { low: 0, moderate: 0, high: 0 };
   members.forEach((m) => {
     counts[m.risk] += 1;
   });
@@ -241,14 +247,21 @@ export const isSameDay = (a: Date, b: Date) => a.toDateString() === b.toDateStri
 export const toDateKey = (d: Date) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
+/**
+ * Derives the display-level follow-up status from DB status + due_date comparison.
+ * DB only stores: pending | completed | missed
+ * Display derives: today | upcoming | overdue | completed | missed
+ */
 export const followUpStatus = (status: string | null, dueDate: string | null): FollowUpStatus => {
   const s = (status ?? "pending").toLowerCase();
-  // DB-valid terminal statuses
   if (s === "completed") return "completed";
   if (s === "missed") return "missed";
-  // Everything else is "pending" — derive due vs overdue from due_date
-  if (dueDate && dueDate < toDateKey(new Date())) return "overdue";
-  return "due";
+  // status=="pending" — derive today/upcoming/overdue from due_date
+  const today = toDateKey(new Date());
+  if (!dueDate) return "overdue";
+  if (dueDate === today) return "today";
+  if (dueDate > today) return "upcoming";
+  return "overdue";
 };
 
 export const isWorkingNow = (

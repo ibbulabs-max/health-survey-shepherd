@@ -156,7 +156,7 @@ function DashboardPage() {
       members: cswMembers.length,
       highRisk: cswMembers.filter((m) => m.risk === "high").length,
       moderateRisk: cswMembers.filter((m) => m.risk === "moderate").length,
-      normalRisk: cswMembers.filter((m) => m.risk === "normal").length,
+      normalRisk: cswMembers.filter((m) => m.risk === "low").length,
       todayDue: cswFollowUps.filter((f) => followUpStatus(f.status, f.due_date) === "due").length,
       overdue: cswFollowUps.filter((f) => followUpStatus(f.status, f.due_date) === "overdue")
         .length,
@@ -176,7 +176,10 @@ function DashboardPage() {
           <div className="flex items-center gap-2">
             <div className="flex items-center space-x-2 mr-2 bg-card px-3 py-2 rounded-xl shadow-xs border border-border/50">
               <Switch id="eligible-mode" checked={onlyEligible} onCheckedChange={setOnlyEligible} />
-              <Label htmlFor="eligible-mode" className="text-sm cursor-pointer font-medium whitespace-nowrap">
+              <Label
+                htmlFor="eligible-mode"
+                className="text-sm cursor-pointer font-medium whitespace-nowrap"
+              >
                 Eligible Members
               </Label>
             </div>
@@ -266,7 +269,7 @@ function DashboardPage() {
         />
         <StatCard
           label="Normal risk"
-          value={stats.risk.normal}
+          value={stats.risk.low}
           tone="normal"
           hint="Routine follow-up"
           to="/analytics"

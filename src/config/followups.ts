@@ -6,12 +6,17 @@ import type { RiskLevel } from "./risk";
  *
  * IMPORTANT: The DB `follow_ups.status` column only accepts:
  *   pending | completed | missed
- * "due" and "overdue" are DERIVED display states (from status + due_date),
- * never stored in the database.
+ * "due", "overdue", "upcoming" and "today" are DERIVED display states
+ * (from status + due_date), never stored in the database.
+ *
+ * Risk interval keys match the internal RiskLevel type:
+ *   low (Excel: LOW, UI: Normal) → 180 days
+ *   moderate (Excel: MODERATE, UI: Moderate) → 30 days
+ *   high (Excel: HIGH, UI: High) → 15 days
  */
 export const followUpConfig = {
-  /** Risk-based re-visit intervals per spec: High=15d, Moderate=30d, Normal=180d */
-  intervalDays: { high: 15, moderate: 30, normal: 180 } as Record<RiskLevel, number>,
+  /** Risk-based re-visit intervals per spec: High=15d, Moderate=30d, Low/Normal=180d */
+  intervalDays: { high: 15, moderate: 30, low: 180 } as Record<RiskLevel, number>,
   /** 0 = Sunday. Sunday is never a working day. */
   workingDays: [1, 2, 3, 4, 5, 6],
   workingHours: { start: "09:00", end: "17:00" },
@@ -25,11 +30,11 @@ export type FollowUpDbStatus = (typeof followUpConfig.dbStatuses)[number];
 
 /**
  * Display-level statuses (a superset of DB statuses).
- * "due" and "overdue" are derived from status=="pending" + due_date comparison.
+ * "due", "overdue", "upcoming", and "today" are derived from status==="pending" + due_date comparison.
  */
-export type FollowUpStatus = "due" | "overdue" | "completed" | "missed";
+export type FollowUpStatus = "due" | "overdue" | "completed" | "missed" | "upcoming" | "today";
 
-import { addDays, isWeekend, format, parseISO } from "date-fns";
+import { addDays, format } from "date-fns";
 
 /** Shifts a date off Sunday (and any non-working day) to the next working day. */
 export function toWorkingDay(

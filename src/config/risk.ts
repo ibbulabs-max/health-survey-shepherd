@@ -1,8 +1,13 @@
 /**
  * Risk configuration. Values are thresholds only — exact readings are ALWAYS
  * preserved and displayed alongside the derived category.
+ *
+ * IMPORTANT: Internal/backend risk values are "low" | "moderate" | "high"
+ * These match the Excel source data (LOW/MODERATE/HIGH).
+ * UI display: low → "Normal", moderate → "Moderate", high → "High"
+ * DO NOT rename the internal "low" value to "normal".
  */
-export type RiskLevel = "normal" | "moderate" | "high";
+export type RiskLevel = "low" | "moderate" | "high";
 
 export const riskConfig = {
   bp: {
@@ -17,14 +22,15 @@ export const riskConfig = {
   multipleConditionsThreshold: 2,
 } as const;
 
-export const riskOrder: Record<RiskLevel, number> = { normal: 0, moderate: 1, high: 2 };
+export const riskOrder: Record<RiskLevel, number> = { low: 0, moderate: 1, high: 2 };
 
 /**
- * User-facing risk labels. Internally we use "low" for backward-compat
- * with existing database records, but the UI always displays "Normal".
+ * User-facing risk labels.
+ * Internal DB/backend value "low" is displayed as "Normal" to users.
+ * Excel values LOW/MODERATE/HIGH map to low/moderate/high internally.
  */
 export const riskLabels: Record<RiskLevel, string> = {
-  normal: "Normal",
+  low: "Normal",
   moderate: "Moderate",
   high: "High",
 };
@@ -32,12 +38,14 @@ export const riskLabels: Record<RiskLevel, string> = {
 /**
  * Returns the user-facing display label for a risk level.
  * Always use this instead of hard-coding label strings.
+ * low → "Normal", moderate → "Moderate", high → "High"
  */
 export function riskDisplayLabel(risk: RiskLevel | string | null | undefined): string {
-  const r = (risk ?? "normal").toLowerCase();
+  const r = (risk ?? "low").toLowerCase();
   if (r.startsWith("high")) return riskLabels.high;
   if (r.startsWith("mod") || r.startsWith("med")) return riskLabels.moderate;
-  return riskLabels.normal;
+  // "low", "normal", "norm", "" → Normal
+  return riskLabels.low;
 }
 
 /** Priority score weights — used for follow-up ordering, never to hide readings. */

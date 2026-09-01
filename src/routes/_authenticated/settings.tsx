@@ -673,7 +673,8 @@ function SettingsPage() {
 
                       toast.success("Settings saved.");
                     } catch (err: any) {
-                      const msg = err?.message || (typeof err === "string" ? err : "Could not save settings");
+                      const msg =
+                        err?.message || (typeof err === "string" ? err : "Could not save settings");
                       toast.error(msg);
                     }
                   }}

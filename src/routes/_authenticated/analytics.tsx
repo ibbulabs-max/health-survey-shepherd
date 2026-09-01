@@ -179,12 +179,15 @@ function AnalyticsPage() {
 
             {/* Eligible Members Toggle */}
             <div className="flex items-center space-x-2 bg-surface text-xs font-medium px-3 py-2 rounded-xl border border-border/70 shadow-xs text-foreground">
-              <Switch 
-                id="analytics-eligible-mode" 
-                checked={filters.eligibleOnly} 
-                onCheckedChange={(val) => setFilter("eligibleOnly", val)} 
+              <Switch
+                id="analytics-eligible-mode"
+                checked={filters.eligibleOnly}
+                onCheckedChange={(val) => setFilter("eligibleOnly", val)}
               />
-              <Label htmlFor="analytics-eligible-mode" className="text-xs cursor-pointer font-medium whitespace-nowrap">
+              <Label
+                htmlFor="analytics-eligible-mode"
+                className="text-xs cursor-pointer font-medium whitespace-nowrap"
+              >
                 Only Eligible
               </Label>
             </div>

@@ -297,10 +297,24 @@ export async function buildPreview(
     "house_id",
     "house_number",
     "address",
+    "address_line2",
+    "landmark",
+    "locality",
+    "city",
+    "ward_no",
+    "district",
+    "state",
+    "pin_code",
     "owner_name",
     "latitude",
     "longitude",
     "total_members",
+    "housing_type",
+    "resident_type",
+    "settlement_type",
+    "consent_status",
+    "monthly_income",
+    "earning_members",
   ];
 
   rows.forEach((row) => {
@@ -385,6 +399,7 @@ export async function buildPreview(
       "member_id",
       "age",
       "gender",
+      "eligible", // Excel: Eligible (≥30) — Yes/No
       "systolic",
       "diastolic",
       "blood_sugar",
@@ -392,14 +407,27 @@ export async function buildPreview(
       "medication",
       "height_cm",
       "weight_kg",
+      "bmi",
+      "bmi_category",
       "waist",
       "smoking",
       "alcohol",
       "tobacco",
       "physical_activity",
-      "screening_date",
+      "pulse",
+      "spo2",
+      "screening_date", // Excel: Screening Date — primary follow-up anchor
+      "survey_date", // Excel: Survey Date — fallback follow-up anchor
+      "clinical_risk", // Excel: Clinical Risk — LOW/MODERATE/HIGH (primary risk source)
+      "lifestyle_risk",
+      "lifestyle_score",
+      "assessment_basis",
+      "screening_comments",
       "surveyor",
-      "follow_ups",
+      "follow_ups", // Excel: Follow-ups (text history)
+      "follow_up_count", // Excel: Follow-up Count
+      "referrals", // Excel: Referrals
+      "referral_count", // Excel: Referral Count
     ].forEach((f) => {
       if (row.mapped[f] != null && row.mapped[f] !== "") memberFields[f] = row.mapped[f];
     });

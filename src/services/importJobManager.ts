@@ -479,20 +479,25 @@ class ImportJobManager {
                 }
 
                 // 5. Clinical Assessments & Follow-up History
+                // CANONICAL DATA CONTRACT: clinical_risk and eligible come from Excel,
+                // not from recalculating vitals. Survey Date / Screening Date is the anchor.
                 if (memberUuid && houseUuid) {
+                  // -- A. Determine anchor date (Screening Date preferred, then Survey Date) --
                   const screeningDateRaw =
                     member.fields["screening_date"] ||
-                    member.fields["survey_date"] ||
                     newFieldsAndExtra["screening_date"] ||
+                    member.fields["survey_date"] ||
                     newFieldsAndExtra["survey_date"];
 
-                  const surveyDateObj = screeningDateRaw
-                    ? new Date(String(screeningDateRaw))
-                    : new Date();
-                  const validSurveyDate = isNaN(surveyDateObj.getTime())
-                    ? new Date()
-                    : surveyDateObj;
+                  const { parseDateSafe: parseDateSafeImport } =
+                    await import("@/lib/followUpEngine");
 
+                  const surveyDateParsed = parseDateSafeImport(
+                    screeningDateRaw ? String(screeningDateRaw) : null,
+                  );
+                  const validSurveyDate = surveyDateParsed ?? new Date();
+
+                  // -- B. Vitals from Excel --
                   const systolic = numberOrNull(
                     member.fields["systolic"] ?? newFieldsAndExtra["systolic"],
                   );
@@ -506,14 +511,21 @@ class ImportJobManager {
                     member.fields["known_history"] ?? newFieldsAndExtra["known_history"] ?? [],
                   );
 
-                  const hasClinicalData =
-                    systolic != null ||
-                    diastolic != null ||
-                    bloodSugar != null ||
-                    conditions.length > 0;
+                  // -- C. Clinical Risk -- READ FROM EXCEL FIRST (authoritative) --
+                  // Excel: LOW / MODERATE / HIGH -> internal: low / moderate / high
+                  const excelClinicalRisk =
+                    member.fields["clinical_risk"] ?? newFieldsAndExtra["clinical_risk"];
 
-                  if (hasClinicalData) {
-                    // Use DB-configured thresholds when available (server authoritative)
+                  let risk: RiskLevel;
+                  let riskReasons: string[] = [];
+
+                  if (excelClinicalRisk && String(excelClinicalRisk).trim() !== "") {
+                    // Use the Excel-provided Clinical Risk directly (primary source of truth)
+                    const { asRisk } = await import("@/lib/domain");
+                    risk = asRisk(String(excelClinicalRisk));
+                    riskReasons = [`Clinical Risk from Excel: ${String(excelClinicalRisk)}`];
+                  } else {
+                    // Fall back to calculating from vitals only when Excel doesn't have Clinical Risk
                     let thresholds;
                     try {
                       const { getHealthThresholdSettings } =
@@ -532,14 +544,23 @@ class ImportJobManager {
                     } catch (e) {
                       thresholds = undefined;
                     }
-
                     const riskResult = calculateRisk(
                       { systolic, diastolic, bloodSugar, conditions },
                       thresholds,
                     );
-                    const risk: RiskLevel = riskResult.level;
+                    risk = riskResult.level;
+                    riskReasons = riskResult.reasons;
+                  }
 
-                    // Insert assessment record
+                  // -- D. Persist assessment if there is any clinical data --
+                  const hasClinicalData =
+                    systolic != null ||
+                    diastolic != null ||
+                    bloodSugar != null ||
+                    conditions.length > 0 ||
+                    (excelClinicalRisk != null && String(excelClinicalRisk).trim() !== "");
+
+                  if (hasClinicalData) {
                     await adminClient.from(tables.memberAssessments).insert({
                       house_uuid: houseUuid,
                       member_uuid: memberUuid,
@@ -548,120 +569,141 @@ class ImportJobManager {
                       blood_sugar: bloodSugar,
                       known_history: conditions,
                       risk_level: risk,
-                      risk_reasons: riskResult.reasons,
+                      risk_reasons: riskReasons,
                       assessed_by: validUploadedBy,
                       assessed_at: validSurveyDate.toISOString(),
                       available: true,
                       referral_needed: false,
                     });
+                  }
 
-                    // Check follow-up eligibility (strictly age >= 30)
+                  // -- E. Eligibility -- Read from Excel first, fall back to age --
+                  // Excel field "Eligible (>=30)" contains "Yes" / "No"
+                  const eligibleRaw = member.fields["eligible"] ?? newFieldsAndExtra["eligible"];
+
+                  let isEligible: boolean;
+                  if (eligibleRaw != null && String(eligibleRaw).trim() !== "") {
+                    // Excel explicitly says Yes/No
+                    isEligible = String(eligibleRaw).trim().toLowerCase() === "yes";
+                  } else {
+                    // Fall back to age-based calculation
                     const age = numberOrNull(newFieldsAndExtra["age"] ?? member.fields["age"]);
-                    // Check DB-configured minimum eligible age if present
-                    let minEligibleAge: number | undefined;
-                    let customIntervals: Record<RiskLevel, number> | undefined;
+                    let minEligibleAge = 30;
                     try {
                       const { getHealthThresholdSettings } =
                         await import("@/services/settingsService");
                       const s = await getHealthThresholdSettings();
-                      minEligibleAge = s.minimum_eligible_age;
+                      minEligibleAge = s.minimum_eligible_age ?? 30;
+                    } catch (e) {
+                      /* ignore - use default 30 */
+                    }
+                    isEligible = isEligibleForFollowUp(age, minEligibleAge);
+                  }
+
+                  // -- F. Create follow-up only for eligible members with clinical data --
+                  if (isEligible && hasClinicalData) {
+                    // Get configured intervals (low=180, moderate=30, high=15)
+                    let customIntervals: Record<RiskLevel, number>;
+                    try {
+                      const { getHealthThresholdSettings } =
+                        await import("@/services/settingsService");
+                      const s = await getHealthThresholdSettings();
                       customIntervals = {
                         high: s.interval_high,
                         moderate: s.interval_moderate,
-                        normal: s.interval_normal,
+                        // "low" is the internal key for Excel's LOW / UI's Normal
+                        low: s.interval_normal,
                       };
                     } catch (e) {
-                      /* ignore - fall back */
+                      customIntervals = followUpConfig.intervalDays;
                     }
-                    const isEligible =
-                      typeof minEligibleAge === "number"
-                        ? age != null && age >= minEligibleAge
-                        : isEligibleForFollowUp(age, 30);
 
-                    if (isEligible) {
-                      // Check legacy history in fields
-                      const followUpHistoryRaw =
-                        newFieldsAndExtra["follow_ups"] ||
-                        newFieldsAndExtra["followup"] ||
-                        member.fields["follow_ups"] ||
-                        "";
+                    // -- G. Follow-up Anchor Date --
+                    // RULE: Use SURVEY / SCREENING DATE from Excel as the initial anchor.
+                    // If Excel contains completed follow-up history, use the most recent
+                    // completed date as the recurrence anchor.
+                    const followUpHistoryRaw =
+                      newFieldsAndExtra["follow_ups"] || member.fields["follow_ups"] || "";
 
-                      const parsedHistory = parseLegacyFollowUps(followUpHistoryRaw);
-                      const latestHistoryItem = parsedHistory
-                        .slice()
-                        .sort((a, b) => b.dateKey.localeCompare(a.dateKey))[0];
+                    const parsedHistory = parseLegacyFollowUps(followUpHistoryRaw);
+                    const completedHistory = parsedHistory.filter((h) => h.status === "completed");
+                    const latestCompletedItem = completedHistory
+                      .slice()
+                      .sort((a, b) => b.dateKey.localeCompare(a.dateKey))[0];
 
-                      let anchorDate = validSurveyDate;
-                      if (latestHistoryItem) {
-                        const histParsed = new Date(latestHistoryItem.dateKey + "T00:00:00");
-                        if (!isNaN(histParsed.getTime())) {
-                          anchorDate = histParsed;
-                        }
+                    // Anchor = survey date (NOT import date)
+                    // Override with latest completed follow-up date if history exists
+                    let anchorDate = validSurveyDate;
+                    if (latestCompletedItem) {
+                      const histParsed = parseDateSafeImport(latestCompletedItem.dateKey);
+                      if (histParsed) {
+                        anchorDate = histParsed;
                       }
+                    }
 
-                      const nextDueDateStr = calculateNextFollowUpDate(
-                        anchorDate,
-                        risk,
-                        customIntervals ?? followUpConfig.intervalDays,
-                      );
+                    const nextDueDateStr = calculateNextFollowUpDate(
+                      anchorDate,
+                      risk,
+                      customIntervals,
+                    );
 
-                      // Check for existing pending follow-up
-                      const { data: existingPending } = await adminClient
+                    // -- H. Duplicate protection -- one pending follow-up per member --
+                    const { data: existingPending } = await adminClient
+                      .from(tables.followUps)
+                      .select("id")
+                      .eq("member_uuid", memberUuid)
+                      .eq("status", "pending")
+                      .maybeSingle();
+
+                    if (existingPending) {
+                      // Update existing pending follow-up (idempotent import)
+                      await adminClient
                         .from(tables.followUps)
+                        .update({
+                          due_date: nextDueDateStr,
+                          risk_level: risk,
+                          reason: `Imported ${risk} risk follow-up`,
+                          updated_at: new Date().toISOString(),
+                        })
+                        .eq("id", existingPending.id);
+
+                      await adminClient
+                        .from(tables.tasks)
+                        .update({
+                          due_date: nextDueDateStr,
+                          updated_at: new Date().toISOString(),
+                        })
+                        .eq("follow_up_id", existingPending.id);
+                    } else {
+                      // Create new pending follow-up
+                      const { data: insertedFup } = await adminClient
+                        .from(tables.followUps)
+                        .insert({
+                          house_uuid: houseUuid,
+                          member_uuid: memberUuid,
+                          due_date: nextDueDateStr,
+                          reason: `Imported ${risk} risk follow-up`,
+                          risk_level: risk,
+                          status: "pending",
+                          created_by: validUploadedBy,
+                        })
                         .select("id")
-                        .eq("member_uuid", memberUuid)
-                        .eq("status", "pending")
-                        .maybeSingle();
+                        .single();
 
-                      if (existingPending) {
-                        // Update existing pending without creating duplicate
-                        await adminClient
-                          .from(tables.followUps)
-                          .update({
-                            due_date: nextDueDateStr,
-                            risk_level: risk,
-                            reason: `Imported screening ${risk} risk follow-up`,
-                            updated_at: new Date().toISOString(),
-                          })
-                          .eq("id", existingPending.id);
-
-                        await adminClient
-                          .from(tables.tasks)
-                          .update({
-                            due_date: nextDueDateStr,
-                            updated_at: new Date().toISOString(),
-                          })
-                          .eq("follow_up_id", existingPending.id);
-                      } else {
-                        // Insert new pending follow-up and synchronized task
-                        const { data: insertedFup } = await adminClient
-                          .from(tables.followUps)
-                          .insert({
-                            house_uuid: houseUuid,
-                            member_uuid: memberUuid,
-                            due_date: nextDueDateStr,
-                            reason: `Imported screening ${risk} risk follow-up`,
-                            risk_level: risk,
-                            status: "pending",
-                            created_by: validUploadedBy,
-                          })
-                          .select("id")
-                          .single();
-
-                        if (insertedFup) {
-                          await adminClient.from(tables.tasks).insert({
-                            house_uuid: houseUuid,
-                            member_uuid: memberUuid,
-                            follow_up_id: insertedFup.id,
-                            task_type: "follow_up",
-                            status: "pending",
-                            due_date: nextDueDateStr,
-                            created_by: validUploadedBy,
-                          });
-                        }
+                      if (insertedFup) {
+                        await adminClient.from(tables.tasks).insert({
+                          house_uuid: houseUuid,
+                          member_uuid: memberUuid,
+                          follow_up_id: insertedFup.id,
+                          task_type: "follow_up",
+                          status: "pending",
+                          due_date: nextDueDateStr,
+                          created_by: validUploadedBy,
+                        });
                       }
                     }
                   }
+                  // If isEligible = false: no follow-up is created (per spec)
                 }
 
                 job.processedRows += 1;

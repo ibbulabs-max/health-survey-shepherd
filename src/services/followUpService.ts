@@ -23,10 +23,14 @@ export interface ScheduleFollowUpInput {
   createdBy?: string | null;
 }
 
-/** Returns interval days for a given risk level (High: 15, Moderate: 30, Normal: 180). */
+/**
+ * Returns interval days for a given risk level.
+ * Intervals: high=15d, moderate=30d, low=180d (low displayed as Normal in UI).
+ */
 export function getRiskInterval(risk: RiskLevel): number {
   const intervals = useSettings.getState().followUpIntervals;
-  return intervals?.[risk] ?? followUpConfig.intervalDays[risk] ?? 30;
+  // Risk key "low" matches Excel LOW (displayed as Normal). Falls back to config.
+  return intervals?.[risk] ?? followUpConfig.intervalDays[risk] ?? 180;
 }
 
 /**
@@ -204,10 +208,17 @@ export async function completeFollowUp(params: {
   }
   // NOTE: If vitals were skipped, currentRisk remains unchanged! Never downgrade or assume normal.
 
-  // 4. Check eligibility - Age >= 30
+  // 4. Check eligibility - Excel field first, then Age >= 30
   const memberData = (current.house_members as any)?.data as Record<string, unknown> | undefined;
-  const age = memberData?.["age"] != null ? Number(memberData["age"]) : null;
-  const eligible = isEligible(age);
+
+  let eligible = false;
+  const eligibleRaw = memberData?.["eligible"] ?? memberData?.["Eligible (≥30)"];
+  if (eligibleRaw != null && String(eligibleRaw).trim() !== "") {
+    eligible = String(eligibleRaw).trim().toLowerCase() === "yes";
+  } else {
+    const age = memberData?.["age"] != null ? Number(memberData["age"]) : null;
+    eligible = isEligible(age);
+  }
 
   // 5. Automatically generate next recurring follow-up if eligible
   if (eligible && current.house_uuid && current.member_uuid && currentRisk) {

@@ -88,7 +88,7 @@ export const Route = createFileRoute("/_authenticated/followups")({
 /*                              Filter Types                                  */
 /* -------------------------------------------------------------------------- */
 
-type RiskFilter = "all" | "high" | "moderate" | "normal";
+type RiskFilter = "all" | "high" | "moderate" | "low";
 type StatusFilter = "all" | "today" | "upcoming" | "due" | "completed";
 
 /* -------------------------------------------------------------------------- */
@@ -336,8 +336,8 @@ function FollowUpsPage() {
         list = list.filter((i) => i.risk === "high");
       } else if (riskFilter === "moderate") {
         list = list.filter((i) => i.risk === "moderate");
-      } else if (riskFilter === "normal") {
-        list = list.filter((i) => i.risk === "normal");
+      } else if (riskFilter === "low") {
+        list = list.filter((i) => i.risk === "low");
       }
     }
 
@@ -394,8 +394,8 @@ function FollowUpsPage() {
     list = [...list].sort((a, b) => {
       if (sortBy === "dueDate") return (a.dueDate ?? "9999").localeCompare(b.dueDate ?? "9999");
       if (sortBy === "risk") {
-        const rank = { high: 0, moderate: 1, normal: 2 };
-        return rank[a.risk] - rank[b.risk];
+        const rank: Record<string, number> = { high: 0, moderate: 1, low: 2 };
+        return (rank[a.risk] ?? 99) - (rank[b.risk] ?? 99);
       }
       if (sortBy === "name") return (a.member?.name ?? "").localeCompare(b.member?.name ?? "");
       if (sortBy === "surveyDate") return (b.surveyDate ?? "").localeCompare(a.surveyDate ?? "");
@@ -449,11 +449,11 @@ function FollowUpsPage() {
     const dateItems = baseFollowUps.filter((i) => i.dueDate === targetDate);
     const high = dateItems.filter((i) => i.risk === "high").length;
     const moderate = dateItems.filter((i) => i.risk === "moderate").length;
-    const normal = dateItems.filter((i) => i.risk === "normal").length;
+    const low = dateItems.filter((i) => i.risk === "low").length;
     const pieData = [
       { name: "High Risk", value: high, color: "#ef4444" },
       { name: "Moderate Risk", value: moderate, color: "#f97316" },
-      { name: "Normal Risk", value: normal, color: "#3b82f6" },
+      { name: "Normal Risk", value: low, color: "#3b82f6" },
     ].filter((d) => d.value > 0);
     return {
       date: targetDate,
@@ -461,7 +461,7 @@ function FollowUpsPage() {
       total: dateItems.length,
       high,
       moderate,
-      normal,
+      normal: low,
       pieData,
     };
   }, [baseFollowUps, selectedCalDate, todayKey]);
@@ -728,7 +728,7 @@ function FollowUpsPage() {
 
           {/* RISK FILTER CHIPS — Level 1 */}
           <div className="flex gap-2">
-            {(["all", "high", "moderate", "normal"] as RiskFilter[]).map((r) => {
+            {(["all", "high", "moderate", "low"] as RiskFilter[]).map((r) => {
               const count =
                 r === "all"
                   ? counters.total
@@ -747,7 +747,7 @@ function FollowUpsPage() {
                     ? isActive
                       ? "bg-orange-500 text-white border-orange-500"
                       : "bg-orange-50 text-orange-600 border-orange-200"
-                    : r === "normal"
+                    : r === "low"
                       ? isActive
                         ? "bg-blue-500 text-white border-blue-500"
                         : "bg-blue-50 text-blue-700 border-blue-200"
@@ -767,7 +767,9 @@ function FollowUpsPage() {
                   <span className="text-base font-display font-extrabold leading-none">
                     {count}
                   </span>
-                  <span className="mt-0.5 capitalize">{r === "all" ? "Total" : r}</span>
+                  <span className="mt-0.5 capitalize">
+                    {r === "all" ? "Total" : r === "low" ? "Normal" : r}
+                  </span>
                 </button>
               );
             })}
@@ -1212,7 +1214,7 @@ function FollowUpsPage() {
 
               {/* Risk filter row */}
               <div className="flex gap-1.5">
-                {(["high", "moderate", "normal"] as const).map((r) => {
+                {(["high", "moderate", "low"] as const).map((r) => {
                   const isActive = riskFilter === r;
                   const colorCls =
                     r === "high"
@@ -1235,7 +1237,7 @@ function FollowUpsPage() {
                         colorCls,
                       )}
                     >
-                      {r === "normal" ? "Normal" : r.charAt(0).toUpperCase() + r.slice(1)}
+                      {r === "low" ? "Normal" : r.charAt(0).toUpperCase() + r.slice(1)}
                     </button>
                   );
                 })}

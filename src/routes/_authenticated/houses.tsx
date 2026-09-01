@@ -122,7 +122,7 @@ function HousesPage() {
     { key: "all", label: "All" },
     { key: "high", label: riskLabels.high },
     { key: "moderate", label: riskLabels.moderate },
-    { key: "normal", label: riskLabels.normal },
+    { key: "low" as Filter, label: riskLabels.low },
     { key: "pending", label: "Pending screening" },
     { key: "unmapped", label: "Unmapped" },
   ];
@@ -205,7 +205,9 @@ function HousesPage() {
               }}
               className={cn(
                 "card-surface flex items-start gap-3 p-4 transition-all hover:border-primary/40 cursor-pointer shadow-xs active:scale-[0.99]",
-                isSelectionMode && selectedHouseUuids.includes(h.house.id) && "ring-2 ring-primary bg-primary/5",
+                isSelectionMode &&
+                  selectedHouseUuids.includes(h.house.id) &&
+                  "ring-2 ring-primary bg-primary/5",
               )}
             >
               {isSelectionMode && (
@@ -275,11 +277,21 @@ function HousesPage() {
             >
               Cancel
             </Button>
-            <Button variant="secondary" size="sm" disabled={selectedHouseUuids.length === 0} onClick={() => toast.info("Transfer feature coming soon")}>
+            <Button
+              variant="secondary"
+              size="sm"
+              disabled={selectedHouseUuids.length === 0}
+              onClick={() => toast.info("Transfer feature coming soon")}
+            >
               <ArrowRightLeft className="size-4 mr-1.5" /> Transfer
             </Button>
             {role === "admin" && (
-              <Button variant="destructive" size="sm" disabled={selectedHouseUuids.length === 0} onClick={handleBulkDelete}>
+              <Button
+                variant="destructive"
+                size="sm"
+                disabled={selectedHouseUuids.length === 0}
+                onClick={handleBulkDelete}
+              >
                 <Trash2 className="size-4 mr-1.5" /> Delete
               </Button>
             )}

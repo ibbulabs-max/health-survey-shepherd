@@ -101,7 +101,7 @@ export function useAnalytics() {
     // 2. Data aggregation structures
     const ageMap = new Map<number, MemberView[]>();
     const genderMap = new Map<string, MemberView[]>();
-    const riskMap: Record<RiskLevel, MemberView[]> = { high: [], moderate: [], normal: [] };
+    const riskMap: Record<RiskLevel, MemberView[]> = { high: [], moderate: [], low: [] };
     const bpMap = new Map<string, MemberView[]>();
     const sugarMap = new Map<number, MemberView[]>();
     const bmiMap = new Map<string, MemberView[]>();
@@ -214,7 +214,7 @@ export function useAnalytics() {
           m,
         ]);
       }
-      if (m.risk === "normal" && m.conditions.length === 0) {
+      if (m.risk === "low" && m.conditions.length === 0) {
         lifestyleMap.set("Healthy Diet", [...(lifestyleMap.get("Healthy Diet") ?? []), m]);
       }
 
@@ -310,11 +310,11 @@ export function useAnalytics() {
       },
       {
         label: "Normal Risk",
-        value: "normal",
-        count: riskMap.normal.length,
+        value: "low",
+        count: riskMap.low.length,
         tone: "green" as CandleTone,
         filterKey: "risk" as keyof ActiveFilters,
-        filterValue: "normal",
+        filterValue: "low",
       },
     ].filter((i) => i.count > 0);
 

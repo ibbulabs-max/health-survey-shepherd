@@ -46,7 +46,7 @@ export const defaultSettings: HealthThresholds = {
   sugar_high_min: riskConfig.sugar.high,
   interval_high: followUpConfig.intervalDays.high,
   interval_moderate: followUpConfig.intervalDays.moderate,
-  interval_normal: followUpConfig.intervalDays.normal,
+  interval_normal: followUpConfig.intervalDays.low,
   vitals_config: {
     bloodPressure: true,
     bloodSugar: true,

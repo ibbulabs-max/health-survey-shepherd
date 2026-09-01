@@ -213,7 +213,7 @@ function HouseDetailPage() {
           <div>
             <p className="text-sm font-bold text-foreground">{pinConfig.label}</p>
             <p className="text-xs text-muted-foreground">
-              {house.counts.high} High • {house.counts.moderate} Mod • {house.counts.normal} normal
+              {house.counts.high} High • {house.counts.moderate} Mod • {house.counts.low} Normal
               Risk
             </p>
           </div>

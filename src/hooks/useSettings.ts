@@ -43,7 +43,8 @@ export const useSettings = create<SettingsState>()((set, get) => ({
           followUpIntervals: {
             high: s.interval_high ?? followUpConfig.intervalDays.high,
             moderate: s.interval_moderate ?? followUpConfig.intervalDays.moderate,
-            normal: s.interval_normal ?? followUpConfig.intervalDays.normal,
+            // "low" is the internal key (Excel: LOW, DB: low, UI: Normal)
+            low: s.interval_normal ?? followUpConfig.intervalDays.low,
           },
           thresholds: {
             ...s,

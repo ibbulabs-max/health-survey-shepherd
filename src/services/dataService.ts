@@ -167,7 +167,7 @@ export interface DashboardStats {
 
 export function computeStats(dataset: Dataset): DashboardStats {
   const today = toDateKey(new Date());
-  const risk: Record<RiskLevel, number> = { normal: 0, moderate: 0, high: 0 };
+  const risk: Record<RiskLevel, number> = { low: 0, moderate: 0, high: 0 };
   dataset.members.forEach((m) => {
     risk[m.risk] += 1;
   });
