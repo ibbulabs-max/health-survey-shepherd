@@ -85,8 +85,12 @@ export function HouseDetailSheet({
               </span>
             </div>
             <div>
-              <span className="text-[10px] text-risk-normal block uppercase font-medium">normal</span>
-              <span className="font-bold font-mono text-sm text-risk-normal">{house.counts.normal}</span>
+              <span className="text-[10px] text-risk-normal block uppercase font-medium">
+                normal
+              </span>
+              <span className="font-bold font-mono text-sm text-risk-normal">
+                {house.counts.normal}
+              </span>
             </div>
           </div>
 

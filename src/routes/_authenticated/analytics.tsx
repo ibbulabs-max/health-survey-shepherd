@@ -4,6 +4,8 @@ import { RefreshCw, SlidersHorizontal, ChevronDown, RotateCcw, Calendar } from "
 import { toast } from "sonner";
 
 import { ErrorState, LoadingState } from "@/components/common/EmptyState";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { AnalyticsCandle } from "@/components/analytics/AnalyticsCandle";
 import { CandleRail } from "@/components/analytics/CandleRail";
 import { AnalyticsMemberPanel } from "@/components/analytics/AnalyticsMemberPanel";
@@ -173,6 +175,18 @@ function AnalyticsPage() {
             <div className="flex items-center gap-1.5 bg-surface text-xs font-medium px-3 py-2 rounded-xl border border-border/70 shadow-xs text-foreground">
               <Calendar className="size-3.5 text-muted-foreground" />
               <span>01 May 2025 - 30 May 2025</span>
+            </div>
+
+            {/* Eligible Members Toggle */}
+            <div className="flex items-center space-x-2 bg-surface text-xs font-medium px-3 py-2 rounded-xl border border-border/70 shadow-xs text-foreground">
+              <Switch 
+                id="analytics-eligible-mode" 
+                checked={filters.eligibleOnly} 
+                onCheckedChange={(val) => setFilter("eligibleOnly", val)} 
+              />
+              <Label htmlFor="analytics-eligible-mode" className="text-xs cursor-pointer font-medium whitespace-nowrap">
+                Only Eligible
+              </Label>
             </div>
 
             {/* More Filters button */}

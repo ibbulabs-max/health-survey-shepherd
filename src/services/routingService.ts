@@ -13,16 +13,14 @@ export interface RouteFeature {
 
 /**
  * Gets a road-based optimized route using the public OSRM server.
- * OSRM's "trip" service calculates a TSP (Traveling Salesperson) optimized route 
+ * OSRM's "trip" service calculates a TSP (Traveling Salesperson) optimized route
  * and returns the road polyline.
  *
  * NOTE: The public OSRM server (router.project-osrm.org) is rate-limited and
  * should be used responsibly. In production, a dedicated OSRM instance or Mapbox API
  * is recommended.
  */
-export async function getOptimizedRoute(
-  locations: LatLng[],
-): Promise<RouteFeature | null> {
+export async function getOptimizedRoute(locations: LatLng[]): Promise<RouteFeature | null> {
   if (locations.length < 2) return null;
 
   // Format: lng,lat;lng,lat...
@@ -32,7 +30,7 @@ export async function getOptimizedRoute(
     // We use the "trip" service to get an optimized TSP route that returns to start (roundtrip=true)
     // or roundtrip=false if we just want an optimal path. We use roundtrip=false for followups.
     const url = `https://router.project-osrm.org/trip/v1/driving/${coords}?roundtrip=false&source=first&destination=last&geometries=geojson&overview=full`;
-    
+
     const response = await fetch(url, {
       // Be nice to the public server
       headers: { "User-Agent": "ManagementApp/1.0" },
@@ -54,7 +52,7 @@ export async function getOptimizedRoute(
         duration: trip.duration,
       };
     }
-    
+
     return null;
   } catch (error) {
     console.warn("Error fetching OSRM route:", error);

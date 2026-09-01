@@ -171,7 +171,7 @@ function MapPage() {
               (tm) =>
                 tm.supervisor_id === user.userId &&
                 tm.csw_id === h.house.mapped_by &&
-                tm.status === "active"
+                tm.status === "active",
             );
             if (!inTeam) continue;
           }

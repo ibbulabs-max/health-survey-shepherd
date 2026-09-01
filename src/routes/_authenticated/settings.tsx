@@ -50,7 +50,7 @@ function SettingsPage() {
           data: {
             userId: user?.userId,
             role: role ?? undefined,
-          }
+          },
         });
         if (result?.success && result.settings) {
           setThresholds(result.settings);
@@ -141,30 +141,60 @@ function SettingsPage() {
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label className="text-sm font-semibold">Current PIN</Label>
-                <InputOTP maxLength={PIN_LENGTH} value={currentPin} onChange={setCurrentPin} inputMode="numeric" pattern="[0-9]*">
+                <InputOTP
+                  maxLength={PIN_LENGTH}
+                  value={currentPin}
+                  onChange={setCurrentPin}
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                >
                   <InputOTPGroup className="w-full justify-between gap-1.5">
                     {Array.from({ length: PIN_LENGTH }).map((_, i) => (
-                      <InputOTPSlot key={i} index={i} className="size-11 rounded-xl text-base bg-background/50" />
+                      <InputOTPSlot
+                        key={i}
+                        index={i}
+                        className="size-11 rounded-xl text-base bg-background/50"
+                      />
                     ))}
                   </InputOTPGroup>
                 </InputOTP>
               </div>
               <div className="space-y-2">
                 <Label className="text-sm font-semibold">New PIN</Label>
-                <InputOTP maxLength={PIN_LENGTH} value={newPin} onChange={setNewPin} inputMode="numeric" pattern="[0-9]*">
+                <InputOTP
+                  maxLength={PIN_LENGTH}
+                  value={newPin}
+                  onChange={setNewPin}
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                >
                   <InputOTPGroup className="w-full justify-between gap-1.5">
                     {Array.from({ length: PIN_LENGTH }).map((_, i) => (
-                      <InputOTPSlot key={i} index={i} className="size-11 rounded-xl text-base bg-background/50" />
+                      <InputOTPSlot
+                        key={i}
+                        index={i}
+                        className="size-11 rounded-xl text-base bg-background/50"
+                      />
                     ))}
                   </InputOTPGroup>
                 </InputOTP>
               </div>
               <div className="space-y-2">
                 <Label className="text-sm font-semibold">Confirm New PIN</Label>
-                <InputOTP maxLength={PIN_LENGTH} value={confirmPin} onChange={setConfirmPin} inputMode="numeric" pattern="[0-9]*">
+                <InputOTP
+                  maxLength={PIN_LENGTH}
+                  value={confirmPin}
+                  onChange={setConfirmPin}
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                >
                   <InputOTPGroup className="w-full justify-between gap-1.5">
                     {Array.from({ length: PIN_LENGTH }).map((_, i) => (
-                      <InputOTPSlot key={i} index={i} className="size-11 rounded-xl text-base bg-background/50" />
+                      <InputOTPSlot
+                        key={i}
+                        index={i}
+                        className="size-11 rounded-xl text-base bg-background/50"
+                      />
                     ))}
                   </InputOTPGroup>
                 </InputOTP>
@@ -197,455 +227,461 @@ function SettingsPage() {
         <div className="space-y-6">
           {canManageHolidays ? (
             <section className="card-surface p-5 rounded-2xl shadow-xs border border-border/70">
-            <div className="flex items-center gap-2 border-b border-border/50 pb-3 mb-4">
-              <Settings2 className="size-5 text-primary" />
-              <h2 className="font-display text-base font-bold text-foreground">App Rules</h2>
-            </div>
-            <p className="text-xs text-muted-foreground mb-4">
-              Defined centrally in configuration and applied everywhere in the app.
-            </p>
-
-            <div className="space-y-4 mb-4">
-              <h3 className="text-sm font-semibold text-foreground">
-                Vitals & Clinical Measurements
-              </h3>
-              {thresholds ? (
-                <div className="grid gap-4">
-                  <div className="grid grid-cols-[1fr_120px] items-center gap-3 bg-surface-muted p-3 rounded-xl border border-border/50">
-                    <Label className="text-sm font-semibold">Minimum eligible age</Label>
-                    <Input
-                      type="number"
-                      value={thresholds.minimum_eligible_age}
-                      onChange={(e) =>
-                        setThresholds({
-                          ...thresholds,
-                          minimum_eligible_age:
-                            e.target.value === "" ? "" : parseInt(e.target.value, 10),
-                        })
-                      }
-                      className="h-9 bg-background"
-                    />
-                  </div>
-
-                  {/* Blood Pressure */}
-                  <div className="space-y-3 border border-border/50 p-3 rounded-xl">
-                    <div className="flex items-center justify-between pb-2 border-b border-border/50">
-                      <Label className="text-sm font-bold">Blood Pressure</Label>
-                      <Switch
-                        checked={vitals.bloodPressure}
-                        onCheckedChange={(v) => setVital("bloodPressure", v)}
-                      />
-                    </div>
-                    {vitals.bloodPressure && (
-                      <div className="grid md:grid-cols-2 gap-4">
-                        {/* Systolic */}
-                        <div className="space-y-3">
-                          <Label className="text-xs font-semibold text-muted-foreground uppercase">
-                            Systolic (mmHg)
-                          </Label>
-                          <div className="grid gap-2">
-                            <div className="flex items-center justify-between gap-2">
-                              <Label className="text-xs text-muted-foreground">Normal (≤)</Label>
-                              <Input
-                                type="number"
-                                value={thresholds.systolic_normal_max}
-                                onChange={(e) =>
-                                  setThresholds({
-                                    ...thresholds,
-                                    systolic_normal_max:
-                                      e.target.value === "" ? "" : parseInt(e.target.value, 10),
-                                  })
-                                }
-                                className="h-8 w-24 text-right"
-                              />
-                            </div>
-                            <div className="flex items-center justify-between gap-2">
-                              <Label className="text-xs text-amber-600 font-semibold">
-                                Moderate Risk (≥)
-                              </Label>
-                              <Input
-                                type="number"
-                                value={thresholds.systolic_moderate_min}
-                                onChange={(e) =>
-                                  setThresholds({
-                                    ...thresholds,
-                                    systolic_moderate_min:
-                                      e.target.value === "" ? "" : parseInt(e.target.value, 10),
-                                  })
-                                }
-                                className="h-8 w-24 text-right"
-                              />
-                            </div>
-                            <div className="flex items-center justify-between gap-2">
-                              <Label className="text-xs text-destructive font-semibold">
-                                High Risk (≥)
-                              </Label>
-                              <Input
-                                type="number"
-                                value={thresholds.systolic_high_min}
-                                onChange={(e) =>
-                                  setThresholds({
-                                    ...thresholds,
-                                    systolic_high_min:
-                                      e.target.value === "" ? "" : parseInt(e.target.value, 10),
-                                  })
-                                }
-                                className="h-8 w-24 text-right"
-                              />
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Diastolic */}
-                        <div className="space-y-3">
-                          <Label className="text-xs font-semibold text-muted-foreground uppercase">
-                            Diastolic (mmHg)
-                          </Label>
-                          <div className="grid gap-2">
-                            <div className="flex items-center justify-between gap-2">
-                              <Label className="text-xs text-muted-foreground">Normal (≤)</Label>
-                              <Input
-                                type="number"
-                                value={thresholds.diastolic_normal_max}
-                                onChange={(e) =>
-                                  setThresholds({
-                                    ...thresholds,
-                                    diastolic_normal_max:
-                                      e.target.value === "" ? "" : parseInt(e.target.value, 10),
-                                  })
-                                }
-                                className="h-8 w-24 text-right"
-                              />
-                            </div>
-                            <div className="flex items-center justify-between gap-2">
-                              <Label className="text-xs text-amber-600 font-semibold">
-                                Moderate Risk (≥)
-                              </Label>
-                              <Input
-                                type="number"
-                                value={thresholds.diastolic_moderate_min}
-                                onChange={(e) =>
-                                  setThresholds({
-                                    ...thresholds,
-                                    diastolic_moderate_min:
-                                      e.target.value === "" ? "" : parseInt(e.target.value, 10),
-                                  })
-                                }
-                                className="h-8 w-24 text-right"
-                              />
-                            </div>
-                            <div className="flex items-center justify-between gap-2">
-                              <Label className="text-xs text-destructive font-semibold">
-                                High Risk (≥)
-                              </Label>
-                              <Input
-                                type="number"
-                                value={thresholds.diastolic_high_min}
-                                onChange={(e) =>
-                                  setThresholds({
-                                    ...thresholds,
-                                    diastolic_high_min:
-                                      e.target.value === "" ? "" : parseInt(e.target.value, 10),
-                                  })
-                                }
-                                className="h-8 w-24 text-right"
-                              />
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Blood Sugar */}
-                  <div className="space-y-3 border border-border/50 p-3 rounded-xl">
-                    <div className="flex items-center justify-between pb-2 border-b border-border/50">
-                      <Label className="text-sm font-bold">Blood Sugar (Random)</Label>
-                      <Switch
-                        checked={vitals.bloodSugar}
-                        onCheckedChange={(v) => setVital("bloodSugar", v)}
-                      />
-                    </div>
-                    {vitals.bloodSugar && (
-                      <div className="grid md:grid-cols-2 gap-4">
-                        <div className="grid gap-2">
-                          <div className="flex items-center justify-between gap-2">
-                            <Label className="text-xs text-muted-foreground">Normal (≤)</Label>
-                            <Input
-                              type="number"
-                              value={thresholds.sugar_normal_max}
-                              onChange={(e) =>
-                                setThresholds({
-                                  ...thresholds,
-                                  sugar_normal_max:
-                                    e.target.value === "" ? "" : parseInt(e.target.value, 10),
-                                })
-                              }
-                              className="h-8 w-24 text-right"
-                            />
-                          </div>
-                          <div className="flex items-center justify-between gap-2">
-                            <Label className="text-xs text-amber-600 font-semibold">
-                              Moderate Min (≥)
-                            </Label>
-                            <Input
-                              type="number"
-                              value={thresholds.sugar_moderate_min}
-                              onChange={(e) =>
-                                setThresholds({
-                                  ...thresholds,
-                                  sugar_moderate_min:
-                                    e.target.value === "" ? "" : parseInt(e.target.value, 10),
-                                })
-                              }
-                              className="h-8 w-24 text-right"
-                            />
-                          </div>
-                        </div>
-                        <div className="grid gap-2">
-                          <div className="flex items-center justify-between gap-2">
-                            <Label className="text-xs text-amber-600 font-semibold">
-                              Moderate Max (≤)
-                            </Label>
-                            <Input
-                              type="number"
-                              value={thresholds.sugar_moderate_max}
-                              onChange={(e) =>
-                                setThresholds({
-                                  ...thresholds,
-                                  sugar_moderate_max:
-                                    e.target.value === "" ? "" : parseInt(e.target.value, 10),
-                                })
-                              }
-                              className="h-8 w-24 text-right"
-                            />
-                          </div>
-                          <div className="flex items-center justify-between gap-2">
-                            <Label className="text-xs text-destructive font-semibold">
-                              High Risk (≥)
-                            </Label>
-                            <Input
-                              type="number"
-                              value={thresholds.sugar_high_min}
-                              onChange={(e) =>
-                                setThresholds({
-                                  ...thresholds,
-                                  sugar_high_min:
-                                    e.target.value === "" ? "" : parseInt(e.target.value, 10),
-                                })
-                              }
-                              className="h-8 w-24 text-right"
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Body Measurements */}
-                  <div className="space-y-3 border border-border/50 p-3 rounded-xl">
-                    <Label className="text-sm font-bold block pb-2 border-b border-border/50">
-                      Body Measurements
-                    </Label>
-                    <div className="space-y-3 pt-1">
-                      <div className="flex items-center justify-between">
-                        <Label className="text-xs text-foreground">Weight</Label>
-                        <Switch
-                          checked={vitals.weight}
-                          onCheckedChange={(v) => setVital("weight", v)}
-                        />
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <Label className="text-xs text-foreground">Height</Label>
-                        <Switch
-                          checked={vitals.height}
-                          onCheckedChange={(v) => setVital("height", v)}
-                        />
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <Label className="text-xs text-foreground">BMI</Label>
-                        <Switch checked={vitals.bmi} onCheckedChange={(v) => setVital("bmi", v)} />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Other Vitals */}
-                  <div className="space-y-3 border border-border/50 p-3 rounded-xl">
-                    <Label className="text-sm font-bold block pb-2 border-b border-border/50">
-                      Other Vitals
-                    </Label>
-                    <div className="space-y-3 pt-1">
-                      <div className="flex items-center justify-between">
-                        <Label className="text-xs text-foreground">Pulse</Label>
-                        <Switch
-                          checked={vitals.pulse}
-                          onCheckedChange={(v) => setVital("pulse", v)}
-                        />
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <Label className="text-xs text-foreground">SpO₂</Label>
-                        <Switch
-                          checked={vitals.spo2}
-                          onCheckedChange={(v) => setVital("spo2", v)}
-                        />
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <Label className="text-xs text-foreground">Temperature</Label>
-                        <Switch
-                          checked={vitals.temperature}
-                          onCheckedChange={(v) => setVital("temperature", v)}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <p className="text-xs text-muted-foreground">Loading settings…</p>
-              )}
-            </div>
-
-            <div className="space-y-4">
-              <h3 className="text-sm font-semibold text-foreground flex items-center justify-between">
-                <span>Follow-up Intervals (Days)</span>
-                {!isAdmin && (
-                  <span className="text-[10px] uppercase font-bold text-muted-foreground bg-surface-muted px-2 py-0.5 rounded-md border border-border/50">
-                    Admin Only
-                  </span>
-                )}
-              </h3>
-              {thresholds ? (
-                <div className="grid gap-3">
-                  <div className="grid grid-cols-[1fr_80px] items-center gap-3">
-                    <Label className="text-sm text-destructive font-semibold">High Risk</Label>
-                    <Input
-                      type="number"
-                      value={thresholds.interval_high}
-                      onChange={(e) =>
-                        setThresholds({
-                          ...thresholds,
-                          interval_high: e.target.value === "" ? "" : parseInt(e.target.value, 10),
-                        })
-                      }
-                      disabled={!isAdmin}
-                      className="h-9 rounded-lg"
-                    />
-                  </div>
-                  <div className="grid grid-cols-[1fr_80px] items-center gap-3">
-                    <Label className="text-sm text-amber-600 font-semibold">Moderate Risk</Label>
-                    <Input
-                      type="number"
-                      value={thresholds.interval_moderate}
-                      onChange={(e) =>
-                        setThresholds({
-                          ...thresholds,
-                          interval_moderate:
-                            e.target.value === "" ? "" : parseInt(e.target.value, 10),
-                        })
-                      }
-                      disabled={!isAdmin}
-                      className="h-9 rounded-lg"
-                    />
-                  </div>
-                  <div className="grid grid-cols-[1fr_80px] items-center gap-3">
-                    <Label className="text-sm text-green-600 font-semibold">Normal</Label>
-                    <Input
-                      type="number"
-                      value={thresholds.interval_normal}
-                      onChange={(e) =>
-                        setThresholds({
-                          ...thresholds,
-                          interval_normal: e.target.value === "" ? "" : parseInt(e.target.value, 10),
-                        })
-                      }
-                      disabled={!isAdmin}
-                      className="h-9 rounded-lg"
-                    />
-                  </div>
-                </div>
-              ) : (
-                <p className="text-xs text-muted-foreground">Loading intervals…</p>
-              )}
-            </div>
-
-            {thresholds && (
-              <div className="mt-8 space-y-4">
-                <h3 className="text-sm font-semibold text-foreground border-b border-border/50 pb-2">
-                  Working Configuration
-                </h3>
-                <div className="grid grid-cols-[1fr_auto] items-center gap-3">
-                  <Label className="text-sm">Working days</Label>
-                  <span className="text-sm text-muted-foreground">Mon-Sat (No Sundays)</span>
-                </div>
-                <div className="grid grid-cols-[1fr_120px] items-center gap-3">
-                  <Label className="text-sm">Work Start Time</Label>
-                  <Input
-                    type="time"
-                    value={thresholds.working_hours?.start ?? "09:00"}
-                    onChange={(e) =>
-                      setThresholds({
-                        ...thresholds,
-                        working_hours: { ...thresholds.working_hours, start: e.target.value },
-                      })
-                    }
-                    disabled={!isAdmin && role !== "supervisor"}
-                    className="h-9 rounded-lg"
-                  />
-                </div>
-                <div className="grid grid-cols-[1fr_120px] items-center gap-3">
-                  <Label className="text-sm">Work End Time</Label>
-                  <Input
-                    type="time"
-                    value={thresholds.working_hours?.end ?? "17:00"}
-                    onChange={(e) =>
-                      setThresholds({
-                        ...thresholds,
-                        working_hours: { ...thresholds.working_hours, end: e.target.value },
-                      })
-                    }
-                    disabled={!isAdmin && role !== "supervisor"}
-                    className="h-9 rounded-lg"
-                  />
-                </div>
+              <div className="flex items-center gap-2 border-b border-border/50 pb-3 mb-4">
+                <Settings2 className="size-5 text-primary" />
+                <h2 className="font-display text-base font-bold text-foreground">App Rules</h2>
               </div>
-            )}
+              <p className="text-xs text-muted-foreground mb-4">
+                Defined centrally in configuration and applied everywhere in the app.
+              </p>
 
-            <div className="flex gap-2 mt-3">
-              <Button
-                variant="secondary"
-                onClick={async () => {
-                  try {
-                    const anyEmpty = Object.values(thresholds).some((v) => v === "");
-                    if (anyEmpty) {
-                      toast.error("Please fill in all numeric fields.");
-                      return;
+              <div className="space-y-4 mb-4">
+                <h3 className="text-sm font-semibold text-foreground">
+                  Vitals & Clinical Measurements
+                </h3>
+                {thresholds ? (
+                  <div className="grid gap-4">
+                    <div className="grid grid-cols-[1fr_120px] items-center gap-3 bg-surface-muted p-3 rounded-xl border border-border/50">
+                      <Label className="text-sm font-semibold">Minimum eligible age</Label>
+                      <Input
+                        type="number"
+                        value={thresholds.minimum_eligible_age}
+                        onChange={(e) =>
+                          setThresholds({
+                            ...thresholds,
+                            minimum_eligible_age:
+                              e.target.value === "" ? "" : parseInt(e.target.value, 10),
+                          })
+                        }
+                        className="h-9 bg-background"
+                      />
+                    </div>
+
+                    {/* Blood Pressure */}
+                    <div className="space-y-3 border border-border/50 p-3 rounded-xl">
+                      <div className="flex items-center justify-between pb-2 border-b border-border/50">
+                        <Label className="text-sm font-bold">Blood Pressure</Label>
+                        <Switch
+                          checked={vitals.bloodPressure}
+                          onCheckedChange={(v) => setVital("bloodPressure", v)}
+                        />
+                      </div>
+                      {vitals.bloodPressure && (
+                        <div className="grid md:grid-cols-2 gap-4">
+                          {/* Systolic */}
+                          <div className="space-y-3">
+                            <Label className="text-xs font-semibold text-muted-foreground uppercase">
+                              Systolic (mmHg)
+                            </Label>
+                            <div className="grid gap-2">
+                              <div className="flex items-center justify-between gap-2">
+                                <Label className="text-xs text-muted-foreground">Normal (≤)</Label>
+                                <Input
+                                  type="number"
+                                  value={thresholds.systolic_normal_max}
+                                  onChange={(e) =>
+                                    setThresholds({
+                                      ...thresholds,
+                                      systolic_normal_max:
+                                        e.target.value === "" ? "" : parseInt(e.target.value, 10),
+                                    })
+                                  }
+                                  className="h-8 w-24 text-right"
+                                />
+                              </div>
+                              <div className="flex items-center justify-between gap-2">
+                                <Label className="text-xs text-amber-600 font-semibold">
+                                  Moderate Risk (≥)
+                                </Label>
+                                <Input
+                                  type="number"
+                                  value={thresholds.systolic_moderate_min}
+                                  onChange={(e) =>
+                                    setThresholds({
+                                      ...thresholds,
+                                      systolic_moderate_min:
+                                        e.target.value === "" ? "" : parseInt(e.target.value, 10),
+                                    })
+                                  }
+                                  className="h-8 w-24 text-right"
+                                />
+                              </div>
+                              <div className="flex items-center justify-between gap-2">
+                                <Label className="text-xs text-destructive font-semibold">
+                                  High Risk (≥)
+                                </Label>
+                                <Input
+                                  type="number"
+                                  value={thresholds.systolic_high_min}
+                                  onChange={(e) =>
+                                    setThresholds({
+                                      ...thresholds,
+                                      systolic_high_min:
+                                        e.target.value === "" ? "" : parseInt(e.target.value, 10),
+                                    })
+                                  }
+                                  className="h-8 w-24 text-right"
+                                />
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Diastolic */}
+                          <div className="space-y-3">
+                            <Label className="text-xs font-semibold text-muted-foreground uppercase">
+                              Diastolic (mmHg)
+                            </Label>
+                            <div className="grid gap-2">
+                              <div className="flex items-center justify-between gap-2">
+                                <Label className="text-xs text-muted-foreground">Normal (≤)</Label>
+                                <Input
+                                  type="number"
+                                  value={thresholds.diastolic_normal_max}
+                                  onChange={(e) =>
+                                    setThresholds({
+                                      ...thresholds,
+                                      diastolic_normal_max:
+                                        e.target.value === "" ? "" : parseInt(e.target.value, 10),
+                                    })
+                                  }
+                                  className="h-8 w-24 text-right"
+                                />
+                              </div>
+                              <div className="flex items-center justify-between gap-2">
+                                <Label className="text-xs text-amber-600 font-semibold">
+                                  Moderate Risk (≥)
+                                </Label>
+                                <Input
+                                  type="number"
+                                  value={thresholds.diastolic_moderate_min}
+                                  onChange={(e) =>
+                                    setThresholds({
+                                      ...thresholds,
+                                      diastolic_moderate_min:
+                                        e.target.value === "" ? "" : parseInt(e.target.value, 10),
+                                    })
+                                  }
+                                  className="h-8 w-24 text-right"
+                                />
+                              </div>
+                              <div className="flex items-center justify-between gap-2">
+                                <Label className="text-xs text-destructive font-semibold">
+                                  High Risk (≥)
+                                </Label>
+                                <Input
+                                  type="number"
+                                  value={thresholds.diastolic_high_min}
+                                  onChange={(e) =>
+                                    setThresholds({
+                                      ...thresholds,
+                                      diastolic_high_min:
+                                        e.target.value === "" ? "" : parseInt(e.target.value, 10),
+                                    })
+                                  }
+                                  className="h-8 w-24 text-right"
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Blood Sugar */}
+                    <div className="space-y-3 border border-border/50 p-3 rounded-xl">
+                      <div className="flex items-center justify-between pb-2 border-b border-border/50">
+                        <Label className="text-sm font-bold">Blood Sugar (Random)</Label>
+                        <Switch
+                          checked={vitals.bloodSugar}
+                          onCheckedChange={(v) => setVital("bloodSugar", v)}
+                        />
+                      </div>
+                      {vitals.bloodSugar && (
+                        <div className="grid md:grid-cols-2 gap-4">
+                          <div className="grid gap-2">
+                            <div className="flex items-center justify-between gap-2">
+                              <Label className="text-xs text-muted-foreground">Normal (≤)</Label>
+                              <Input
+                                type="number"
+                                value={thresholds.sugar_normal_max}
+                                onChange={(e) =>
+                                  setThresholds({
+                                    ...thresholds,
+                                    sugar_normal_max:
+                                      e.target.value === "" ? "" : parseInt(e.target.value, 10),
+                                  })
+                                }
+                                className="h-8 w-24 text-right"
+                              />
+                            </div>
+                            <div className="flex items-center justify-between gap-2">
+                              <Label className="text-xs text-amber-600 font-semibold">
+                                Moderate Min (≥)
+                              </Label>
+                              <Input
+                                type="number"
+                                value={thresholds.sugar_moderate_min}
+                                onChange={(e) =>
+                                  setThresholds({
+                                    ...thresholds,
+                                    sugar_moderate_min:
+                                      e.target.value === "" ? "" : parseInt(e.target.value, 10),
+                                  })
+                                }
+                                className="h-8 w-24 text-right"
+                              />
+                            </div>
+                          </div>
+                          <div className="grid gap-2">
+                            <div className="flex items-center justify-between gap-2">
+                              <Label className="text-xs text-amber-600 font-semibold">
+                                Moderate Max (≤)
+                              </Label>
+                              <Input
+                                type="number"
+                                value={thresholds.sugar_moderate_max}
+                                onChange={(e) =>
+                                  setThresholds({
+                                    ...thresholds,
+                                    sugar_moderate_max:
+                                      e.target.value === "" ? "" : parseInt(e.target.value, 10),
+                                  })
+                                }
+                                className="h-8 w-24 text-right"
+                              />
+                            </div>
+                            <div className="flex items-center justify-between gap-2">
+                              <Label className="text-xs text-destructive font-semibold">
+                                High Risk (≥)
+                              </Label>
+                              <Input
+                                type="number"
+                                value={thresholds.sugar_high_min}
+                                onChange={(e) =>
+                                  setThresholds({
+                                    ...thresholds,
+                                    sugar_high_min:
+                                      e.target.value === "" ? "" : parseInt(e.target.value, 10),
+                                  })
+                                }
+                                className="h-8 w-24 text-right"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Body Measurements */}
+                    <div className="space-y-3 border border-border/50 p-3 rounded-xl">
+                      <Label className="text-sm font-bold block pb-2 border-b border-border/50">
+                        Body Measurements
+                      </Label>
+                      <div className="space-y-3 pt-1">
+                        <div className="flex items-center justify-between">
+                          <Label className="text-xs text-foreground">Weight</Label>
+                          <Switch
+                            checked={vitals.weight}
+                            onCheckedChange={(v) => setVital("weight", v)}
+                          />
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <Label className="text-xs text-foreground">Height</Label>
+                          <Switch
+                            checked={vitals.height}
+                            onCheckedChange={(v) => setVital("height", v)}
+                          />
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <Label className="text-xs text-foreground">BMI</Label>
+                          <Switch
+                            checked={vitals.bmi}
+                            onCheckedChange={(v) => setVital("bmi", v)}
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Other Vitals */}
+                    <div className="space-y-3 border border-border/50 p-3 rounded-xl">
+                      <Label className="text-sm font-bold block pb-2 border-b border-border/50">
+                        Other Vitals
+                      </Label>
+                      <div className="space-y-3 pt-1">
+                        <div className="flex items-center justify-between">
+                          <Label className="text-xs text-foreground">Pulse</Label>
+                          <Switch
+                            checked={vitals.pulse}
+                            onCheckedChange={(v) => setVital("pulse", v)}
+                          />
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <Label className="text-xs text-foreground">SpO₂</Label>
+                          <Switch
+                            checked={vitals.spo2}
+                            onCheckedChange={(v) => setVital("spo2", v)}
+                          />
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <Label className="text-xs text-foreground">Temperature</Label>
+                          <Switch
+                            checked={vitals.temperature}
+                            onCheckedChange={(v) => setVital("temperature", v)}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground">Loading settings…</p>
+                )}
+              </div>
+
+              <div className="space-y-4">
+                <h3 className="text-sm font-semibold text-foreground flex items-center justify-between">
+                  <span>Follow-up Intervals (Days)</span>
+                  {!isAdmin && (
+                    <span className="text-[10px] uppercase font-bold text-muted-foreground bg-surface-muted px-2 py-0.5 rounded-md border border-border/50">
+                      Admin Only
+                    </span>
+                  )}
+                </h3>
+                {thresholds ? (
+                  <div className="grid gap-3">
+                    <div className="grid grid-cols-[1fr_80px] items-center gap-3">
+                      <Label className="text-sm text-destructive font-semibold">High Risk</Label>
+                      <Input
+                        type="number"
+                        value={thresholds.interval_high}
+                        onChange={(e) =>
+                          setThresholds({
+                            ...thresholds,
+                            interval_high:
+                              e.target.value === "" ? "" : parseInt(e.target.value, 10),
+                          })
+                        }
+                        disabled={!isAdmin}
+                        className="h-9 rounded-lg"
+                      />
+                    </div>
+                    <div className="grid grid-cols-[1fr_80px] items-center gap-3">
+                      <Label className="text-sm text-amber-600 font-semibold">Moderate Risk</Label>
+                      <Input
+                        type="number"
+                        value={thresholds.interval_moderate}
+                        onChange={(e) =>
+                          setThresholds({
+                            ...thresholds,
+                            interval_moderate:
+                              e.target.value === "" ? "" : parseInt(e.target.value, 10),
+                          })
+                        }
+                        disabled={!isAdmin}
+                        className="h-9 rounded-lg"
+                      />
+                    </div>
+                    <div className="grid grid-cols-[1fr_80px] items-center gap-3">
+                      <Label className="text-sm text-green-600 font-semibold">Normal</Label>
+                      <Input
+                        type="number"
+                        value={thresholds.interval_normal}
+                        onChange={(e) =>
+                          setThresholds({
+                            ...thresholds,
+                            interval_normal:
+                              e.target.value === "" ? "" : parseInt(e.target.value, 10),
+                          })
+                        }
+                        disabled={!isAdmin}
+                        className="h-9 rounded-lg"
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground">Loading intervals…</p>
+                )}
+              </div>
+
+              {thresholds && (
+                <div className="mt-8 space-y-4">
+                  <h3 className="text-sm font-semibold text-foreground border-b border-border/50 pb-2">
+                    Working Configuration
+                  </h3>
+                  <div className="grid grid-cols-[1fr_auto] items-center gap-3">
+                    <Label className="text-sm">Working days</Label>
+                    <span className="text-sm text-muted-foreground">Mon-Sat (No Sundays)</span>
+                  </div>
+                  <div className="grid grid-cols-[1fr_120px] items-center gap-3">
+                    <Label className="text-sm">Work Start Time</Label>
+                    <Input
+                      type="time"
+                      value={thresholds.working_hours?.start ?? "09:00"}
+                      onChange={(e) =>
+                        setThresholds({
+                          ...thresholds,
+                          working_hours: { ...thresholds.working_hours, start: e.target.value },
+                        })
+                      }
+                      disabled={!isAdmin && role !== "supervisor"}
+                      className="h-9 rounded-lg"
+                    />
+                  </div>
+                  <div className="grid grid-cols-[1fr_120px] items-center gap-3">
+                    <Label className="text-sm">Work End Time</Label>
+                    <Input
+                      type="time"
+                      value={thresholds.working_hours?.end ?? "17:00"}
+                      onChange={(e) =>
+                        setThresholds({
+                          ...thresholds,
+                          working_hours: { ...thresholds.working_hours, end: e.target.value },
+                        })
+                      }
+                      disabled={!isAdmin && role !== "supervisor"}
+                      className="h-9 rounded-lg"
+                    />
+                  </div>
+                </div>
+              )}
+
+              <div className="flex gap-2 mt-3">
+                <Button
+                  variant="secondary"
+                  onClick={async () => {
+                    try {
+                      const anyEmpty = Object.values(thresholds).some((v) => v === "");
+                      if (anyEmpty) {
+                        toast.error("Please fill in all numeric fields.");
+                        return;
+                      }
+
+                      // Basic client-side validation
+                      if (thresholds.systolic_normal_max >= thresholds.systolic_moderate_min)
+                        throw new Error("Systolic normal must be < moderate min");
+                      if (thresholds.diastolic_normal_max >= thresholds.diastolic_moderate_min)
+                        throw new Error("Diastolic normal must be < moderate min");
+                      if (thresholds.sugar_normal_max >= thresholds.sugar_moderate_min)
+                        throw new Error("Sugar normal must be < moderate min");
+
+                      await updateHealthThresholds({
+                        data: {
+                          userId: user?.userId ?? "",
+                          role: role ?? "admin",
+                          updates: thresholds,
+                        },
+                      });
+
+                      toast.success("Settings saved.");
+                    } catch (err: any) {
+                      const msg = err?.message || (typeof err === "string" ? err : "Could not save settings");
+                      toast.error(msg);
                     }
-
-                    // Basic client-side validation
-                    if (thresholds.systolic_normal_max >= thresholds.systolic_moderate_min)
-                      throw new Error("Systolic normal must be < moderate min");
-                    if (thresholds.diastolic_normal_max >= thresholds.diastolic_moderate_min)
-                      throw new Error("Diastolic normal must be < moderate min");
-                    if (thresholds.sugar_normal_max >= thresholds.sugar_moderate_min)
-                      throw new Error("Sugar normal must be < moderate min");
-
-                    await updateHealthThresholds({
-                      data: {
-                        userId: user?.userId ?? "",
-                        role: role ?? "admin",
-                        updates: thresholds,
-                      },
-                    });
-
-                    toast.success("Settings saved.");
-                  } catch (err) {
-                    toast.error(err instanceof Error ? err.message : "Could not save settings");
-                  }
-                }}
-              >
-                Save Changes
-              </Button>
-            </div>
-          </section>
+                  }}
+                >
+                  Save Changes
+                </Button>
+              </div>
+            </section>
           ) : null}
 
           {canManageHolidays && (

@@ -15,7 +15,6 @@ import { AuthProvider } from "@/hooks/useAuth";
 import { ThemeProvider } from "@/components/common/ThemeProvider";
 
 import appCss from "../styles.css?url";
-import themeCss from "../design-system/theme.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 
 function NotFoundComponent() {
@@ -96,7 +95,6 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     ],
     links: [
       { rel: "stylesheet", href: appCss },
-      { rel: "stylesheet", href: themeCss },
       { rel: "icon", href: "/favicon.png", type: "image/png" },
       { rel: "manifest", href: "/manifest.webmanifest" },
       { rel: "apple-touch-icon", href: "/app-icon-192.png" },

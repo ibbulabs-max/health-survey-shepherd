@@ -24,7 +24,7 @@ async function resolveServerUser(clientHints?: {
   // cross-reference against the database to avoid trusting the client.
 
   // If userId hint is provided (it's a UUID), verify it exists.
-  let userId: string | null = clientHints?.userId ?? null;
+  const userId: string | null = clientHints?.userId ?? null;
   let role: AppRole | null = null;
   let supervisorId: string | null = clientHints?.supervisorId ?? null;
 
@@ -116,11 +116,7 @@ export const updateHealthThresholds = createServerFn({ method: "POST" })
     }
 
     // 3. Perform the update using the verified server-side identity
-    const s = await updateHealthThresholdSettings(
-      resolved.userId,
-      resolved.role,
-      updates,
-    );
+    const s = await updateHealthThresholdSettings(resolved.userId, resolved.role, updates);
 
     return { success: true, settings: s };
   });

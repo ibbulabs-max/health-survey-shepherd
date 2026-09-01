@@ -12,7 +12,7 @@ import { riskLabels, type RiskLevel } from "@/config/risk";
 import { useDataset } from "@/hooks/useDataset";
 import { useAuth } from "@/hooks/useAuth";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Trash2, ArrowRightLeft } from "lucide-react";
+import { Trash2, ArrowRightLeft, ListChecks } from "lucide-react";
 import { toast } from "sonner";
 import { bulkDeleteHouses } from "@/services/houseService";
 import { HouseDetailSheet } from "@/components/houses/HouseDetailSheet";
@@ -48,14 +48,19 @@ function HousesPage() {
   const [limit, setLimit] = useState<number>(appConfig.pagination.defaultPageSize);
   const [selectedHouse, setSelectedHouse] = useState<HouseView | null>(null);
 
-  // Admin Selection State
+  // Admin/Supervisor Selection State
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [selectedHouseUuids, setSelectedHouseUuids] = useState<string[]>([]);
-  const isSelectionMode = selectedHouseUuids.length > 0;
 
   const handleToggleHouse = (uuid: string) => {
     setSelectedHouseUuids((prev) =>
       prev.includes(uuid) ? prev.filter((id) => id !== uuid) : [...prev, uuid],
     );
+  };
+
+  const handleSelectAll = () => {
+    const ids = houses.slice(0, limit).map((h) => h.house.id);
+    setSelectedHouseUuids(ids);
   };
 
   const handleBulkDelete = async () => {
@@ -128,13 +133,29 @@ function HousesPage() {
         title="Households"
         subtitle={`${houses.length} of ${data?.houses.length ?? 0} shown`}
         actions={
-          role === "survey_user" ? (
-            <Button asChild className="rounded-xl font-semibold shadow-xs">
-              <Link to="/survey/new" search={{ mode: "new" }}>
-                <Plus className="size-4 mr-1.5" /> Create House
-              </Link>
-            </Button>
-          ) : undefined
+          <div className="flex items-center gap-2">
+            {(role === "admin" || role === "supervisor") && (
+              <Button
+                variant={isSelectionMode ? "secondary" : "outline"}
+                size="sm"
+                className="rounded-xl font-semibold shadow-xs"
+                onClick={() => {
+                  setIsSelectionMode(!isSelectionMode);
+                  if (isSelectionMode) setSelectedHouseUuids([]);
+                }}
+              >
+                <ListChecks className="size-4 mr-1.5" />
+                {isSelectionMode ? "Cancel Selection" : "Select"}
+              </Button>
+            )}
+            {role === "survey_user" && (
+              <Button asChild className="rounded-xl font-semibold shadow-xs">
+                <Link to="/survey/new" search={{ mode: "new" }}>
+                  <Plus className="size-4 mr-1.5" /> Create House
+                </Link>
+              </Button>
+            )}
+          </div>
         }
       />
 
@@ -176,7 +197,7 @@ function HousesPage() {
             <div
               key={h.house.id}
               onClick={() => {
-                if (isSelectionMode || role === "admin") {
+                if (isSelectionMode) {
                   handleToggleHouse(h.house.id);
                 } else {
                   setSelectedHouse(h);
@@ -184,10 +205,10 @@ function HousesPage() {
               }}
               className={cn(
                 "card-surface flex items-start gap-3 p-4 transition-all hover:border-primary/40 cursor-pointer shadow-xs active:scale-[0.99]",
-                selectedHouseUuids.includes(h.house.id) && "ring-2 ring-primary bg-primary/5",
+                isSelectionMode && selectedHouseUuids.includes(h.house.id) && "ring-2 ring-primary bg-primary/5",
               )}
             >
-              {role === "admin" && (
+              {isSelectionMode && (
                 <div className="pt-1 pr-1 shrink-0" onClick={(e) => e.stopPropagation()}>
                   <Checkbox
                     checked={selectedHouseUuids.includes(h.house.id)}
@@ -231,15 +252,37 @@ function HousesPage() {
       )}
 
       {isSelectionMode && (
-        <div className="fixed bottom-0 inset-x-0 p-4 bg-background/90 backdrop-blur-md border-t border-border z-30 flex items-center justify-between safe-bottom shadow-[0_-4px_24px_-2px_oklch(0_0_0/0.05)]">
-          <span className="text-sm font-semibold">{selectedHouseUuids.length} selected</span>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={() => setSelectedHouseUuids([])}>
+        <div className="fixed bottom-0 inset-x-0 p-4 bg-background/90 backdrop-blur-md border-t border-border z-30 flex flex-col sm:flex-row sm:items-center justify-between safe-bottom shadow-[0_-4px_24px_-2px_oklch(0_0_0/0.05)] gap-3">
+          <div className="flex items-center gap-4">
+            <span className="text-sm font-semibold">{selectedHouseUuids.length} selected</span>
+            <Button variant="ghost" size="sm" onClick={handleSelectAll}>
+              Select All
+            </Button>
+            {selectedHouseUuids.length > 0 && (
+              <Button variant="ghost" size="sm" onClick={() => setSelectedHouseUuids([])}>
+                Deselect All
+              </Button>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setIsSelectionMode(false);
+                setSelectedHouseUuids([]);
+              }}
+            >
               Cancel
             </Button>
-            <Button variant="destructive" size="sm" onClick={handleBulkDelete}>
-              <Trash2 className="size-4 mr-1.5" /> Delete
+            <Button variant="secondary" size="sm" disabled={selectedHouseUuids.length === 0} onClick={() => toast.info("Transfer feature coming soon")}>
+              <ArrowRightLeft className="size-4 mr-1.5" /> Transfer
             </Button>
+            {role === "admin" && (
+              <Button variant="destructive" size="sm" disabled={selectedHouseUuids.length === 0} onClick={handleBulkDelete}>
+                <Trash2 className="size-4 mr-1.5" /> Delete
+              </Button>
+            )}
           </div>
         </div>
       )}
