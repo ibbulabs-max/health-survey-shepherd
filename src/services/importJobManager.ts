@@ -221,40 +221,9 @@ class ImportJobManager {
       job.currentStage = "Checking existing records & indexing";
       job.lastHeartbeatAt = new Date().toISOString();
 
-      // 2. Pre-fetch existing houses and members in bulk for fast duplicate detection
-      const [{ data: existingHousesData }, { data: existingMembersData }] = await Promise.all([
-        adminClient.from(tables.houses).select("id, house_id, house_number, address, owner_name"),
-        adminClient
-          .from(tables.houseMembers)
-          .select("id, house_uuid, member_id, member_name, data"),
-      ]);
-
-      const existingHouses = existingHousesData || [];
-      const existingMembers = existingMembersData || [];
-
-      // Map existing houses by lowercase identifiers
+      // 2. Local Maps for duplicate detection (populated dynamically per-chunk)
       const houseMap = new Map<string, string>(); // key -> house.id
-      for (const h of existingHouses) {
-        if (h.house_id) houseMap.set(`id:${h.house_id.trim().toLowerCase()}`, h.id);
-        if (h.house_number) houseMap.set(`num:${h.house_number.trim().toLowerCase()}`, h.id);
-        const addr = `addr:${(h.address || "").trim().toLowerCase()}|${(h.owner_name || "").trim().toLowerCase()}`;
-        if (h.address || h.owner_name) houseMap.set(addr, h.id);
-      }
-
-      // Map existing members by (house_uuid + member_id) and (house_uuid + member_name_lower)
       const memberMap = new Map<string, { id: string; data: Record<string, any> }>();
-      for (const m of existingMembers) {
-        const data = (m.data || {}) as Record<string, any>;
-        if (m.house_uuid && m.member_id) {
-          memberMap.set(`${m.house_uuid}:${m.member_id.trim().toLowerCase()}`, { id: m.id, data });
-        }
-        if (m.house_uuid && m.member_name) {
-          memberMap.set(`${m.house_uuid}:name:${m.member_name.trim().toLowerCase()}`, {
-            id: m.id,
-            data,
-          });
-        }
-      }
 
       // 3. Process Houses in High-Performance Batches (Chunk of 50 houses)
       const CHUNK_SIZE = 50;
@@ -275,6 +244,33 @@ class ImportJobManager {
         }
 
         const chunk = houses.slice(i, i + CHUNK_SIZE);
+
+        // Pre-fetch houses for this chunk to avoid duplicates
+        const chunkHouseIds = chunk
+          .map((h) => h.fields["house_id"] ? String(h.fields["house_id"]).trim() : "")
+          .filter(Boolean);
+        const chunkHouseNums = chunk
+          .map((h) => h.fields["house_number"] ? String(h.fields["house_number"]).trim() : "")
+          .filter(Boolean);
+
+        if (chunkHouseIds.length > 0) {
+          const { data } = await adminClient
+            .from(tables.houses)
+            .select("id, house_id")
+            .in("house_id", chunkHouseIds);
+          if (data) {
+            data.forEach((h) => houseMap.set(`id:${h.house_id.trim().toLowerCase()}`, h.id));
+          }
+        }
+        if (chunkHouseNums.length > 0) {
+          const { data } = await adminClient
+            .from(tables.houses)
+            .select("id, house_number")
+            .in("house_number", chunkHouseNums);
+          if (data) {
+            data.forEach((h) => houseMap.set(`num:${h.house_number.trim().toLowerCase()}`, h.id));
+          }
+        }
 
         for (const house of chunk) {
           try {
@@ -516,16 +512,27 @@ class ImportJobManager {
                   const excelClinicalRisk =
                     member.fields["clinical_risk"] ?? newFieldsAndExtra["clinical_risk"];
 
-                  let risk: RiskLevel;
+                  let risk: RiskLevel | undefined = undefined;
                   let riskReasons: string[] = [];
+
+                  let isFallback = true;
 
                   if (excelClinicalRisk && String(excelClinicalRisk).trim() !== "") {
                     // Use the Excel-provided Clinical Risk directly (primary source of truth)
                     const { asRisk } = await import("@/lib/domain");
-                    risk = asRisk(String(excelClinicalRisk));
-                    riskReasons = [`Clinical Risk from Excel: ${String(excelClinicalRisk)}`];
-                  } else {
-                    // Fall back to calculating from vitals only when Excel doesn't have Clinical Risk
+                    const parsedRisk = asRisk(String(excelClinicalRisk));
+                    
+                    if (parsedRisk === "high" || parsedRisk === "moderate" || parsedRisk === "low") {
+                      risk = parsedRisk;
+                      riskReasons = [`Clinical Risk from Excel: ${String(excelClinicalRisk)}`];
+                      isFallback = false;
+                    } else if (parsedRisk === "invalid") {
+                      riskReasons = [`Warning: Original Excel Risk '${excelClinicalRisk}' was invalid and discarded.`];
+                    }
+                  }
+
+                  if (isFallback) {
+                    // Fall back to calculating from vitals only when Excel doesn't have a valid Clinical Risk
                     let thresholds;
                     try {
                       const { getHealthThresholdSettings } =
@@ -549,7 +556,7 @@ class ImportJobManager {
                       thresholds,
                     );
                     risk = riskResult.level;
-                    riskReasons = riskResult.reasons;
+                    riskReasons.push(...riskResult.reasons);
                   }
 
                   // -- D. Persist assessment if there is any clinical data --
@@ -568,7 +575,7 @@ class ImportJobManager {
                       diastolic,
                       blood_sugar: bloodSugar,
                       known_history: conditions,
-                      risk_level: risk,
+                      risk_level: risk as RiskLevel,
                       risk_reasons: riskReasons,
                       assessed_by: validUploadedBy,
                       assessed_at: validSurveyDate.toISOString(),
@@ -643,7 +650,7 @@ class ImportJobManager {
 
                     const nextDueDateStr = calculateNextFollowUpDate(
                       anchorDate,
-                      risk,
+                      risk as RiskLevel,
                       customIntervals,
                     );
 
@@ -661,7 +668,7 @@ class ImportJobManager {
                         .from(tables.followUps)
                         .update({
                           due_date: nextDueDateStr,
-                          risk_level: risk,
+                          risk_level: risk as RiskLevel,
                           reason: `Imported ${risk} risk follow-up`,
                           updated_at: new Date().toISOString(),
                         })
@@ -683,7 +690,7 @@ class ImportJobManager {
                           member_uuid: memberUuid,
                           due_date: nextDueDateStr,
                           reason: `Imported ${risk} risk follow-up`,
-                          risk_level: risk,
+                          risk_level: risk as RiskLevel,
                           status: "pending",
                           created_by: validUploadedBy,
                         })

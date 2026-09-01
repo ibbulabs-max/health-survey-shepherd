@@ -50,10 +50,10 @@ export async function loadDataset(): Promise<Dataset> {
       followUps: FollowUp[];
     try {
       [houses, members, assessments, followUps] = await Promise.all([
-        fetchAll<House>(tables.houses, "*"),
-        fetchAll<HouseMember>(tables.houseMembers, "*"),
-        fetchAll<MemberAssessment>(tables.memberAssessments, "*"),
-        fetchAll<FollowUp>(tables.followUps, "*"),
+        fetchAll<House>(tables.houses, "id, house_id, house_number, address, owner_name, latitude, longitude, location_status, status, mapped_by, mapped_at, data"),
+        fetchAll<HouseMember>(tables.houseMembers, "id, house_uuid, member_id, member_name, data, possible_duplicate"),
+        fetchAll<MemberAssessment>(tables.memberAssessments, "id, house_uuid, member_uuid, systolic, diastolic, blood_sugar, known_history, risk_level, risk_reasons, assessed_at"),
+        fetchAll<FollowUp>(tables.followUps, "id, house_uuid, member_uuid, due_date, status, reason, notes, risk_level, created_at, completed_at, created_by"),
       ]);
     } catch (err) {
       console.error("loadDataset fetchAll failed!", err);

@@ -14,12 +14,13 @@ export type { FollowUpStatus };
  * Excel values (LOW/MODERATE/HIGH) and stored values (low/moderate/high) are both handled.
  * "low", "normal", "norm", "" all map to "low" (displayed as "Normal" in UI).
  */
-export const asRisk = (value: string | null | undefined): RiskLevel => {
-  const v = (value ?? "").toLowerCase();
+export const asRisk = (value: any): RiskLevel | "missing" | "invalid" => {
+  if (value == null || String(value).trim() === "") return "missing";
+  const v = String(value).trim().toLowerCase();
   if (v.startsWith("high")) return "high";
   if (v.startsWith("mod") || v.startsWith("med")) return "moderate";
-  // "low", "normal", "norm", "" → internal "low" (displayed as Normal)
-  return "low";
+  if (v === "low" || v === "normal" || v === "norm") return "low";
+  return "invalid";
 };
 
 export const highestRisk = (levels: RiskLevel[]): RiskLevel =>
@@ -144,7 +145,8 @@ export function buildMemberView(
   const diastolic = assessment?.diastolic ?? numberOrNull(data["diastolic"]);
   const bloodSugar = assessment?.blood_sugar ?? numberOrNull(data["blood_sugar"]);
 
-  const stored = assessment?.risk_level ? asRisk(assessment.risk_level) : null;
+  const parsed = assessment?.risk_level ? asRisk(assessment.risk_level) : "missing";
+  const stored = parsed === "high" || parsed === "moderate" || parsed === "low" ? parsed : null;
   const computed = calculateRisk({ systolic, diastolic, bloodSugar, conditions }, thresholds);
   const risk = stored ?? computed.level;
 

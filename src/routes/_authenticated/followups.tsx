@@ -145,6 +145,7 @@ function FollowUpsPage() {
   const [completeDiastolic, setCompleteDiastolic] = useState("");
   const [completeSugar, setCompleteSugar] = useState("");
   const [completeNotes, setCompleteNotes] = useState("");
+  const [completeRisk, setCompleteRisk] = useState<RiskLevel | "">("");
 
   const [rescheduleTarget, setRescheduleTarget] = useState<EnrichedFollowUpItem | null>(null);
   const [rescheduleDate, setRescheduleDate] = useState("");
@@ -472,12 +473,14 @@ function FollowUpsPage() {
       id,
       vitals,
       notes,
+      riskLevel,
     }: {
       id: string;
       vitals?: { systolic: number; diastolic: number; bloodSugar: number | null } | undefined;
       notes?: string | undefined;
+      riskLevel?: RiskLevel | undefined;
     }) => {
-      await completeFollowUp({ id, vitals, notes });
+      await completeFollowUp({ id, vitals, notes, riskLevel });
     },
     onSuccess: () => {
       toast.success("Follow-up completed and next visit scheduled!");
@@ -486,6 +489,7 @@ function FollowUpsPage() {
       setCompleteDiastolic("");
       setCompleteSugar("");
       setCompleteNotes("");
+      setCompleteRisk("");
       void refresh();
     },
     onError: (e: any) => toast.error(e.message || "Failed to complete follow-up"),
@@ -900,6 +904,7 @@ function FollowUpsPage() {
                   setCompleteDiastolic(i.member?.diastolic?.toString() || "");
                   setCompleteSugar(i.member?.bloodSugar?.toString() || "");
                   setCompleteNotes("");
+                  setCompleteRisk(i.risk || "");
                 }}
               />
             ))
@@ -1184,6 +1189,7 @@ function FollowUpsPage() {
                         setCompleteDiastolic(i.member?.diastolic?.toString() || "");
                         setCompleteSugar(i.member?.bloodSugar?.toString() || "");
                         setCompleteNotes("");
+                        setCompleteRisk(i.risk || "");
                       }}
                     />
                   ))}
@@ -1487,17 +1493,57 @@ function FollowUpsPage() {
                     className="h-10 rounded-xl"
                   />
                 </div>
+                <div className="space-y-1.5 pt-2 border-t border-border/50">
+                  <label className="text-xs font-bold text-foreground">Current Risk Level <span className="text-red-500">*</span></label>
+                  <p className="text-[10px] text-muted-foreground pb-1">
+                    This determines the next follow-up interval.
+                  </p>
+                  <Select
+                    value={completeRisk}
+                    onValueChange={(val) => setCompleteRisk(val as RiskLevel)}
+                  >
+                    <SelectTrigger className="w-full h-10 rounded-xl">
+                      <SelectValue placeholder="Select risk level" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="low">
+                        <div className="flex items-center gap-2">
+                          <div className="size-2 rounded-full bg-emerald-500"></div>
+                          Normal (180 days)
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="moderate">
+                        <div className="flex items-center gap-2">
+                          <div className="size-2 rounded-full bg-yellow-500"></div>
+                          Moderate (30 days)
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="high">
+                        <div className="flex items-center gap-2">
+                          <div className="size-2 rounded-full bg-red-500"></div>
+                          High (15 days)
+                        </div>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             )}
             <DialogFooter className="gap-2 sm:gap-2 flex-col sm:flex-row">
               <Button
                 variant="outline"
                 onClick={() => {
-                  if (completeTarget)
+                  if (completeTarget) {
+                    if (!completeRisk) {
+                      toast.error("Please select a Risk Level before completing.");
+                      return;
+                    }
                     completeMutation.mutate({
                       id: completeTarget.id,
                       notes: completeNotes || "Vitals skipped during follow-up",
+                      riskLevel: completeRisk as RiskLevel,
                     });
+                  }
                 }}
                 disabled={completeMutation.isPending}
                 className="rounded-xl font-semibold flex-1 text-xs"
@@ -1507,6 +1553,10 @@ function FollowUpsPage() {
               <Button
                 onClick={() => {
                   if (completeTarget) {
+                    if (!completeRisk) {
+                      toast.error("Please select a Risk Level before completing.");
+                      return;
+                    }
                     const sys = parseInt(completeSystolic, 10);
                     const dia = parseInt(completeDiastolic, 10);
                     const sug = completeSugar ? parseInt(completeSugar, 10) : null;
@@ -1515,6 +1565,7 @@ function FollowUpsPage() {
                         id: completeTarget.id,
                         vitals: { systolic: sys, diastolic: dia, bloodSugar: sug },
                         notes: completeNotes || undefined,
+                        riskLevel: completeRisk as RiskLevel,
                       });
                     } else {
                       toast.error(

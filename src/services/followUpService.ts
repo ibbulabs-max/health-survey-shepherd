@@ -102,8 +102,9 @@ export async function completeFollowUp(params: {
   id: string;
   notes?: string | undefined;
   vitals?: { systolic: number; diastolic: number; bloodSugar: number | null } | undefined;
+  riskLevel?: RiskLevel | undefined;
 }) {
-  const { id, notes, vitals } = params;
+  const { id, notes, vitals, riskLevel } = params;
 
   // 1. Get current follow-up details
   const { data: current, error: fetchError } = await supabase
@@ -140,14 +141,19 @@ export async function completeFollowUp(params: {
   let currentRisk = (current.risk_level as RiskLevel) || "low";
 
   // 3. Dynamic Vitals / Risk Loop
-  if (vitals) {
-    const { data: latestAssessment } = await supabase
+  let latestAssessment: any = null;
+  if (vitals || riskLevel) {
+    const { data } = await supabase
       .from(tables.memberAssessments)
       .select("*")
       .eq("member_uuid", current.member_uuid)
       .order("assessed_at", { ascending: false })
       .limit(1)
       .maybeSingle();
+    latestAssessment = data;
+  }
+
+  if (vitals) {
 
     const existingConditions = latestAssessment?.known_history
       ? typeof latestAssessment.known_history === "string"
@@ -181,7 +187,12 @@ export async function completeFollowUp(params: {
       thresholds,
     );
 
-    currentRisk = newRiskResult.level;
+    // Override with manual riskLevel if provided
+    if (riskLevel) {
+      currentRisk = riskLevel;
+    } else {
+      currentRisk = newRiskResult.level;
+    }
 
     if (latestAssessment) {
       await supabase
@@ -204,6 +215,28 @@ export async function completeFollowUp(params: {
         risk_level: currentRisk,
         assessed_at: completedAt,
       });
+    }
+  } else {
+    // If no vitals were provided but a risk level was selected manually
+    if (riskLevel) {
+      currentRisk = riskLevel;
+      
+      if (latestAssessment) {
+        await supabase
+          .from(tables.memberAssessments)
+          .update({
+            risk_level: currentRisk,
+            updated_at: completedAt,
+          })
+          .eq("id", latestAssessment.id);
+      } else {
+        await supabase.from(tables.memberAssessments).insert({
+          member_uuid: current.member_uuid,
+          house_uuid: current.house_uuid,
+          risk_level: currentRisk,
+          assessed_at: completedAt,
+        });
+      }
     }
   }
   // NOTE: If vitals were skipped, currentRisk remains unchanged! Never downgrade or assume normal.
