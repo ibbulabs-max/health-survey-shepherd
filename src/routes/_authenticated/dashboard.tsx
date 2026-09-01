@@ -10,7 +10,7 @@ import {
   ShieldCheck,
   Plus,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 
 import { EmptyState, ErrorState } from "@/components/common/EmptyState";
 import { PageHeader } from "@/components/common/PageHeader";
@@ -18,11 +18,14 @@ import { RiskBadge } from "@/components/common/RiskBadge";
 import { StatCard } from "@/components/common/StatCard";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { roleLabels } from "@/config/roles";
 import { useAuth } from "@/hooks/useAuth";
 import { useDataset } from "@/hooks/useDataset";
 import { useUsers, useTeamMemberships } from "@/hooks/useUsers";
 import { followUpStatus, priorityScore, type HouseView } from "@/lib/domain";
+import { computeStats } from "@/services/dataService";
 import { getUserDisplayName } from "@/services/userService";
 import { HouseDetailSheet } from "@/components/houses/HouseDetailSheet";
 
@@ -72,10 +75,23 @@ function DashboardSkeleton() {
 
 function DashboardPage() {
   const { user, role, can } = useAuth();
-  const { data, stats, isLoading, error, refetch } = useDataset();
+  const { data: originalData, stats: originalStats, isLoading, error, refetch } = useDataset();
   const { data: users } = useUsers();
   const { data: teamMemberships } = useTeamMemberships();
   const [selectedHouse, setSelectedHouse] = useState<HouseView | null>(null);
+  const [onlyEligible, setOnlyEligible] = useState(false);
+
+  const data = useMemo(() => {
+    if (!originalData) return originalData;
+    return onlyEligible
+      ? { ...originalData, members: originalData.members.filter((m) => m.eligible) }
+      : originalData;
+  }, [originalData, onlyEligible]);
+
+  const stats = useMemo(() => {
+    if (!data || !originalStats) return originalStats;
+    return onlyEligible ? computeStats(data) : originalStats;
+  }, [data, originalStats, onlyEligible]);
 
   if (isLoading) return <DashboardSkeleton />;
   if (error)
@@ -158,6 +174,12 @@ function DashboardPage() {
         subtitle={`${role ? roleLabels[role] : "No role"} • ${stats.houses} households in your view`}
         actions={
           <div className="flex items-center gap-2">
+            <div className="flex items-center space-x-2 mr-2 bg-card px-3 py-2 rounded-xl shadow-xs border border-border/50">
+              <Switch id="eligible-mode" checked={onlyEligible} onCheckedChange={setOnlyEligible} />
+              <Label htmlFor="eligible-mode" className="text-sm cursor-pointer font-medium whitespace-nowrap">
+                Eligible Members
+              </Label>
+            </div>
             {role === "survey_user" && (
               <Button
                 asChild
