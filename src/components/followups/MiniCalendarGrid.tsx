@@ -81,7 +81,7 @@ export function MiniCalendarGrid({
                   className={cn(
                     "size-1 rounded-full absolute bottom-1",
                     isSelected
-                      ? "bg-white"
+                      ? "bg-card"
                       : countInfo.high > 0
                         ? "bg-red-500"
                         : countInfo.moderate > 0

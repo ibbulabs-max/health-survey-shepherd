@@ -2,7 +2,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 export function FollowUpSkeleton() {
   return (
-    <div className="card-surface p-4 lg:p-5 rounded-2xl border border-border/60 bg-white shadow-card relative overflow-hidden">
+    <div className="card-surface p-4 lg:p-5 rounded-2xl border border-border/60 bg-card shadow-card relative overflow-hidden">
       <div className="flex flex-col gap-4">
         {/* Top Row: Avatar + Info + Dates */}
         <div className="flex items-start justify-between gap-3">

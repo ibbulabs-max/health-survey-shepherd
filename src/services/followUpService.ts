@@ -12,7 +12,6 @@ import {
 } from "@/lib/followUpEngine";
 import { logActivity } from "@/services/activityService";
 import { useSettings } from "@/hooks/useSettings";
-import { getHealthThresholdSettings } from "@/services/settingsService";
 
 export interface ScheduleFollowUpInput {
   houseUuid: string | null;
@@ -34,7 +33,8 @@ export function getRiskInterval(risk: RiskLevel): number {
  * Checks if a member is eligible for follow‑up (strictly age >= 30).
  */
 export function isEligible(age: number | null | undefined): boolean {
-  return isEligibleForFollowUp(age, 30);
+  const minEligibleAge = useSettings.getState().minEligibleAge;
+  return isEligibleForFollowUp(age, minEligibleAge);
 }
 
 /**
@@ -49,6 +49,18 @@ export async function scheduleFollowUp(input: ScheduleFollowUpInput) {
 
   const { data: auth } = await supabase.auth.getUser();
   const userId = input.createdBy ?? auth.user?.id ?? null;
+
+  const { data: existingPending } = await supabase
+    .from(tables.followUps)
+    .select("id, due_date")
+    .eq("member_uuid", input.memberUuid)
+    .eq("status", "pending")
+    .maybeSingle();
+
+  if (existingPending) {
+    // Return existing instead of throwing or duplicating
+    return existingPending as FollowUp;
+  }
 
   const { data, error } = await supabase
     .from(tables.followUps)
@@ -140,21 +152,19 @@ export async function completeFollowUp(params: {
       : [];
 
     // Use DB-configured thresholds when available (server authoritative)
+    const s = useSettings.getState().thresholds;
     let thresholds;
-    try {
-      const settings = await getHealthThresholdSettings();
+    if (s) {
       thresholds = {
         bp: {
-          high: { systolic: settings.systolic_high_min, diastolic: settings.diastolic_high_min },
+          high: { systolic: s.systolic_high_min, diastolic: s.diastolic_high_min },
           moderate: {
-            systolic: settings.systolic_moderate_min,
-            diastolic: settings.diastolic_moderate_min,
+            systolic: s.systolic_moderate_min,
+            diastolic: s.diastolic_moderate_min,
           },
         },
-        sugar: { high: settings.sugar_high_min, moderate: settings.sugar_moderate_min },
+        sugar: { high: s.sugar_high_min, moderate: s.sugar_moderate_min },
       };
-    } catch (e) {
-      thresholds = undefined;
     }
 
     const newRiskResult = calculateRisk(
@@ -197,16 +207,7 @@ export async function completeFollowUp(params: {
   // 4. Check eligibility - Age >= 30
   const memberData = (current.house_members as any)?.data as Record<string, unknown> | undefined;
   const age = memberData?.["age"] != null ? Number(memberData["age"]) : null;
-  // Respect DB-configured minimum eligible age when available.
-  let minEligibleAge = undefined as number | undefined;
-  try {
-    const s = await getHealthThresholdSettings();
-    minEligibleAge = s.minimum_eligible_age;
-  } catch (e) {
-    // ignore and fall back to existing logic
-  }
-  const eligible =
-    typeof minEligibleAge === "number" ? age != null && age >= minEligibleAge : isEligible(age);
+  const eligible = isEligible(age);
 
   // 5. Automatically generate next recurring follow-up if eligible
   if (eligible && current.house_uuid && current.member_uuid && currentRisk) {
@@ -219,19 +220,12 @@ export async function completeFollowUp(params: {
       .maybeSingle();
 
     if (!existingPending) {
-      let intervals = useSettings.getState().followUpIntervals;
+      const s = useSettings.getState();
+      const intervals = s.followUpIntervals;
       let holidaysSet: Set<string> | undefined;
-      let workingDays: string[] | undefined;
+      const workingDays = s.thresholds?.working_days;
 
       try {
-        const settings = await getHealthThresholdSettings();
-        intervals = {
-          high: settings.interval_high,
-          moderate: settings.interval_moderate,
-          low: settings.interval_low,
-        };
-        workingDays = settings.working_days;
-
         const { fetchHolidays } = await import("@/services/holidayService");
         const holidaysList = await fetchHolidays();
         holidaysSet = new Set(holidaysList.map((h) => h.holiday_date));
@@ -363,19 +357,12 @@ export async function recalculatePendingFollowUp(memberUuid: string) {
     .maybeSingle();
 
   const risk = (assessment?.risk_level as RiskLevel) ?? "low";
-  let intervals = useSettings.getState().followUpIntervals;
+  const s = useSettings.getState();
+  const intervals = s.followUpIntervals;
   let holidaysSet: Set<string> | undefined;
-  let workingDays: string[] | undefined;
+  const workingDays = s.thresholds?.working_days;
 
   try {
-    const settings = await getHealthThresholdSettings();
-    intervals = {
-      high: settings.interval_high,
-      moderate: settings.interval_moderate,
-      low: settings.interval_low,
-    };
-    workingDays = settings.working_days;
-
     const { fetchHolidays } = await import("@/services/holidayService");
     const holidaysList = await fetchHolidays();
     holidaysSet = new Set(holidaysList.map((h) => h.holiday_date));
@@ -383,11 +370,23 @@ export async function recalculatePendingFollowUp(memberUuid: string) {
     // Fall back to frontend state if fetch fails
   }
 
-  const baseDate = assessment?.assessed_at
-    ? (parseDateSafe(assessment.assessed_at) ?? new Date())
-    : new Date();
+  const { data: lastCompleted } = await supabase
+    .from(tables.followUps)
+    .select("completed_at")
+    .eq("member_uuid", memberUuid)
+    .eq("status", "completed")
+    .order("completed_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const baseDate = lastCompleted?.completed_at
+    ? parseDateSafe(lastCompleted.completed_at)
+    : assessment?.assessed_at
+      ? parseDateSafe(assessment.assessed_at)
+      : new Date();
+
   const nextDueDateKey = calculateNextFollowUpDate(
-    baseDate,
+    baseDate || new Date(),
     risk,
     intervals,
     holidaysSet,
@@ -492,19 +491,12 @@ export async function updateLastFollowUpDate(
   const age = memberData["age"] != null ? Number(memberData["age"]) : null;
 
   if (isEligible(age)) {
-    let intervals = useSettings.getState().followUpIntervals;
+    const s = useSettings.getState();
+    const intervals = s.followUpIntervals;
     let holidaysSet: Set<string> | undefined;
-    let workingDays: string[] | undefined;
+    const workingDays = s.thresholds?.working_days;
 
     try {
-      const settings = await getHealthThresholdSettings();
-      intervals = {
-        high: settings.interval_high,
-        moderate: settings.interval_moderate,
-        low: settings.interval_low,
-      };
-      workingDays = settings.working_days;
-
       const { fetchHolidays } = await import("@/services/holidayService");
       const holidaysList = await fetchHolidays();
       holidaysSet = new Set(holidaysList.map((h) => h.holiday_date));

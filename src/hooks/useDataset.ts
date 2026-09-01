@@ -9,7 +9,13 @@ export function useDataset() {
     queryKey: datasetQueryKey,
     queryFn: loadDataset,
     staleTime: 60_000,
+    retry: false,
   });
+
+  if (query.error) {
+    console.error("useDataset query error:", query.error);
+  }
+
   const stats = useMemo(() => (query.data ? computeStats(query.data) : null), [query.data]);
   return { ...query, stats };
 }

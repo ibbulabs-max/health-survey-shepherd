@@ -36,6 +36,8 @@ export const Route = createFileRoute("/_authenticated/reports")({
 function ReportsPage() {
   const { data, stats, isLoading, error, refetch } = useDataset();
   const [busy, setBusy] = useState(false);
+  const [rollbackFile, setRollbackFile] = useState("");
+  const { can } = useAuth();
 
   if (isLoading) return <LoadingState label="Preparing reports…" />;
   if (error)
@@ -130,9 +132,6 @@ function ReportsPage() {
       setBusy(false);
     }
   };
-
-  const [rollbackFile, setRollbackFile] = useState("");
-  const { can } = useAuth();
 
   const handleRollback = async () => {
     if (!rollbackFile) return;

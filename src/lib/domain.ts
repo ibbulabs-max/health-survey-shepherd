@@ -13,11 +13,11 @@ export const asRisk = (value: string | null | undefined): RiskLevel => {
   const v = (value ?? "").toLowerCase();
   if (v.startsWith("high")) return "high";
   if (v.startsWith("mod") || v.startsWith("med")) return "moderate";
-  return "low";
+  return "normal";
 };
 
 export const highestRisk = (levels: RiskLevel[]): RiskLevel =>
-  levels.reduce<RiskLevel>((acc, l) => (riskOrder[l] > riskOrder[acc] ? l : acc), "low");
+  levels.reduce<RiskLevel>((acc, l) => (riskOrder[l] > riskOrder[acc] ? l : acc), "normal");
 
 export interface RiskResult {
   level: RiskLevel;
@@ -43,7 +43,7 @@ export function calculateRisk(
   },
 ): RiskResult {
   const reasons: string[] = [];
-  let level: RiskLevel = "low";
+  let level: RiskLevel = "normal";
   const escalate = (to: RiskLevel) => {
     if (riskOrder[to] > riskOrder[level]) level = to;
   };
@@ -216,7 +216,7 @@ export function buildHouseView(
   members: MemberView[],
   pendingFollowUps = 0,
 ): HouseView {
-  const counts: Record<RiskLevel, number> = { low: 0, moderate: 0, high: 0 };
+  const counts: Record<RiskLevel, number> = { normal: 0, moderate: 0, high: 0 };
   members.forEach((m) => {
     counts[m.risk] += 1;
   });

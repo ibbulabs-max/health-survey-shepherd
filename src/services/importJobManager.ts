@@ -213,6 +213,9 @@ class ImportJobManager {
       } catch (err) {
         console.warn("Supervisor lookup error:", err);
       }
+    let validUploadedBy: string | null = job.supervisorId || job.assignedTo || null;
+    if (validUploadedBy === "admin" || validUploadedBy === "supervisor") {
+      validUploadedBy = null;
     }
 
     job.currentStage = "Checking existing records & indexing";
@@ -732,7 +735,7 @@ class ImportJobManager {
       })
       .eq("id", batchId);
   }
-}
+}}
 
 // Global Singleton Instance
 const globalForImport = globalThis as unknown as { importJobManagerInstance?: ImportJobManager };

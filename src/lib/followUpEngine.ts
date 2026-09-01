@@ -177,7 +177,7 @@ export function calculateNextWorkingDay(
   holidaysSet?: Set<string>,
   workingDays?: string[],
 ): Date {
-  let current = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate());
+  const current = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate());
   const DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
   while (true) {
@@ -482,7 +482,7 @@ export function extractMemberFollowUpSummary(
   const activePending = memberDbFollowUps.find((f) => (f.status ?? "pending") === "pending");
 
   let nextFollowUpDate: string | null = null;
-  let activeFollowUpId: string | undefined = activePending?.id;
+  const activeFollowUpId: string | undefined = activePending?.id;
 
   if (activePending?.due_date) {
     nextFollowUpDate = toDateKeySafe(activePending.due_date);

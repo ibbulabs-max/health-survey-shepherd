@@ -6,6 +6,7 @@ import { loadSessionUser } from "@/services/authService";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import { getHealthThresholdSettings } from "@/services/settingsService";
 
 export interface CreateHouseMemberInput {
   name: string;
@@ -351,8 +352,11 @@ export const commitCreateHouse = createServerFn({ method: "POST" })
     let count30Plus = 0;
     const createdMembers = [];
 
+    const s = await getHealthThresholdSettings(false, userId, userRole?.role, null);
+    const minAge = s.minimum_eligible_age ?? 30;
+
     for (const m of input.members) {
-      const is30Plus = m.age != null && m.age >= 30;
+      const is30Plus = m.age != null && m.age >= minAge;
       let memberId: string | null = null;
       if (is30Plus) {
         count30Plus++;
@@ -442,6 +446,9 @@ export async function updateHouseWithDetails(houseUuid: string, input: Partial<C
 
   // If House ID changed, cascade-update all 30+ member IDs
   if (houseIdChanged) {
+    const s = await getHealthThresholdSettings(false, null, null, null);
+    const minAge = s.minimum_eligible_age ?? 30;
+
     const { data: members } = await supabase
       .from(tables.houseMembers)
       .select("*")
@@ -453,7 +460,7 @@ export async function updateHouseWithDetails(houseUuid: string, input: Partial<C
       for (const m of members) {
         const mData = (m.data ?? {}) as Record<string, any>;
         const age = mData["age"] != null ? Number(mData["age"]) : null;
-        const is30Plus = age != null && age >= 30;
+        const is30Plus = age != null && age >= minAge;
 
         let newMemberId: string | null = null;
         if (is30Plus) {

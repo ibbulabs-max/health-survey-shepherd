@@ -13,14 +13,14 @@ export function StatCard({
   label: string;
   value: string | number;
   hint?: string;
-  tone?: "default" | "primary" | "low" | "moderate" | "high";
+  tone?: "default" | "primary" | "normal" | "moderate" | "high";
   to?: string;
   icon?: React.ComponentType<{ className?: string }>;
 }) {
   const tones: Record<string, string> = {
     default: "text-foreground",
     primary: "text-primary",
-    low: "text-risk-low",
+    normal: "text-risk-normal",
     moderate: "text-risk-moderate",
     high: "text-risk-high",
   };

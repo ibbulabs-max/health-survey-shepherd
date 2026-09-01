@@ -12,8 +12,11 @@ import {
   Calendar,
   CheckCircle2,
 } from "lucide-react";
+import { FileText, CalendarCheck2, PencilLine, Trash2 } from "lucide-react";
+import { format } from "date-fns";
 import { useState, useMemo } from "react";
 import { toast } from "sonner";
+import { useSettings } from "@/hooks/useSettings";
 
 import { EmptyState, ErrorState, LoadingState } from "@/components/common/EmptyState";
 import { PageHeader } from "@/components/common/PageHeader";
@@ -52,6 +55,7 @@ function HouseDetailPage() {
   const { data, isLoading, error, refetch } = useDataset();
   const refresh = useRefreshDataset();
   const { role, can } = useAuth();
+  const { minEligibleAge } = useSettings();
   const isCHW = role === "survey_user" || role === "admin" || role === "super_admin";
 
   const allHouses = useMemo(() => data?.houses ?? [], [data]);
@@ -209,7 +213,7 @@ function HouseDetailPage() {
           <div>
             <p className="text-sm font-bold text-foreground">{pinConfig.label}</p>
             <p className="text-xs text-muted-foreground">
-              {house.counts.high} High • {house.counts.moderate} Mod • {house.counts.low} Low Risk
+              {house.counts.high} High • {house.counts.moderate} Mod • {house.counts.normal} normal Risk
             </p>
           </div>
         </div>
@@ -227,7 +231,7 @@ function HouseDetailPage() {
               houseUuid={house.house.id}
               houseId={house.house.house_id}
               currentMembers30Plus={
-                house.members.filter((m) => m.age != null && m.age >= 30).length
+                house.members.filter((m) => m.age != null && m.age >= minEligibleAge).length
               }
             />
           )}

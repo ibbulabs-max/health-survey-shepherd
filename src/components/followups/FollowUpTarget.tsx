@@ -37,7 +37,7 @@ export function FollowUpTarget({ completedTodayCount }: FollowUpTargetProps) {
   };
 
   return (
-    <div className="flex items-center justify-between rounded-2xl bg-white/50 dark:bg-white/5 p-4 border border-white/20 dark:border-white/10 shadow-sm backdrop-blur-md">
+    <div className="flex items-center justify-between rounded-2xl bg-card/50  p-4 border border-white/20  shadow-sm backdrop-blur-md">
       <div className="flex items-center gap-4 w-full">
         <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
           <Target className="h-6 w-6" />

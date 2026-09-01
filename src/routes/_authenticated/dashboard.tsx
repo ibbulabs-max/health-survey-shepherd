@@ -140,7 +140,7 @@ function DashboardPage() {
       members: cswMembers.length,
       highRisk: cswMembers.filter((m) => m.risk === "high").length,
       moderateRisk: cswMembers.filter((m) => m.risk === "moderate").length,
-      lowRisk: cswMembers.filter((m) => m.risk === "low").length,
+      normalRisk: cswMembers.filter((m) => m.risk === "normal").length,
       todayDue: cswFollowUps.filter((f) => followUpStatus(f.status, f.due_date) === "due").length,
       overdue: cswFollowUps.filter((f) => followUpStatus(f.status, f.due_date) === "overdue")
         .length,
@@ -243,9 +243,9 @@ function DashboardPage() {
           to="/analytics"
         />
         <StatCard
-          label="Low risk"
-          value={stats.risk.low}
-          tone="low"
+          label="Normal risk"
+          value={stats.risk.normal}
+          tone="normal"
           hint="Routine follow-up"
           to="/analytics"
         />

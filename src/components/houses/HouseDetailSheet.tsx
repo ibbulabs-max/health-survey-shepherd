@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { Navigation, MapPin, Stethoscope, ChevronRight, Home } from "lucide-react";
+import { Navigation, MapPin, Stethoscope, ChevronRight, Home, Share, Pencil } from "lucide-react";
 import {
   Drawer,
   DrawerContent,
@@ -17,6 +17,7 @@ export interface HouseDetailSheetProps {
   house: HouseView | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onAddLocation?: (houseId: string) => void;
 }
 
 import { useAuth } from "@/hooks/useAuth";
@@ -25,7 +26,12 @@ import { useAuth } from "@/hooks/useAuth";
  * Single Source of Truth: Reusable Global House Detail Card / Bottom Sheet.
  * Extracted and unified from the Map House Card for 100% consistent UX everywhere.
  */
-export function HouseDetailSheet({ house, open, onOpenChange }: HouseDetailSheetProps) {
+export function HouseDetailSheet({
+  house,
+  open,
+  onOpenChange,
+  onAddLocation,
+}: HouseDetailSheetProps) {
   const { can } = useAuth();
 
   if (!house) return null;
@@ -79,8 +85,8 @@ export function HouseDetailSheet({ house, open, onOpenChange }: HouseDetailSheet
               </span>
             </div>
             <div>
-              <span className="text-[10px] text-risk-low block uppercase font-medium">Low</span>
-              <span className="font-bold font-mono text-sm text-risk-low">{house.counts.low}</span>
+              <span className="text-[10px] text-risk-normal block uppercase font-medium">normal</span>
+              <span className="font-bold font-mono text-sm text-risk-normal">{house.counts.normal}</span>
             </div>
           </div>
 
@@ -175,15 +181,45 @@ export function HouseDetailSheet({ house, open, onOpenChange }: HouseDetailSheet
                 </Link>
               </Button>
             )}
-            <div className="grid grid-cols-2 gap-2">
+
+            {!house.hasLocation ? (
+              <div className="rounded-xl border border-dashed border-destructive/50 bg-destructive/5 p-3 flex flex-col items-center justify-center gap-2 text-center mt-2">
+                <span className="text-[11px] font-bold tracking-widest text-destructive uppercase flex items-center gap-1.5">
+                  House Not Mapped
+                </span>
+                <Button
+                  asChild={!onAddLocation}
+                  className="w-full rounded-xl font-semibold bg-destructive/10 text-destructive hover:bg-destructive/20 shadow-none border border-destructive/20"
+                  onClick={() => {
+                    if (onAddLocation) {
+                      onAddLocation(house.house.id);
+                    } else {
+                      onOpenChange(false);
+                    }
+                  }}
+                >
+                  {onAddLocation ? (
+                    <button type="button">
+                      <MapPin className="size-4 mr-1.5" /> Map House
+                    </button>
+                  ) : (
+                    <Link to="/map">
+                      <MapPin className="size-4 mr-1.5" /> Add Location on Map
+                    </Link>
+                  )}
+                </Button>
+              </div>
+            ) : null}
+
+            <div className="grid grid-cols-2 gap-2 mt-2">
               <Button
                 asChild
                 variant="outline"
-                className="rounded-xl font-semibold shadow-xs"
+                className="rounded-xl font-semibold shadow-xs flex items-center gap-1.5"
                 onClick={() => onOpenChange(false)}
               >
-                <Link to="/houses/$houseId" params={{ houseId: house.house.id }}>
-                  View Full House
+                <Link to="/map" search={{ houseId: house.house.id }}>
+                  <MapPin className="size-4" /> Open on Map
                 </Link>
               </Button>
 
@@ -192,22 +228,46 @@ export function HouseDetailSheet({ house, open, onOpenChange }: HouseDetailSheet
                   href={mapConfig.routeUrl(house.house.latitude!, house.house.longitude!)}
                   target="_blank"
                   rel="noreferrer"
-                  className="rounded-xl border border-border bg-surface text-foreground font-semibold flex items-center justify-center gap-1.5 text-xs shadow-xs hover:bg-surface-muted transition-colors"
+                  className="rounded-xl border border-border bg-surface text-foreground font-semibold flex items-center justify-center gap-1.5 text-sm shadow-xs hover:bg-surface-muted transition-colors h-9 px-4"
                 >
-                  <Navigation className="size-3.5" /> Navigate
+                  <Navigation className="size-4" /> Navigate
                 </a>
               ) : (
-                <Button
-                  asChild
-                  variant="outline"
-                  className="rounded-xl font-semibold text-xs border-dashed"
-                  onClick={() => onOpenChange(false)}
-                >
-                  <Link to="/houses/$houseId" params={{ houseId: house.house.id }}>
-                    <MapPin className="size-3.5 mr-1" /> Add Pin
-                  </Link>
+                <Button variant="outline" disabled className="rounded-xl font-semibold opacity-50">
+                  <Navigation className="size-4 mr-1.5" /> Navigate
                 </Button>
               )}
+
+              <Button
+                variant="outline"
+                className="rounded-xl font-semibold shadow-xs flex items-center gap-1.5"
+                onClick={() => {
+                  if (navigator.share) {
+                    navigator
+                      .share({
+                        title: `House ${houseIdDisplay}`,
+                        text: `View location for House ${houseIdDisplay}`,
+                        url: window.location.href,
+                      })
+                      .catch(() => {});
+                  } else {
+                    navigator.clipboard.writeText(window.location.href);
+                  }
+                }}
+              >
+                <Share className="size-4" /> Share
+              </Button>
+
+              <Button
+                asChild
+                variant="outline"
+                className="rounded-xl font-semibold shadow-xs flex items-center gap-1.5"
+                onClick={() => onOpenChange(false)}
+              >
+                <Link to="/houses/$houseId" params={{ houseId: house.house.id }}>
+                  <Pencil className="size-4" /> Edit
+                </Link>
+              </Button>
             </div>
           </div>
         </div>

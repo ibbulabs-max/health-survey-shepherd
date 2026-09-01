@@ -63,7 +63,9 @@ export async function changePin(newPin: string) {
 
 export async function autoSignInQA() {
   if (!import.meta.env.DEV) return;
-  const qaRole = localStorage.getItem("QA_ROLE") || (import.meta.env as any).VITE_QA_ROLE;
+  const qaRole =
+    (typeof window !== "undefined" ? localStorage.getItem("QA_ROLE") : null) ||
+    (import.meta.env as any).VITE_QA_ROLE;
   if (!qaRole) return;
 
   const { data } = await supabase.auth.getSession();

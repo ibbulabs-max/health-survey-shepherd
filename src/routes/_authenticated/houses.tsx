@@ -117,7 +117,7 @@ function HousesPage() {
     { key: "all", label: "All" },
     { key: "high", label: riskLabels.high },
     { key: "moderate", label: riskLabels.moderate },
-    { key: "low", label: riskLabels.low },
+    { key: "normal", label: riskLabels.normal },
     { key: "pending", label: "Pending screening" },
     { key: "unmapped", label: "Unmapped" },
   ];

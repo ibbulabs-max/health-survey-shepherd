@@ -10,8 +10,8 @@ import type { RiskLevel } from "./risk";
  * never stored in the database.
  */
 export const followUpConfig = {
-  /** Risk-based re-visit intervals per spec: High=15d, Moderate=30d, Low=180d */
-  intervalDays: { high: 15, moderate: 30, low: 180 } as Record<RiskLevel, number>,
+  /** Risk-based re-visit intervals per spec: High=15d, Moderate=30d, Normal=180d */
+  intervalDays: { high: 15, moderate: 30, normal: 180 } as Record<RiskLevel, number>,
   /** 0 = Sunday. Sunday is never a working day. */
   workingDays: [1, 2, 3, 4, 5, 6],
   workingHours: { start: "09:00", end: "17:00" },

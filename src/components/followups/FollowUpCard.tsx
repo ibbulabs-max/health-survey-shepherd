@@ -64,7 +64,7 @@ export function FollowUpCard({
         : "bg-blue-500";
 
   return (
-    <div className="card-surface p-4 lg:p-5 rounded-2xl border border-border/60 bg-white shadow-card hover:shadow-float transition-all relative overflow-hidden group">
+    <div className="card-surface p-4 lg:p-5 rounded-2xl border border-border/60 bg-card shadow-card hover:shadow-float transition-all relative overflow-hidden group">
       {/* Left risk accent bar */}
       <div className={cn("absolute left-0 top-0 bottom-0 w-1", riskBarColor)} />
 

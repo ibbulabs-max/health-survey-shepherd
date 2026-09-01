@@ -10,6 +10,7 @@ import {
   type HouseView,
   type MemberView,
 } from "@/lib/domain";
+import { useSettings } from "@/hooks/useSettings";
 
 /**
  * One dataset loader used by Home, Map, Analytics, Reports, Follow-ups and
@@ -42,131 +43,108 @@ async function fetchAll<T>(table: string, select: string, order = "created_at"):
 }
 
 export async function loadDataset(): Promise<Dataset> {
-  const [houses, members, assessments, followUps] = await Promise.all([
-    fetchAll<House>(tables.houses, "*"),
-    fetchAll<HouseMember>(tables.houseMembers, "*"),
-    fetchAll<MemberAssessment>(tables.memberAssessments, "*"),
-    fetchAll<FollowUp>(tables.followUps, "*"),
-  ]);
-
-  // Load health threshold settings from DB so eligibility and risk are consistent.
-  let minEligibleAge: number | undefined = undefined;
-  let thresholds: Parameters<typeof buildMemberView>[4] = undefined;
   try {
-    const { data: auth } = await supabase.auth.getUser();
-    const userId = auth.user?.id;
-    let targetSupervisorId: string | null = null;
+    let houses: House[],
+      members: HouseMember[],
+      assessments: MemberAssessment[],
+      followUps: FollowUp[];
+    try {
+      [houses, members, assessments, followUps] = await Promise.all([
+        fetchAll<House>(tables.houses, "*"),
+        fetchAll<HouseMember>(tables.houseMembers, "*"),
+        fetchAll<MemberAssessment>(tables.memberAssessments, "*"),
+        fetchAll<FollowUp>(tables.followUps, "*"),
+      ]);
+    } catch (err) {
+      console.error("loadDataset fetchAll failed!", err);
+      throw err;
+    }
 
-    if (userId) {
-      const { data: r } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", userId)
-        .maybeSingle();
-      const role = r?.role;
+    // Load health threshold settings from useSettings (Single Source of Truth)
+    let minEligibleAge: number | undefined = undefined;
+    let thresholds: Parameters<typeof buildMemberView>[4] = undefined;
 
-      if (role === "supervisor") {
-        targetSupervisorId = userId;
-      } else if (role === "survey_user") {
-        const { data: teamData } = await supabase
-          .from("team_memberships")
-          .select("supervisor_id")
-          .eq("csw_id", userId)
-          .eq("status", "active")
-          .limit(1)
-          .maybeSingle();
-        targetSupervisorId = teamData?.supervisor_id ?? null;
+    try {
+      const s = useSettings.getState();
+      if (typeof s.minEligibleAge === "number") {
+        minEligibleAge = s.minEligibleAge;
       }
+
+      if (s.thresholds) {
+        thresholds = {
+          bp: {
+            high: {
+              systolic: s.thresholds.systolic_high_min,
+              diastolic: s.thresholds.diastolic_high_min,
+            },
+            moderate: {
+              systolic: s.thresholds.systolic_moderate_min,
+              diastolic: s.thresholds.diastolic_moderate_min,
+            },
+          },
+          sugar: {
+            high: s.thresholds.sugar_high_min,
+            moderate: s.thresholds.sugar_moderate_min,
+          },
+        };
+      }
+    } catch (e) {
+      console.warn(
+        "Failed to load health threshold settings from store, falling back to defaults:",
+        e,
+      );
     }
 
-    let query = supabase.from("health_threshold_settings").select("*");
-    if (targetSupervisorId) {
-      query = query.or(`supervisor_id.is.null,supervisor_id.eq.${targetSupervisorId}`);
-    } else {
-      query = query.is("supervisor_id", null);
-    }
-
-    // Order nulls first so supervisor override is the last row applied
-    const { data, error } = await query.order("supervisor_id", {
-      ascending: true,
-      nullsFirst: true,
+    const latestAssessment = new Map<string, MemberAssessment>();
+    assessments.forEach((a) => {
+      if (!a.member_uuid) return;
+      const current = latestAssessment.get(a.member_uuid);
+      const stamp = a.assessed_at ?? a.created_at ?? "";
+      const currentStamp = current?.assessed_at ?? current?.created_at ?? "";
+      if (!current || stamp >= currentStamp) latestAssessment.set(a.member_uuid, a);
     });
 
-    let settings: any = {};
-    if (data && data.length > 0) {
-      for (const row of data) {
-        settings = { ...settings, ...row };
-      }
-    }
+    const houseById = new Map(houses.map((h) => [h.id, h]));
+    const memberViews = members.map((m) =>
+      buildMemberView(
+        m,
+        latestAssessment.get(m.id) ?? null,
+        houseById.get(m.house_uuid ?? ""),
+        minEligibleAge,
+        thresholds,
+      ),
+    );
 
-    if (Object.keys(settings).length > 0) {
-      if (typeof settings.minimum_eligible_age === "number") {
-        minEligibleAge = settings.minimum_eligible_age;
+    const membersByHouse = new Map<string, MemberView[]>();
+    memberViews.forEach((m) => {
+      const key = m.houseUuid ?? "";
+      membersByHouse.set(key, [...(membersByHouse.get(key) ?? []), m]);
+    });
+
+    const pendingByHouse = new Map<string, number>();
+    followUps.forEach((f) => {
+      const status = followUpStatus(f.status, f.due_date);
+      if (status === "due" || status === "overdue") {
+        const key = f.house_uuid ?? "";
+        pendingByHouse.set(key, (pendingByHouse.get(key) ?? 0) + 1);
       }
-      thresholds = {
-        bp: {
-          high: { systolic: settings.systolic_high_min, diastolic: settings.diastolic_high_min },
-          moderate: {
-            systolic: settings.systolic_moderate_min,
-            diastolic: settings.diastolic_moderate_min,
-          },
-        },
-        sugar: {
-          high: settings.sugar_high_min,
-          moderate: settings.sugar_moderate_min,
-        },
-      };
-    }
-  } catch (e) {
-    console.warn("Failed to load health threshold settings, falling back to defaults:", e);
+    });
+
+    const houseViews = houses.map((h) =>
+      buildHouseView(h, membersByHouse.get(h.id) ?? [], pendingByHouse.get(h.id) ?? 0),
+    );
+
+    return {
+      houses: houseViews,
+      members: memberViews,
+      followUps,
+      byHouseUuid: new Map(houseViews.map((h) => [h.house.id, h])),
+      byMemberId: new Map(memberViews.map((m) => [m.id, m])),
+    };
+  } catch (err) {
+    console.error("loadDataset CRITICAL ERROR:", err);
+    throw err;
   }
-
-  const latestAssessment = new Map<string, MemberAssessment>();
-  assessments.forEach((a) => {
-    if (!a.member_uuid) return;
-    const current = latestAssessment.get(a.member_uuid);
-    const stamp = a.assessed_at ?? a.created_at ?? "";
-    const currentStamp = current?.assessed_at ?? current?.created_at ?? "";
-    if (!current || stamp >= currentStamp) latestAssessment.set(a.member_uuid, a);
-  });
-
-  const houseById = new Map(houses.map((h) => [h.id, h]));
-  const memberViews = members.map((m) =>
-    buildMemberView(
-      m,
-      latestAssessment.get(m.id) ?? null,
-      houseById.get(m.house_uuid ?? ""),
-      minEligibleAge,
-      thresholds,
-    ),
-  );
-
-  const membersByHouse = new Map<string, MemberView[]>();
-  memberViews.forEach((m) => {
-    const key = m.houseUuid ?? "";
-    membersByHouse.set(key, [...(membersByHouse.get(key) ?? []), m]);
-  });
-
-  const pendingByHouse = new Map<string, number>();
-  followUps.forEach((f) => {
-    const status = followUpStatus(f.status, f.due_date);
-    if (status === "due" || status === "overdue") {
-      const key = f.house_uuid ?? "";
-      pendingByHouse.set(key, (pendingByHouse.get(key) ?? 0) + 1);
-    }
-  });
-
-  const houseViews = houses.map((h) =>
-    buildHouseView(h, membersByHouse.get(h.id) ?? [], pendingByHouse.get(h.id) ?? 0),
-  );
-
-  return {
-    houses: houseViews,
-    members: memberViews,
-    followUps,
-    byHouseUuid: new Map(houseViews.map((h) => [h.house.id, h])),
-    byMemberId: new Map(memberViews.map((m) => [m.id, m])),
-  };
 }
 
 export const datasetQueryKey = ["dataset"] as const;
@@ -189,7 +167,7 @@ export interface DashboardStats {
 
 export function computeStats(dataset: Dataset): DashboardStats {
   const today = toDateKey(new Date());
-  const risk: Record<RiskLevel, number> = { low: 0, moderate: 0, high: 0 };
+  const risk: Record<RiskLevel, number> = { normal: 0, moderate: 0, high: 0 };
   dataset.members.forEach((m) => {
     risk[m.risk] += 1;
   });

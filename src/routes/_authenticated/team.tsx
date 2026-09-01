@@ -117,7 +117,7 @@ function TeamPage() {
                         : "Community Health Worker"}
                     </p>
                   </div>
-                  <span className="shrink-0 px-2.5 py-1 text-[10px] uppercase font-bold tracking-wider rounded-lg bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
+                  <span className="shrink-0 px-2.5 py-1 text-[10px] uppercase font-bold tracking-wider rounded-lg bg-green-100 text-green-700  ">
                     Active
                   </span>
                 </div>

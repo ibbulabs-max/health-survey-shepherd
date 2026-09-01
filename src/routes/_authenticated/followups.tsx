@@ -337,7 +337,7 @@ function FollowUpsPage() {
       } else if (riskFilter === "moderate") {
         list = list.filter((i) => i.risk === "moderate");
       } else if (riskFilter === "normal") {
-        list = list.filter((i) => i.risk === "low");
+        list = list.filter((i) => i.risk === "normal");
       }
     }
 
@@ -394,7 +394,7 @@ function FollowUpsPage() {
     list = [...list].sort((a, b) => {
       if (sortBy === "dueDate") return (a.dueDate ?? "9999").localeCompare(b.dueDate ?? "9999");
       if (sortBy === "risk") {
-        const rank = { high: 0, moderate: 1, low: 2 };
+        const rank = { high: 0, moderate: 1, normal: 2 };
         return rank[a.risk] - rank[b.risk];
       }
       if (sortBy === "name") return (a.member?.name ?? "").localeCompare(b.member?.name ?? "");
@@ -449,7 +449,7 @@ function FollowUpsPage() {
     const dateItems = baseFollowUps.filter((i) => i.dueDate === targetDate);
     const high = dateItems.filter((i) => i.risk === "high").length;
     const moderate = dateItems.filter((i) => i.risk === "moderate").length;
-    const normal = dateItems.filter((i) => i.risk === "low").length;
+    const normal = dateItems.filter((i) => i.risk === "normal").length;
     const pieData = [
       { name: "High Risk", value: high, color: "#ef4444" },
       { name: "Moderate Risk", value: moderate, color: "#f97316" },
@@ -618,7 +618,7 @@ function FollowUpsPage() {
   if (error) {
     return (
       <div className="flex flex-col items-center justify-center py-20 px-6 text-center">
-        <div className="p-8 max-w-sm w-full space-y-4 bg-white rounded-3xl border border-border/60 shadow-card">
+        <div className="p-8 max-w-sm w-full space-y-4 bg-card rounded-3xl border border-border/60 shadow-card">
           <AlertTriangle className="size-10 text-risk-high mx-auto" />
           <h2 className="font-display text-lg font-semibold text-foreground">
             Failed to load follow-ups
@@ -644,7 +644,7 @@ function FollowUpsPage() {
         {/* ================================================================== */}
         {/* MOBILE HEADER                                                       */}
         {/* ================================================================== */}
-        <div className="flex-none bg-white border-b border-border/50 px-4 pt-4 pb-3 space-y-3">
+        <div className="flex-none bg-card border-b border-border/50 px-4 pt-4 pb-3 space-y-3">
           {/* Top bar: title + action icons */}
           <div className="flex items-center justify-between gap-2">
             <h1 className="font-display font-bold text-xl text-foreground">Follow-ups</h1>
@@ -807,7 +807,7 @@ function FollowUpsPage() {
 
         {/* CHW workload card */}
         {isCHW && (
-          <div className="flex-none mx-4 mt-2 rounded-2xl border border-border/60 bg-white shadow-sm p-3 flex items-center gap-3">
+          <div className="flex-none mx-4 mt-2 rounded-2xl border border-border/60 bg-card shadow-sm p-3 flex items-center gap-3">
             <div className="size-10 rounded-xl bg-primary/10 flex items-center justify-center">
               <Target className="size-5 text-primary" />
             </div>
@@ -846,7 +846,7 @@ function FollowUpsPage() {
           </p>
           <div className="flex items-center gap-1.5 text-xs">
             <Select value={sortBy} onValueChange={setSortBy}>
-              <SelectTrigger className="h-7 rounded-lg text-xs bg-white w-[110px] border-border/60">
+              <SelectTrigger className="h-7 rounded-lg text-xs bg-card w-[110px] border-border/60">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -1032,7 +1032,7 @@ function FollowUpsPage() {
                   placeholder="Search name, member ID, house ID… (Ctrl K)"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 pr-9 rounded-xl bg-white border-border/60 h-11 text-sm"
+                  className="pl-10 pr-9 rounded-xl bg-card border-border/60 h-11 text-sm"
                   aria-label="Search members"
                 />
                 {searchQuery && (
@@ -1098,7 +1098,7 @@ function FollowUpsPage() {
                 <div className="flex items-center gap-1.5 text-xs">
                   <span className="text-muted-foreground hidden sm:inline">Sort by:</span>
                   <Select value={sortBy} onValueChange={setSortBy}>
-                    <SelectTrigger className="h-8 rounded-xl text-xs bg-white w-[130px] border-border/60">
+                    <SelectTrigger className="h-8 rounded-xl text-xs bg-card w-[130px] border-border/60">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -1115,7 +1115,7 @@ function FollowUpsPage() {
                     className={cn(
                       "p-1.5 rounded-lg transition-all",
                       viewMode === "list"
-                        ? "bg-white text-primary shadow-xs"
+                        ? "bg-card text-primary shadow-xs"
                         : "text-muted-foreground",
                     )}
                     aria-label="List view"
@@ -1127,7 +1127,7 @@ function FollowUpsPage() {
                     className={cn(
                       "p-1.5 rounded-lg transition-all",
                       viewMode === "grid"
-                        ? "bg-white text-primary shadow-xs"
+                        ? "bg-card text-primary shadow-xs"
                         : "text-muted-foreground",
                     )}
                     aria-label="Grid view"
@@ -1141,7 +1141,7 @@ function FollowUpsPage() {
             {/* CARDS — THE ONLY SCROLLING REGION */}
             <div className="flex-1 overflow-y-auto min-h-0 pr-1 pb-6">
               {visibleItems.length === 0 ? (
-                <div className="card-surface p-12 rounded-3xl border border-dashed border-border text-center space-y-3 bg-white">
+                <div className="card-surface p-12 rounded-3xl border border-dashed border-border text-center space-y-3 bg-card">
                   <CalendarDays className="size-10 text-muted-foreground/40 mx-auto" />
                   <h3 className="font-display text-base font-bold text-foreground">
                     No follow-ups found
@@ -1195,7 +1195,7 @@ function FollowUpsPage() {
           {/* ============================================================== */}
           <div className="hidden lg:flex lg:col-span-4 flex-col gap-4 h-full overflow-y-auto pr-1 pb-6">
             {/* FILTERS SECTION */}
-            <div className="card-surface p-4 rounded-2xl border border-border/60 bg-white shadow-card space-y-3">
+            <div className="card-surface p-4 rounded-2xl border border-border/60 bg-card shadow-card space-y-3">
               <div className="flex items-center justify-between">
                 <h3 className="font-display font-bold text-xs uppercase tracking-wider text-muted-foreground">
                   Filters
@@ -1261,7 +1261,7 @@ function FollowUpsPage() {
             </div>
 
             {/* RUN SECTION */}
-            <div className="card-surface p-4 rounded-2xl border border-border/60 bg-white shadow-card space-y-2">
+            <div className="card-surface p-4 rounded-2xl border border-border/60 bg-card shadow-card space-y-2">
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="font-display font-bold text-xs uppercase tracking-wider text-muted-foreground">
@@ -1291,7 +1291,7 @@ function FollowUpsPage() {
             </div>
 
             {/* CALENDAR */}
-            <div className="card-surface p-4 rounded-2xl border border-border/60 bg-white shadow-card space-y-3">
+            <div className="card-surface p-4 rounded-2xl border border-border/60 bg-card shadow-card space-y-3">
               <div className="flex items-center justify-between">
                 <h3 className="font-display font-bold text-xs uppercase tracking-wider text-muted-foreground">
                   Calendar
@@ -1352,7 +1352,7 @@ function FollowUpsPage() {
             </div>
 
             {/* QUICK STATS */}
-            <div className="card-surface p-4 rounded-2xl border border-border/60 bg-white shadow-card space-y-2">
+            <div className="card-surface p-4 rounded-2xl border border-border/60 bg-card shadow-card space-y-2">
               <h3 className="font-display font-bold text-xs uppercase tracking-wider text-muted-foreground">
                 {selectedCalDate ? `${formatDisplayDate(selectedCalDate)}` : "Today's Summary"}
               </h3>
@@ -1481,7 +1481,7 @@ function FollowUpsPage() {
                   <Input
                     value={completeNotes}
                     onChange={(e) => setCompleteNotes(e.target.value)}
-                    placeholder="e.g. Rechecked BP, advised low sodium diet"
+                    placeholder="e.g. Rechecked BP, advised normal sodium diet"
                     className="h-10 rounded-xl"
                   />
                 </div>
@@ -1588,7 +1588,7 @@ function FollowUpsPage() {
   function renderCalendarDrawer() {
     return (
       <Drawer open={showCalendarDrawer} onOpenChange={setShowCalendarDrawer}>
-        <DrawerContent className="max-w-lg mx-auto rounded-t-3xl border-border bg-white p-5 space-y-4">
+        <DrawerContent className="max-w-lg mx-auto rounded-t-3xl border-border bg-card p-5 space-y-4">
           <div className="mx-auto w-12 h-1.5 bg-muted-foreground/30 rounded-full mb-1" />
           <div className="flex items-center justify-between">
             <h3 className="font-display font-bold text-base">Select Follow-up Date</h3>
@@ -1659,7 +1659,7 @@ function FollowUpsPage() {
       <Sheet open={showFiltersBar} onOpenChange={setShowFiltersBar}>
         <SheetContent
           side="right"
-          className="w-full sm:max-w-md bg-white border-l p-0 flex flex-col h-full"
+          className="w-full sm:max-w-md bg-card border-l p-0 flex flex-col h-full"
         >
           <SheetHeader className="p-5 border-b border-border/50 text-left">
             <SheetTitle className="font-display font-bold text-xl flex items-center justify-between">
@@ -1718,7 +1718,7 @@ function FollowUpsPage() {
                 handleResetFilters();
                 setShowFiltersBar(false);
               }}
-              className="w-full h-11 rounded-xl text-sm font-semibold border-border/60 bg-white"
+              className="w-full h-11 rounded-xl text-sm font-semibold border-border/60 bg-card"
             >
               <RotateCcw className="size-4 mr-2 text-muted-foreground" /> Clear All Filters
             </Button>

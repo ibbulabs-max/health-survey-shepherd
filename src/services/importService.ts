@@ -221,7 +221,9 @@ const houseKeyOf = (row: Record<string, unknown>) => {
   const owner = String(row["owner_name"] ?? "")
     .trim()
     .toLowerCase();
-  return `addr:${address}|${owner}` || "unknown";
+
+  if (!address && !owner) return "unknown";
+  return `addr:${address}|${owner}`;
 };
 
 function identityConfidence(
@@ -544,6 +546,8 @@ export async function buildPreview(
   };
 }
 
+import { startImportJob } from "@/services/importBackendService";
+
 export interface CommitOptions {
   /** memberKey -> decision chosen by the user for "review" matches. */
   decisions?: Record<string, "insert" | "merge">;
@@ -578,8 +582,6 @@ export async function commitImport(
     current: 0,
     total: preview.totals.rows,
   });
-
-  const { startImportJob } = await import("@/services/importBackendService");
 
   const housesPayload = preview.houses.map((h) => ({
     key: h.key,

@@ -17,7 +17,7 @@ export type HealthThresholds = {
   sugar_high_min: number;
   interval_high: number;
   interval_moderate: number;
-  interval_low: number;
+  interval_normal: number;
   vitals_config: {
     bloodPressure: boolean;
     bloodSugar: boolean;
@@ -46,7 +46,7 @@ export const defaultSettings: HealthThresholds = {
   sugar_high_min: riskConfig.sugar.high,
   interval_high: followUpConfig.intervalDays.high,
   interval_moderate: followUpConfig.intervalDays.moderate,
-  interval_low: followUpConfig.intervalDays.low,
+  interval_normal: followUpConfig.intervalDays.normal,
   vitals_config: {
     bloodPressure: true,
     bloodSugar: true,
@@ -69,18 +69,19 @@ export async function getHealthThresholdSettings(
   userId?: string | null,
   role?: string | null,
   supervisorId?: string | null,
+  client?: any,
 ): Promise<HealthThresholds> {
   const now = Date.now();
   if (!forceRefresh && cached.value && cached.expiresAt > now) {
     return cached.value;
   }
 
-  const admin = getSupabaseAdmin();
+  const dbClient = client || getSupabaseAdmin();
 
   let targetSupervisorId = role === "supervisor" ? userId : supervisorId;
 
   if (role === "survey_user" && userId && !targetSupervisorId) {
-    const { data: teamData } = await admin
+    const { data: teamData } = await dbClient
       .from(tables.teamMemberships)
       .select("supervisor_id")
       .eq("csw_id", userId)
@@ -94,7 +95,7 @@ export async function getHealthThresholdSettings(
 
   // Fetch both Global Admin config (supervisor_id is null)
   // AND Supervisor Override (supervisor_id = targetSupervisorId) in one go
-  let query = admin.from(tables.healthThresholdSettings).select("*");
+  let query = dbClient.from(tables.healthThresholdSettings).select("*");
 
   if (targetSupervisorId) {
     query = query.or(`supervisor_id.is.null,supervisor_id.eq.${targetSupervisorId}`);
@@ -136,8 +137,9 @@ export async function updateHealthThresholdSettings(
   changedBy: string | null,
   role: string | null,
   updates: Partial<HealthThresholds>,
+  client?: any,
 ) {
-  const prev = await getHealthThresholdSettings(true);
+  const prev = await getHealthThresholdSettings(true, changedBy, role, null, client);
   const next = { ...prev, ...updates } as HealthThresholds;
 
   if (next.systolic_normal_max >= next.systolic_moderate_min) {
@@ -169,18 +171,18 @@ export async function updateHealthThresholdSettings(
   if (next.sugar_moderate_max >= next.sugar_high_min) {
     throw new Error("Invalid sugar thresholds: sugar_moderate_max must be < sugar_high_min");
   }
-  if (next.interval_high <= 0 || next.interval_moderate <= 0 || next.interval_low <= 0) {
+  if (next.interval_high <= 0 || next.interval_moderate <= 0 || next.interval_normal <= 0) {
     throw new Error("Intervals must be greater than 0");
   }
   if (next.minimum_eligible_age < 0) {
     throw new Error("Minimum eligible age cannot be negative");
   }
 
-  const admin = getSupabaseAdmin();
+  const dbClient = client || getSupabaseAdmin();
   const targetSupervisorId = role === "supervisor" ? changedBy : null;
 
   // Explicitly check for existing row due to lack of strict UNIQUE CONSTRAINT
-  let query = admin.from(tables.healthThresholdSettings).select("id");
+  let query = dbClient.from(tables.healthThresholdSettings).select("id");
   if (targetSupervisorId) {
     query = query.eq("supervisor_id", targetSupervisorId);
   } else {
@@ -206,7 +208,7 @@ export async function updateHealthThresholdSettings(
     sugar_high_min: next.sugar_high_min,
     interval_high: next.interval_high,
     interval_moderate: next.interval_moderate,
-    interval_low: next.interval_low,
+    interval_normal: next.interval_normal,
     vitals_config: next.vitals_config,
     working_days: next.working_days ?? defaultSettings.working_days,
     working_hours: next.working_hours ?? defaultSettings.working_hours,
@@ -217,18 +219,31 @@ export async function updateHealthThresholdSettings(
 
   let error;
   if (existingRow?.id) {
-    const res = await admin
+    const res = await dbClient
       .from(tables.healthThresholdSettings)
       .update(payload)
       .eq("id", existingRow.id);
     error = res.error;
   } else {
-    const res = await admin.from(tables.healthThresholdSettings).insert(payload);
+    const res = await dbClient.from(tables.healthThresholdSettings).insert(payload);
     error = res.error;
   }
 
-  // Still keep an audit log (as requested by Phase 2: "activity_logs may be used as an audit trail")
-  await admin.from(tables.activityLogs).insert({
+  // Write to dedicated audit trail table (preserves old+new values independently of activity_logs)
+  try {
+    await dbClient.from("health_threshold_settings_audit").insert({
+      settings_id: existingRow?.id ?? null,
+      changed_by: changedBy,
+      previous_values: prev,
+      new_values: next,
+    });
+  } catch (auditErr) {
+    // Non-fatal: don't block settings save if audit insert fails
+    console.warn("Could not write settings audit log:", auditErr);
+  }
+
+  // Also keep an activity log entry
+  await dbClient.from(tables.activityLogs).insert({
     action: role === "supervisor" ? "system.settings.update.team" : "system.settings.update",
     user_id: changedBy,
     details: { thresholds: next },
@@ -236,6 +251,6 @@ export async function updateHealthThresholdSettings(
 
   if (error) throw error;
 
-  await getHealthThresholdSettings(true);
+  await getHealthThresholdSettings(true, changedBy, role, null, client);
   return next;
 }

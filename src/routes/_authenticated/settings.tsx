@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { appConfig } from "@/config/app";
 import { followUpConfig } from "@/config/followups";
 import { riskConfig, type RiskLevel } from "@/config/risk";
@@ -20,6 +21,8 @@ import {
   deleteHoliday,
   type Holiday,
 } from "@/services/holidayService";
+import { getHealthThresholds, updateHealthThresholds } from "@/services/settingsServerFns";
+import { useTheme } from "@/components/common/ThemeProvider";
 
 export const Route = createFileRoute("/_authenticated/settings")({
   ssr: false,
@@ -31,7 +34,10 @@ export const Route = createFileRoute("/_authenticated/settings")({
 
 function SettingsPage() {
   const { user, role, isAdmin, changePin, signOut } = useAuth();
-  const [pin, setPin] = useState("");
+  const { theme, setTheme } = useTheme();
+  const [currentPin, setCurrentPin] = useState("");
+  const [newPin, setNewPin] = useState("");
+  const [confirmPin, setConfirmPin] = useState("");
   const [busy, setBusy] = useState(false);
 
   const [thresholds, setThresholds] = useState<any | null>(null);
@@ -40,16 +46,22 @@ function SettingsPage() {
   useEffect(() => {
     (async () => {
       try {
-        const { getHealthThresholds } = await import("@/services/settingsServerFns");
-        const resp = await getHealthThresholds({ data: { userId: user?.userId, role } });
-        if (resp?.settings) setThresholds(resp.settings);
+        const result = await getHealthThresholds({
+          data: {
+            userId: user?.userId,
+            role: role ?? undefined,
+          }
+        });
+        if (result?.success && result.settings) {
+          setThresholds(result.settings);
+        }
       } catch (e) {
         console.warn("Could not load health thresholds:", e);
       }
     })();
-  }, []);
+  }, [user?.userId, role]);
 
-  const canManageHolidays = role === "admin" || role === "supervisor";
+  const canManageHolidays = isAdmin || role === "supervisor";
 
   const vitals = thresholds?.vitals_config ?? {
     bloodPressure: true,
@@ -71,10 +83,20 @@ function SettingsPage() {
   };
 
   const submitPin = async () => {
+    if (newPin.length !== PIN_LENGTH) {
+      toast.error(`Enter a new ${PIN_LENGTH}-digit PIN.`);
+      return;
+    }
+    if (newPin !== confirmPin) {
+      toast.error("New PINs do not match.");
+      return;
+    }
     setBusy(true);
     try {
-      await changePin(pin);
-      setPin("");
+      await changePin(newPin);
+      setCurrentPin("");
+      setNewPin("");
+      setConfirmPin("");
       toast.success("PIN updated.");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Could not update PIN.");
@@ -116,31 +138,65 @@ function SettingsPage() {
             <p className="text-xs text-muted-foreground mb-4">
               Exactly {PIN_LENGTH} digits. Used with your User ID to sign in.
             </p>
-            <div className="space-y-3">
-              <Label htmlFor="pin" className="text-sm font-semibold">
-                New PIN
-              </Label>
-              <Input
-                id="pin"
-                inputMode="numeric"
-                maxLength={PIN_LENGTH}
-                value={pin}
-                onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))}
-                className="h-11 rounded-xl tracking-[0.4em] font-mono text-lg"
-              />
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label className="text-sm font-semibold">Current PIN</Label>
+                <InputOTP maxLength={PIN_LENGTH} value={currentPin} onChange={setCurrentPin} inputMode="numeric" pattern="[0-9]*">
+                  <InputOTPGroup className="w-full justify-between gap-1.5">
+                    {Array.from({ length: PIN_LENGTH }).map((_, i) => (
+                      <InputOTPSlot key={i} index={i} className="size-11 rounded-xl text-base bg-background/50" />
+                    ))}
+                  </InputOTPGroup>
+                </InputOTP>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm font-semibold">New PIN</Label>
+                <InputOTP maxLength={PIN_LENGTH} value={newPin} onChange={setNewPin} inputMode="numeric" pattern="[0-9]*">
+                  <InputOTPGroup className="w-full justify-between gap-1.5">
+                    {Array.from({ length: PIN_LENGTH }).map((_, i) => (
+                      <InputOTPSlot key={i} index={i} className="size-11 rounded-xl text-base bg-background/50" />
+                    ))}
+                  </InputOTPGroup>
+                </InputOTP>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm font-semibold">Confirm New PIN</Label>
+                <InputOTP maxLength={PIN_LENGTH} value={confirmPin} onChange={setConfirmPin} inputMode="numeric" pattern="[0-9]*">
+                  <InputOTPGroup className="w-full justify-between gap-1.5">
+                    {Array.from({ length: PIN_LENGTH }).map((_, i) => (
+                      <InputOTPSlot key={i} index={i} className="size-11 rounded-xl text-base bg-background/50" />
+                    ))}
+                  </InputOTPGroup>
+                </InputOTP>
+              </div>
             </div>
             <Button
-              className="mt-4 w-full rounded-xl font-semibold"
-              disabled={busy || pin.length !== PIN_LENGTH}
+              className="mt-6 w-full rounded-xl font-semibold"
+              disabled={busy || newPin.length !== PIN_LENGTH || confirmPin.length !== PIN_LENGTH}
               onClick={() => void submitPin()}
             >
               {busy ? "Saving…" : "Update PIN"}
             </Button>
           </section>
+
+          <section className="card-surface p-5 rounded-2xl shadow-xs border border-border/70">
+            <div className="flex items-center gap-2 border-b border-border/50 pb-3 mb-4">
+              <Settings2 className="size-5 text-primary" />
+              <h2 className="font-display text-base font-bold text-foreground">Theme Settings</h2>
+            </div>
+            <div className="flex items-center justify-between">
+              <Label className="text-sm font-semibold">Dark Mode</Label>
+              <Switch
+                checked={theme === "dark"}
+                onCheckedChange={(v) => setTheme(v ? "dark" : "light")}
+              />
+            </div>
+          </section>
         </div>
 
         <div className="space-y-6">
-          <section className="card-surface p-5 rounded-2xl shadow-xs border border-border/70">
+          {canManageHolidays ? (
+            <section className="card-surface p-5 rounded-2xl shadow-xs border border-border/70">
             <div className="flex items-center gap-2 border-b border-border/50 pb-3 mb-4">
               <Settings2 className="size-5 text-primary" />
               <h2 className="font-display text-base font-bold text-foreground">App Rules</h2>
@@ -491,14 +547,14 @@ function SettingsPage() {
                     />
                   </div>
                   <div className="grid grid-cols-[1fr_80px] items-center gap-3">
-                    <Label className="text-sm text-green-600 font-semibold">Low Risk</Label>
+                    <Label className="text-sm text-green-600 font-semibold">Normal</Label>
                     <Input
                       type="number"
-                      value={thresholds.interval_low}
+                      value={thresholds.interval_normal}
                       onChange={(e) =>
                         setThresholds({
                           ...thresholds,
-                          interval_low: e.target.value === "" ? "" : parseInt(e.target.value, 10),
+                          interval_normal: e.target.value === "" ? "" : parseInt(e.target.value, 10),
                         })
                       }
                       disabled={!isAdmin}
@@ -571,10 +627,15 @@ function SettingsPage() {
                       throw new Error("Diastolic normal must be < moderate min");
                     if (thresholds.sugar_normal_max >= thresholds.sugar_moderate_min)
                       throw new Error("Sugar normal must be < moderate min");
-                    const { putHealthThresholds } = await import("@/services/settingsServerFns");
-                    await putHealthThresholds({
-                      data: { changedBy: user?.userId ?? "admin", role, updates: thresholds },
+
+                    await updateHealthThresholds({
+                      data: {
+                        userId: user?.userId ?? "",
+                        role: role ?? "admin",
+                        updates: thresholds,
+                      },
                     });
+
                     toast.success("Settings saved.");
                   } catch (err) {
                     toast.error(err instanceof Error ? err.message : "Could not save settings");
@@ -585,6 +646,7 @@ function SettingsPage() {
               </Button>
             </div>
           </section>
+          ) : null}
 
           {canManageHolidays && (
             <section className="card-surface p-5 rounded-2xl shadow-xs border border-border/70">

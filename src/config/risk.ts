@@ -2,12 +2,12 @@
  * Risk configuration. Values are thresholds only — exact readings are ALWAYS
  * preserved and displayed alongside the derived category.
  */
-export type RiskLevel = "low" | "moderate" | "high";
+export type RiskLevel = "normal" | "moderate" | "high";
 
 export const riskConfig = {
   bp: {
     high: { systolic: 140, diastolic: 90 },
-    moderate: { systolic: 130, diastolic: 85 },
+    moderate: { systolic: 130, diastolic: 80 },
   },
   sugar: {
     high: 200,
@@ -17,13 +17,28 @@ export const riskConfig = {
   multipleConditionsThreshold: 2,
 } as const;
 
-export const riskOrder: Record<RiskLevel, number> = { low: 0, moderate: 1, high: 2 };
+export const riskOrder: Record<RiskLevel, number> = { normal: 0, moderate: 1, high: 2 };
 
+/**
+ * User-facing risk labels. Internally we use "low" for backward-compat
+ * with existing database records, but the UI always displays "Normal".
+ */
 export const riskLabels: Record<RiskLevel, string> = {
-  low: "Low",
+  normal: "Normal",
   moderate: "Moderate",
   high: "High",
 };
+
+/**
+ * Returns the user-facing display label for a risk level.
+ * Always use this instead of hard-coding label strings.
+ */
+export function riskDisplayLabel(risk: RiskLevel | string | null | undefined): string {
+  const r = (risk ?? "normal").toLowerCase();
+  if (r.startsWith("high")) return riskLabels.high;
+  if (r.startsWith("mod") || r.startsWith("med")) return riskLabels.moderate;
+  return riskLabels.normal;
+}
 
 /** Priority score weights — used for follow-up ordering, never to hide readings. */
 export const priorityWeights = {
@@ -34,3 +49,4 @@ export const priorityWeights = {
   missingCondition: 8,
   dataQualityIssue: 5,
 } as const;
+

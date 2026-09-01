@@ -45,7 +45,7 @@ export function FollowUpKpi({
     <div
       onClick={onClick}
       className={cn(
-        "card-surface p-4 lg:p-5 rounded-2xl border bg-white shadow-card transition-all cursor-pointer group",
+        "card-surface p-4 lg:p-5 rounded-2xl border bg-card shadow-card transition-all cursor-pointer group",
         isActive
           ? "border-primary/50 ring-1 ring-primary/20 shadow-float"
           : "border-border/60 hover:shadow-float",

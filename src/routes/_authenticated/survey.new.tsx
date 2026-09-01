@@ -20,6 +20,7 @@ import React from "react";
 
 import { useDataset, useRefreshDataset } from "@/hooks/useDataset";
 import { useAuth } from "@/hooks/useAuth";
+import { useSettings } from "@/hooks/useSettings";
 import {
   createHouseWithDetails,
   buildCanonicalHouseId,
@@ -71,6 +72,7 @@ function CreateHousePage() {
   const refresh = useRefreshDataset();
   const { role } = useAuth();
   const isCHW = role === "survey_user";
+  const { minEligibleAge } = useSettings();
 
   const [currentStep, setCurrentStep] = useState(
     searchParams.houseId ? 6 : searchParams.mode === "new" ? 1 : (searchParams.step ?? 0),
@@ -282,9 +284,9 @@ function CreateHousePage() {
   const eligible30Plus = useMemo(() => {
     return createdMembersList.filter((m) => {
       const age = m.data?.age != null ? Number(m.data.age) : null;
-      return age != null && age >= 30;
+      return age != null && age >= minEligibleAge;
     });
-  }, [createdMembersList]);
+  }, [createdMembersList, minEligibleAge]);
 
   return (
     <div className="min-h-screen bg-background pb-28">
@@ -525,7 +527,7 @@ function CreateHousePage() {
             {/* Unavailable Reason Selector */}
             {availability === "NOT_AVAILABLE" && (
               <div className="card-surface p-4 rounded-2xl border border-rose-500/30 bg-rose-500/5 space-y-3.5 animate-in fade-in">
-                <Label className="text-xs font-semibold text-rose-600 dark:text-rose-400 uppercase tracking-wider">
+                <Label className="text-xs font-semibold text-rose-600  uppercase tracking-wider">
                   Reason for Non-Availability
                 </Label>
                 <div className="grid grid-cols-2 gap-2">

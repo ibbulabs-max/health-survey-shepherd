@@ -14,7 +14,9 @@ export const Route = createFileRoute("/")({
   ssr: false,
   beforeLoad: () => {
     if (import.meta.env.DEV) {
-      const qaRole = localStorage.getItem("QA_ROLE") || (import.meta.env as any).VITE_QA_ROLE;
+      const qaRole =
+        (typeof window !== "undefined" ? localStorage.getItem("QA_ROLE") : null) ||
+        (import.meta.env as any).VITE_QA_ROLE;
       if (qaRole) {
         throw redirect({ to: "/dashboard" });
       }
@@ -120,7 +122,7 @@ function SignInPage() {
             </p>
           </div>
 
-          <div className="card-surface space-y-6 p-6 rounded-3xl border border-white/20 dark:border-white/10 shadow-xl backdrop-blur-xl bg-white/70 dark:bg-zinc-900/70">
+          <div className="card-surface space-y-6 p-6 rounded-3xl border border-white/20  shadow-xl backdrop-blur-xl bg-card/70 ">
             <div className="space-y-3">
               <label className="text-sm font-semibold text-foreground">New 6-digit PIN</label>
               <InputOTP
@@ -195,7 +197,7 @@ function SignInPage() {
           <p className="mt-1 text-sm text-muted-foreground font-medium">{appConfig.builtBy}</p>
         </div>
 
-        <div className="card-surface space-y-6 p-6 rounded-3xl border border-white/20 dark:border-white/10 shadow-xl backdrop-blur-xl bg-white/70 dark:bg-zinc-900/70">
+        <div className="card-surface space-y-6 p-6 rounded-3xl border border-white/20  shadow-xl backdrop-blur-xl bg-card/70 ">
           <div className="space-y-2">
             <label htmlFor="userId" className="text-sm font-semibold text-foreground px-1">
               User ID

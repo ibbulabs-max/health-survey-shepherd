@@ -27,6 +27,7 @@ import { supabase } from "@/db/client";
 import { generateMemberId } from "@/services/houseService";
 import { useRefreshDataset } from "@/hooks/useDataset";
 import { useAuth } from "@/hooks/useAuth";
+import { useSettings } from "@/hooks/useSettings";
 
 interface AddMemberSheetProps {
   houseUuid: string;
@@ -41,8 +42,9 @@ export function AddMemberSheet({ houseUuid, houseId, currentMembers30Plus }: Add
   const [gender, setGender] = useState("");
   const { user } = useAuth();
   const refresh = useRefreshDataset();
+  const { minEligibleAge } = useSettings();
 
-  const is30Plus = parseInt(age, 10) >= 30;
+  const is30Plus = parseInt(age, 10) >= minEligibleAge;
 
   const add = useMutation({
     mutationFn: async () => {
@@ -105,8 +107,8 @@ export function AddMemberSheet({ houseUuid, houseId, currentMembers30Plus }: Add
                 Add Household Member
               </SheetTitle>
               <SheetDescription className="mt-1">
-                Enter details for the new member. Members 30 and older will automatically be
-                assigned a unique Member ID.
+                Enter details for the new member. Members {minEligibleAge} and older will
+                automatically be assigned a unique Member ID.
               </SheetDescription>
             </div>
             <Button
@@ -164,7 +166,7 @@ export function AddMemberSheet({ houseUuid, houseId, currentMembers30Plus }: Add
             <div className="card-surface p-3 border border-primary/20 bg-primary/5 rounded-xl mt-4">
               <p className="text-sm font-medium text-primary flex items-center gap-2">
                 <UserPlus className="size-4" />
-                Eligible for Screening (30+)
+                Eligible for Screening ({minEligibleAge}+)
               </p>
               <p className="text-xs text-primary/70 mt-1">
                 This member will automatically be assigned an ID like{" "}
@@ -174,7 +176,7 @@ export function AddMemberSheet({ houseUuid, houseId, currentMembers30Plus }: Add
           ) : age && !is30Plus ? (
             <div className="card-surface p-3 border border-border bg-surface-muted rounded-xl mt-4">
               <p className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                Under 30
+                Under {minEligibleAge}
               </p>
               <p className="text-xs text-muted-foreground mt-1">
                 This member is not eligible for regular screening and will not receive a dedicated

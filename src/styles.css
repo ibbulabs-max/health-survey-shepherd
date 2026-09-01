@@ -43,8 +43,8 @@
   --color-ring: var(--ring);
   --color-ring-offset-background: var(--background);
 
-  --color-risk-low: var(--risk-low);
-  --color-risk-low-soft: var(--risk-low-soft);
+  --color-risk-normal: var(--risk-normal);
+  --color-risk-normal-soft: var(--risk-normal-soft);
   --color-risk-moderate: var(--risk-moderate);
   --color-risk-moderate-soft: var(--risk-moderate-soft);
   --color-risk-high: var(--risk-high);
@@ -106,8 +106,8 @@
   --input: oklch(0.915 0.014 255);
   --ring: oklch(0.62 0.16 259);
 
-  --risk-low: oklch(0.6 0.14 155);
-  --risk-low-soft: oklch(0.95 0.05 155);
+  --risk-normal: oklch(0.6 0.14 155);
+  --risk-normal-soft: oklch(0.95 0.05 155);
   --risk-moderate: oklch(0.72 0.16 68);
   --risk-moderate-soft: oklch(0.96 0.055 78);
   --risk-high: oklch(0.58 0.21 25);
@@ -128,6 +128,63 @@
   --sidebar-accent: oklch(0.955 0.028 255);
   --sidebar-accent-foreground: oklch(0.4 0.13 259);
   --sidebar-border: oklch(0.925 0.012 255);
+  --sidebar-ring: oklch(0.62 0.16 259);
+}
+
+/* ── Dark Mode ── iPhone-style dark interface: near-black, not pure black ── */
+[data-theme="dark"] {
+  --background: oklch(0.145 0.015 258);
+  --foreground: oklch(0.93 0.008 250);
+  --surface: oklch(0.19 0.015 258);
+  --surface-muted: oklch(0.165 0.012 258);
+
+  --card: oklch(0.21 0.015 258);
+  --card-foreground: oklch(0.93 0.008 250);
+  --popover: oklch(0.21 0.015 258);
+  --popover-foreground: oklch(0.93 0.008 250);
+
+  --primary: oklch(0.65 0.19 259);
+  --primary-foreground: oklch(0.99 0.005 250);
+  --primary-soft: oklch(0.25 0.04 258);
+
+  --secondary: oklch(0.24 0.012 256);
+  --secondary-foreground: oklch(0.82 0.02 252);
+
+  --muted: oklch(0.24 0.012 256);
+  --muted-foreground: oklch(0.62 0.02 256);
+
+  --accent: oklch(0.26 0.025 256);
+  --accent-foreground: oklch(0.78 0.08 259);
+
+  --destructive: oklch(0.62 0.21 25);
+  --destructive-foreground: oklch(0.99 0.005 250);
+
+  --border: oklch(0.30 0.012 258);
+  --input: oklch(0.26 0.012 258);
+  --ring: oklch(0.62 0.16 259);
+
+  --risk-normal: oklch(0.65 0.14 155);
+  --risk-normal-soft: oklch(0.22 0.04 155);
+  --risk-moderate: oklch(0.75 0.14 68);
+  --risk-moderate-soft: oklch(0.24 0.04 68);
+  --risk-high: oklch(0.62 0.21 25);
+  --risk-high-soft: oklch(0.24 0.04 25);
+  --info: oklch(0.65 0.19 259);
+  --info-soft: oklch(0.25 0.04 258);
+
+  --chart-1: oklch(0.65 0.19 259);
+  --chart-2: oklch(0.72 0.12 210);
+  --chart-3: oklch(0.65 0.14 155);
+  --chart-4: oklch(0.75 0.14 68);
+  --chart-5: oklch(0.62 0.21 25);
+
+  --sidebar: oklch(0.17 0.015 258);
+  --sidebar-foreground: oklch(0.88 0.008 250);
+  --sidebar-primary: oklch(0.65 0.19 259);
+  --sidebar-primary-foreground: oklch(0.99 0.005 250);
+  --sidebar-accent: oklch(0.25 0.025 258);
+  --sidebar-accent-foreground: oklch(0.78 0.08 259);
+  --sidebar-border: oklch(0.30 0.012 258);
   --sidebar-ring: oklch(0.62 0.16 259);
 }
 

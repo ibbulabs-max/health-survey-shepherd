@@ -336,25 +336,25 @@ function ImportPage() {
 
           {/* Dynamic real-time statistics */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 border-t border-border/40 text-center">
-            <div className="p-2 rounded-xl bg-white/60">
+            <div className="p-2 rounded-xl bg-card/60">
               <p className="text-[10px] text-muted-foreground font-semibold">Houses Added</p>
               <p className="text-sm font-bold text-foreground">{activeJob.housesAdded}</p>
             </div>
-            <div className="p-2 rounded-xl bg-white/60">
+            <div className="p-2 rounded-xl bg-card/60">
               <p className="text-[10px] text-muted-foreground font-semibold">Members Added</p>
               <p className="text-sm font-bold text-emerald-600">{activeJob.membersAdded}</p>
             </div>
-            <div className="p-2 rounded-xl bg-white/60">
+            <div className="p-2 rounded-xl bg-card/60">
               <p className="text-[10px] text-muted-foreground font-semibold">Members Merged</p>
               <p className="text-sm font-bold text-amber-600">{activeJob.membersMerged}</p>
             </div>
-            <div className="p-2 rounded-xl bg-white/60">
+            <div className="p-2 rounded-xl bg-card/60">
               <p className="text-[10px] text-muted-foreground font-semibold">Errors</p>
               <p className="text-sm font-bold text-red-600">{activeJob.failedRows}</p>
             </div>
           </div>
 
-          <p className="text-[11px] text-primary/80 font-medium bg-white/80 p-2.5 rounded-xl text-center">
+          <p className="text-[11px] text-primary/80 font-medium bg-card/80 p-2.5 rounded-xl text-center">
             ✨ This import is running safely in the background on the server. You can safely
             navigate to any other page or close the app.
           </p>
@@ -411,7 +411,7 @@ function ImportPage() {
                 </button>
 
                 {showErrorDetails && (
-                  <div className="mt-2 p-3 rounded-xl bg-white border border-amber-200 max-h-48 overflow-y-auto space-y-1.5 text-xs text-muted-foreground">
+                  <div className="mt-2 p-3 rounded-xl bg-card border border-amber-200 max-h-48 overflow-y-auto space-y-1.5 text-xs text-muted-foreground">
                     {activeJob.errorSummary.map((err, idx) => (
                       <p key={idx}>
                         <span className="font-bold text-foreground">Row {err.row}:</span>{" "}
@@ -483,11 +483,11 @@ function ImportPage() {
             {mappingState.unmapped.map((header) => (
               <div
                 key={header}
-                className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 p-3 bg-white/50 backdrop-blur-sm rounded-xl border border-amber-200/50"
+                className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 p-3 bg-card/50 backdrop-blur-sm rounded-xl border border-amber-200/50"
               >
                 <span className="font-medium text-sm">{header}</span>
                 <select
-                  className="rounded-lg border border-amber-200 p-2 text-sm bg-white w-full sm:w-64"
+                  className="rounded-lg border border-amber-200 p-2 text-sm bg-card w-full sm:w-64"
                   value={mappingState.suggestedMapping[header] || ""}
                   onChange={(e) => {
                     setMappingState({
@@ -686,7 +686,7 @@ function ImportPage() {
                                 "rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
                                 (decisions[m.key] ?? "insert") === choice
                                   ? "border-primary bg-primary text-primary-foreground shadow-sm"
-                                  : "border-amber-200 bg-white text-muted-foreground hover:bg-amber-50",
+                                  : "border-amber-200 bg-card text-muted-foreground hover:bg-amber-50",
                               )}
                             >
                               {choice === "merge" ? "Same person" : "New person"}
@@ -722,7 +722,7 @@ function ImportPage() {
           ) : null}
 
           {/* Bottom Action Bar */}
-          <div className="flex flex-wrap gap-2 sticky bottom-4 z-10 p-4 bg-white/80 backdrop-blur-md rounded-2xl border shadow-sm mt-8">
+          <div className="flex flex-wrap gap-2 sticky bottom-4 z-10 p-4 bg-card/80 backdrop-blur-md rounded-2xl border shadow-sm mt-8">
             <Button
               className="rounded-xl shadow-sm w-full sm:w-auto font-semibold"
               disabled={commit.isPending}

@@ -23,6 +23,7 @@ export interface ActiveFilters {
   assessmentStatus: string | null;
   dataQuality: string | null;
   search: string;
+  eligibleOnly: boolean;
 }
 
 export const initialFilters: ActiveFilters = {
@@ -42,6 +43,7 @@ export const initialFilters: ActiveFilters = {
   assessmentStatus: null,
   dataQuality: null,
   search: "",
+  eligibleOnly: true,
 };
 
 export interface AnalyticsItem {
@@ -90,12 +92,16 @@ export function useAnalytics() {
       scopedMembers = scopedMembers.filter((m) => m.houseUuid && houseIds.has(m.houseUuid));
     }
 
+    if (filters.eligibleOnly) {
+      scopedMembers = scopedMembers.filter((m) => m.eligible);
+    }
+
     const totalScopedMembers = scopedMembers.length;
 
     // 2. Data aggregation structures
     const ageMap = new Map<number, MemberView[]>();
     const genderMap = new Map<string, MemberView[]>();
-    const riskMap: Record<RiskLevel, MemberView[]> = { high: [], moderate: [], low: [] };
+    const riskMap: Record<RiskLevel, MemberView[]> = { high: [], moderate: [], normal: [] };
     const bpMap = new Map<string, MemberView[]>();
     const sugarMap = new Map<number, MemberView[]>();
     const bmiMap = new Map<string, MemberView[]>();
@@ -199,7 +205,7 @@ export function useAnalytics() {
       if (
         act &&
         (act.includes("inactiv") ||
-          act.includes("low") ||
+          act.includes("normal") ||
           act.includes("sedentary") ||
           act.includes("no"))
       ) {
@@ -208,7 +214,7 @@ export function useAnalytics() {
           m,
         ]);
       }
-      if (m.risk === "low" && m.conditions.length === 0) {
+      if (m.risk === "normal" && m.conditions.length === 0) {
         lifestyleMap.set("Healthy Diet", [...(lifestyleMap.get("Healthy Diet") ?? []), m]);
       }
 
@@ -303,12 +309,12 @@ export function useAnalytics() {
         filterValue: "moderate",
       },
       {
-        label: "Low Risk",
-        value: "low",
-        count: riskMap.low.length,
+        label: "Normal Risk",
+        value: "normal",
+        count: riskMap.normal.length,
         tone: "green" as CandleTone,
         filterKey: "risk" as keyof ActiveFilters,
-        filterValue: "low",
+        filterValue: "normal",
       },
     ].filter((i) => i.count > 0);
 

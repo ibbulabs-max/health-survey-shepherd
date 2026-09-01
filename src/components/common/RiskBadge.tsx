@@ -2,7 +2,7 @@ import { riskLabels, type RiskLevel } from "@/config/risk";
 import { cn } from "@/lib/utils";
 
 const styles: Record<RiskLevel, string> = {
-  low: "bg-risk-low-soft text-risk-low",
+  normal: "bg-risk-normal-soft text-risk-normal",
   moderate: "bg-risk-moderate-soft text-risk-moderate",
   high: "bg-risk-high-soft text-risk-high",
 };

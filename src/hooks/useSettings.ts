@@ -3,7 +3,7 @@ import { followUpConfig } from "@/config/followups";
 import type { RiskLevel } from "@/config/risk";
 import { supabase } from "@/db/client";
 import { tables } from "@/config/database";
-import { getHealthThresholds } from "@/services/settingsServerFns";
+import { getHealthThresholdSettings } from "@/services/settingsService";
 
 interface SettingsState {
   followUpIntervals: Record<RiskLevel, number>;
@@ -36,15 +36,14 @@ export const useSettings = create<SettingsState>()((set, get) => ({
       }
 
       // 2. Load health thresholds and intervals from the backend table
-      const response = await getHealthThresholds({ data: { userId, role, supervisorId } });
-      if (response && response.success && response.settings) {
-        const s = response.settings;
+      const s = await getHealthThresholdSettings(false, userId, role, supervisorId, supabase);
+      if (s) {
         set({
           minEligibleAge: s.minimum_eligible_age ?? 30,
           followUpIntervals: {
             high: s.interval_high ?? followUpConfig.intervalDays.high,
             moderate: s.interval_moderate ?? followUpConfig.intervalDays.moderate,
-            low: s.interval_low ?? followUpConfig.intervalDays.low,
+            normal: s.interval_normal ?? followUpConfig.intervalDays.normal,
           },
           thresholds: {
             ...s,

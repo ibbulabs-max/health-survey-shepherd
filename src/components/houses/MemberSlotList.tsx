@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import type { CreateHouseMemberInput } from "@/services/houseService";
 import { generateMemberId } from "@/services/houseService";
+import { useSettings } from "@/hooks/useSettings";
 import { cn } from "@/lib/utils";
 
 export interface MemberSlotListProps {
@@ -14,6 +15,8 @@ export interface MemberSlotListProps {
 }
 
 export function MemberSlotList({ houseId, members, onMembersChange }: MemberSlotListProps) {
+  const { minEligibleAge } = useSettings();
+
   const handleUpdateMember = (index: number, updates: Partial<CreateHouseMemberInput>) => {
     const updated = [...members];
     const current = updated[index];
@@ -41,7 +44,7 @@ export function MemberSlotList({ houseId, members, onMembersChange }: MemberSlot
   // Compute 30+ indexing for Member IDs
   let count30Plus = 0;
   const computedMemberIds = members.map((m) => {
-    if (m.age != null && m.age >= 30) {
+    if (m.age != null && m.age >= minEligibleAge) {
       count30Plus++;
       return generateMemberId(houseId, count30Plus);
     }
@@ -74,7 +77,7 @@ export function MemberSlotList({ houseId, members, onMembersChange }: MemberSlot
       {/* Member Cards */}
       <div className="space-y-3">
         {members.map((member, index) => {
-          const is30Plus = member.age != null && member.age >= 30;
+          const is30Plus = member.age != null && member.age >= minEligibleAge;
           const assignedMemberId = computedMemberIds[index];
 
           return (

@@ -127,7 +127,7 @@ export async function saveScreening(input: ScreeningInput) {
     .eq("member_uuid", input.memberUuid)
     .eq("status", "pending");
 
-  // Call the centralized follow-up engine to calculate risk and next due date based on eligibility (age >= 30)
+  // Call the centralized follow-up engine to calculate risk and next due date based on eligibility (age >= minEligibleAge)
   const { recalculatePendingFollowUp } = await import("@/services/followUpService");
   await recalculatePendingFollowUp(input.memberUuid);
 

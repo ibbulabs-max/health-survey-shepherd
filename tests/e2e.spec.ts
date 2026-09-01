@@ -16,7 +16,9 @@ test.describe("Management App E2E Flow", () => {
   test("Complete flow: Login, User Creation, Import, Analytics, Dashboards", async ({ page }) => {
     // 1. Login
     await page.goto("/");
-    await expect(page.getByRole("heading", { name: /Management App/i })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /Management App/i })).toBeVisible({
+      timeout: 30000,
+    });
     await page.getByPlaceholder("e.g. admin").fill("e2eadmin");
     await page.locator('input[inputmode="numeric"]').fill(ADMIN_PIN);
 

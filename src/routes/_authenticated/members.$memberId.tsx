@@ -324,7 +324,7 @@ function MemberSummaryPage() {
                   variant="outline"
                   size="sm"
                   onClick={() => setIsEditing(true)}
-                  className="ml-auto shrink-0 h-7 text-xs border-rose-200 text-rose-700 bg-white"
+                  className="ml-auto shrink-0 h-7 text-xs border-rose-200 text-rose-700 bg-card"
                 >
                   Fix Now
                 </Button>
@@ -396,7 +396,7 @@ function MemberSummaryPage() {
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                   Past Follow-up Records ({followUpSummary.history.length})
                 </p>
-                <div className="divide-y divide-border/40 rounded-xl border border-border/50 overflow-hidden bg-white">
+                <div className="divide-y divide-border/40 rounded-xl border border-border/50 overflow-hidden bg-card">
                   {followUpSummary.history.map((item, idx) => (
                     <div
                       key={item.id ?? `${item.dateKey}-${idx}`}

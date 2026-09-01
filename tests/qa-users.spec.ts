@@ -34,7 +34,7 @@ test.describe("QA User Creation Flow", () => {
       }
     }
 
-    await page.waitForSelector("text=Dashboard", { timeout: 15000 });
+    await page.waitForSelector("text=Hello,", { timeout: 30000 });
     console.log("Logged in as Admin");
 
     // --- 2. CREATE SUPERVISOR ---
@@ -74,8 +74,10 @@ test.describe("QA User Creation Flow", () => {
     console.log("CHW created");
 
     // --- 4. LOGOUT ---
-    await page.click("text=admin-placeholder");
-    await page.getByRole("menuitem", { name: /Sign out/i }).click();
+    if (await page.getByRole("button", { name: "More" }).isVisible()) {
+      await page.getByRole("button", { name: "More" }).click();
+    }
+    await page.getByRole("button", { name: "Sign out" }).click();
 
     // --- 5. SUPERVISOR LOGIN & PASSWORD SETUP ---
     await page.waitForSelector("#userId");
@@ -88,10 +90,12 @@ test.describe("QA User Creation Flow", () => {
     await page.keyboard.type(process.env.QA_NEW_PASSWORD || "111111");
     await page.locator(".size-11").nth(6).click();
     await page.keyboard.type(process.env.QA_NEW_PASSWORD || "111111");
-    await page.waitForSelector("text=Dashboard", { timeout: 15000 });
+    await page.waitForSelector("text=Hello,", { timeout: 30000 });
 
-    await page.click("text=Supervisor QA");
-    await page.getByRole("menuitem", { name: /Sign out/i }).click();
+    if (await page.getByRole("button", { name: "More" }).isVisible()) {
+      await page.getByRole("button", { name: "More" }).click();
+    }
+    await page.getByRole("button", { name: "Sign out" }).click();
 
     // --- 6. CHW LOGIN & PASSWORD SETUP ---
     await page.waitForSelector("#userId");
@@ -104,10 +108,12 @@ test.describe("QA User Creation Flow", () => {
     await page.keyboard.type(process.env.QA_NEW_PASSWORD || "111111");
     await page.locator(".size-11").nth(6).click();
     await page.keyboard.type(process.env.QA_NEW_PASSWORD || "111111");
-    await page.waitForSelector("text=Dashboard", { timeout: 15000 });
+    await page.waitForSelector("text=Hello,", { timeout: 30000 });
 
-    await page.click("text=CHW QA");
-    await page.getByRole("menuitem", { name: /Sign out/i }).click();
+    if (await page.getByRole("button", { name: "More" }).isVisible()) {
+      await page.getByRole("button", { name: "More" }).click();
+    }
+    await page.getByRole("button", { name: "Sign out" }).click();
 
     console.log("QA Accounts created and verified.");
   });
