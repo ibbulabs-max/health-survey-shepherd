@@ -20,7 +20,6 @@ import React from "react";
 
 import { useDataset, useRefreshDataset } from "@/hooks/useDataset";
 import { useAuth } from "@/hooks/useAuth";
-import { useSettings } from "@/hooks/useSettings";
 import {
   createHouseWithDetails,
   buildCanonicalHouseId,
@@ -37,6 +36,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { cn } from "@/lib/utils";
+import { isEligibleMember } from "@/lib/domain";
 
 const surveyNewSearchSchema = z.object({
   lat: z.number().optional(),
@@ -72,7 +72,7 @@ function CreateHousePage() {
   const refresh = useRefreshDataset();
   const { role } = useAuth();
   const isCHW = role === "survey_user";
-  const { minEligibleAge } = useSettings();
+  const isCHW = role === "survey_user";
 
   const [currentStep, setCurrentStep] = useState(
     searchParams.houseId ? 6 : searchParams.mode === "new" ? 1 : (searchParams.step ?? 0),
@@ -282,11 +282,8 @@ function CreateHousePage() {
   };
 
   const eligible30Plus = useMemo(() => {
-    return createdMembersList.filter((m) => {
-      const age = m.data?.age != null ? Number(m.data.age) : null;
-      return age != null && age >= minEligibleAge;
-    });
-  }, [createdMembersList, minEligibleAge]);
+    return createdMembersList.filter((m) => isEligibleMember(m));
+  }, [createdMembersList]);
 
   return (
     <div className="min-h-screen bg-background pb-28">

@@ -101,7 +101,15 @@ export function useAnalytics() {
     // 2. Data aggregation structures
     const ageMap = new Map<number, MemberView[]>();
     const genderMap = new Map<string, MemberView[]>();
-    const riskMap: Record<RiskLevel, MemberView[]> = { high: [], moderate: [], low: [] };
+    // Risk map: only counts members with VALID clinical risk (low/moderate/high)
+    // missing and invalid are tracked separately for data quality reporting
+    const riskMap: Record<string, MemberView[]> = {
+      high: [],
+      moderate: [],
+      low: [],
+      missing: [],
+      invalid: [],
+    };
     const bpMap = new Map<string, MemberView[]>();
     const sugarMap = new Map<number, MemberView[]>();
     const bmiMap = new Map<string, MemberView[]>();
@@ -139,8 +147,18 @@ export function useAnalytics() {
         genderMap.set(normalizedGender, [...(genderMap.get(normalizedGender) ?? []), m]);
       }
 
-      // Clinical Risk
-      riskMap[m.risk].push(m);
+      // Clinical Risk — only count valid risk levels
+      // missing/invalid are preserved for data quality and do NOT inflate Low count
+      const riskKey = m.risk; // ClinicalRiskState: "high"|"moderate"|"low"|"missing"|"invalid"
+      if (
+        riskKey === "high" ||
+        riskKey === "moderate" ||
+        riskKey === "low" ||
+        riskKey === "missing" ||
+        riskKey === "invalid"
+      ) {
+        (riskMap[riskKey] ??= []).push(m);
+      }
 
       // BP (systolic/diastolic)
       if (m.systolic != null && m.diastolic != null) {
@@ -262,7 +280,7 @@ export function useAnalytics() {
 
     // Referral Status data aggregation
     const referralMap = new Map<string, number>();
-    const referredCount = riskMap.high.length;
+    const referredCount = riskMap["high"]?.length ?? 0;
     if (referredCount > 0) {
       referralMap.set("Referred", Math.round(referredCount * 0.4) || 1);
       referralMap.set("In Progress", Math.round(referredCount * 0.3) || 1);
@@ -295,7 +313,7 @@ export function useAnalytics() {
       {
         label: "High Risk",
         value: "high",
-        count: riskMap.high.length,
+        count: riskMap["high"]?.length ?? 0,
         tone: "red" as CandleTone,
         filterKey: "risk" as keyof ActiveFilters,
         filterValue: "high",
@@ -303,19 +321,20 @@ export function useAnalytics() {
       {
         label: "Moderate Risk",
         value: "moderate",
-        count: riskMap.moderate.length,
+        count: riskMap["moderate"]?.length ?? 0,
         tone: "orange" as CandleTone,
         filterKey: "risk" as keyof ActiveFilters,
         filterValue: "moderate",
       },
       {
-        label: "Normal Risk",
+        label: "Low Risk",
         value: "low",
-        count: riskMap.low.length,
+        count: riskMap["low"]?.length ?? 0,
         tone: "green" as CandleTone,
         filterKey: "risk" as keyof ActiveFilters,
         filterValue: "low",
       },
+      // "missing" shown in data quality section, not in risk counts
     ].filter((i) => i.count > 0);
 
     const bpItems: AnalyticsItem[] = Array.from(bpMap.entries())
@@ -527,10 +546,10 @@ export function useAnalytics() {
     return {
       kpi: {
         totalMembers: totalScopedMembers,
-        highRisk: riskMap.high.length,
+        highRisk: riskMap["high"]?.length ?? 0,
         highRiskPct:
           totalScopedMembers > 0
-            ? ((riskMap.high.length / totalScopedMembers) * 100).toFixed(2)
+            ? (((riskMap["high"]?.length ?? 0) / totalScopedMembers) * 100).toFixed(2)
             : "0",
         followUps: allFollowUps.length,
         followUpsPct:
@@ -540,6 +559,7 @@ export function useAnalytics() {
         referrals: referredCount,
         referralsPct:
           totalScopedMembers > 0 ? ((referredCount / totalScopedMembers) * 100).toFixed(2) : "0",
+        missingRisk: riskMap["missing"]?.length ?? 0,
       },
       ages: ageItems,
       genders: genderItems,

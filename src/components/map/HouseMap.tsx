@@ -3,7 +3,7 @@ import { SharedMap } from "@/components/map/SharedMap";
 import { HouseDetailSheet } from "@/components/houses/HouseDetailSheet";
 import type { HouseView } from "@/lib/domain";
 import type { Pin } from "@/lib/pin-types";
-import type { RiskLevel } from "@/config/risk";
+import type { RiskLevel, ClinicalRiskState } from "@/config/risk";
 
 export default function HouseMap({ houses }: { houses: HouseView[] }) {
   const [activeHouse, setActiveHouse] = useState<HouseView | null>(null);
@@ -35,7 +35,7 @@ export default function HouseMap({ houses }: { houses: HouseView[] }) {
   }, [houses]);
 
   const riskByHouse = useMemo(() => {
-    const out: Record<string, RiskLevel> = {};
+    const out: Record<string, ClinicalRiskState> = {};
     for (const h of houses) {
       if (h.house.house_id) {
         out[h.house.house_id.trim().toUpperCase()] = h.risk;

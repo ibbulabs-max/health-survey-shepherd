@@ -1,7 +1,7 @@
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { tables } from "@/config/database";
 import { followUpConfig } from "@/config/followups";
-import { calculateRisk, toStringArray, numberOrNull } from "@/lib/domain";
+import { toStringArray, numberOrNull } from "@/lib/domain";
 import type { RiskLevel } from "@/config/risk";
 import {
   isEligibleForFollowUp,
@@ -247,10 +247,10 @@ class ImportJobManager {
 
         // Pre-fetch houses for this chunk to avoid duplicates
         const chunkHouseIds = chunk
-          .map((h) => h.fields["house_id"] ? String(h.fields["house_id"]).trim() : "")
+          .map((h) => (h.fields["house_id"] ? String(h.fields["house_id"]).trim() : ""))
           .filter(Boolean);
         const chunkHouseNums = chunk
-          .map((h) => h.fields["house_number"] ? String(h.fields["house_number"]).trim() : "")
+          .map((h) => (h.fields["house_number"] ? String(h.fields["house_number"]).trim() : ""))
           .filter(Boolean);
 
         if (chunkHouseIds.length > 0) {
@@ -352,6 +352,33 @@ class ImportJobManager {
                   string,
                   any
                 >;
+
+                // -- CANONICAL NORMALIZATION --
+                // 1. Clinical Risk
+                const rawRisk = newFieldsAndExtra["clinical_risk"];
+                let normalizedRisk = "missing";
+                if (rawRisk != null && String(rawRisk).trim() !== "") {
+                  const str = String(rawRisk).trim().toLowerCase();
+                  if (str === "high" || str === "moderate" || str === "low") {
+                    normalizedRisk = str;
+                  } else if (str === "normal") {
+                    normalizedRisk = "low";
+                  } else {
+                    normalizedRisk = "invalid";
+                  }
+                }
+                newFieldsAndExtra["clinical_risk"] = normalizedRisk;
+
+                // 2. Eligible
+                const rawEligible = newFieldsAndExtra["eligible"];
+                if (rawEligible != null && String(rawEligible).trim().toLowerCase() === "yes") {
+                  newFieldsAndExtra["eligible"] = "Yes";
+                } else if (
+                  rawEligible != null &&
+                  String(rawEligible).trim().toLowerCase() === "no"
+                ) {
+                  newFieldsAndExtra["eligible"] = "No";
+                }
 
                 // Multi-member house check
                 let existingMember = member.existingId
@@ -507,56 +534,35 @@ class ImportJobManager {
                     member.fields["known_history"] ?? newFieldsAndExtra["known_history"] ?? [],
                   );
 
-                  // -- C. Clinical Risk -- READ FROM EXCEL FIRST (authoritative) --
-                  // Excel: LOW / MODERATE / HIGH -> internal: low / moderate / high
-                  const excelClinicalRisk =
-                    member.fields["clinical_risk"] ?? newFieldsAndExtra["clinical_risk"];
-
-                  let risk: RiskLevel | undefined = undefined;
+                  // -- C. Clinical Risk -- READ FROM EXCEL ONLY (authoritative) --
+                  const excelClinicalRisk = newFieldsAndExtra["clinical_risk"]; // already normalized above
+                  let risk: RiskLevel | null = null;
                   let riskReasons: string[] = [];
 
-                  let isFallback = true;
-
-                  if (excelClinicalRisk && String(excelClinicalRisk).trim() !== "") {
-                    // Use the Excel-provided Clinical Risk directly (primary source of truth)
-                    const { asRisk } = await import("@/lib/domain");
-                    const parsedRisk = asRisk(String(excelClinicalRisk));
-                    
-                    if (parsedRisk === "high" || parsedRisk === "moderate" || parsedRisk === "low") {
-                      risk = parsedRisk;
-                      riskReasons = [`Clinical Risk from Excel: ${String(excelClinicalRisk)}`];
-                      isFallback = false;
-                    } else if (parsedRisk === "invalid") {
-                      riskReasons = [`Warning: Original Excel Risk '${excelClinicalRisk}' was invalid and discarded.`];
+                  if (
+                    excelClinicalRisk === "high" ||
+                    excelClinicalRisk === "moderate" ||
+                    excelClinicalRisk === "low"
+                  ) {
+                    risk = excelClinicalRisk as RiskLevel;
+                    riskReasons = [`Clinical Risk from Excel: ${excelClinicalRisk}`];
+                  } else if (excelClinicalRisk === "invalid") {
+                    riskReasons = [`Invalid Clinical Risk value in Excel — stored as null`];
+                    job.errorSummary.push({
+                      row: job.processedRows + 1,
+                      item: member.name || "Member",
+                      error: `Invalid Clinical Risk in Excel. Stored as null.`,
+                    });
+                  } else {
+                    riskReasons = ["Clinical Risk not provided in Excel — stored as null"];
+                    const hasSomeData = systolic != null || diastolic != null || bloodSugar != null;
+                    if (hasSomeData) {
+                      job.errorSummary.push({
+                        row: job.processedRows + 1,
+                        item: member.name || "Member",
+                        error: `Clinical Risk missing in Excel (vitals present). Stored as null — please update source data.`,
+                      });
                     }
-                  }
-
-                  if (isFallback) {
-                    // Fall back to calculating from vitals only when Excel doesn't have a valid Clinical Risk
-                    let thresholds;
-                    try {
-                      const { getHealthThresholdSettings } =
-                        await import("@/services/settingsService");
-                      const s = await getHealthThresholdSettings();
-                      thresholds = {
-                        bp: {
-                          high: { systolic: s.systolic_high_min, diastolic: s.diastolic_high_min },
-                          moderate: {
-                            systolic: s.systolic_moderate_min,
-                            diastolic: s.diastolic_moderate_min,
-                          },
-                        },
-                        sugar: { high: s.sugar_high_min, moderate: s.sugar_moderate_min },
-                      };
-                    } catch (e) {
-                      thresholds = undefined;
-                    }
-                    const riskResult = calculateRisk(
-                      { systolic, diastolic, bloodSugar, conditions },
-                      thresholds,
-                    );
-                    risk = riskResult.level;
-                    riskReasons.push(...riskResult.reasons);
                   }
 
                   // -- D. Persist assessment if there is any clinical data --
@@ -565,7 +571,7 @@ class ImportJobManager {
                     diastolic != null ||
                     bloodSugar != null ||
                     conditions.length > 0 ||
-                    (excelClinicalRisk != null && String(excelClinicalRisk).trim() !== "");
+                    (excelClinicalRisk !== "missing" && excelClinicalRisk !== "invalid");
 
                   if (hasClinicalData) {
                     await adminClient.from(tables.memberAssessments).insert({
@@ -575,7 +581,7 @@ class ImportJobManager {
                       diastolic,
                       blood_sugar: bloodSugar,
                       known_history: conditions,
-                      risk_level: risk as RiskLevel,
+                      risk_level: risk,
                       risk_reasons: riskReasons,
                       assessed_by: validUploadedBy,
                       assessed_at: validSurveyDate.toISOString(),
@@ -584,46 +590,23 @@ class ImportJobManager {
                     });
                   }
 
-                  // -- E. Eligibility -- Read from Excel first, fall back to age --
-                  // Excel field "Eligible (>=30)" contains "Yes" / "No"
-                  const eligibleRaw = member.fields["eligible"] ?? newFieldsAndExtra["eligible"];
+                  // -- E. Eligibility -- Read from Excel --
+                  const eligibleRaw = newFieldsAndExtra["eligible"];
+                  const isEligible = eligibleRaw === "Yes";
 
-                  let isEligible: boolean;
-                  if (eligibleRaw != null && String(eligibleRaw).trim() !== "") {
-                    // Excel explicitly says Yes/No
-                    isEligible = String(eligibleRaw).trim().toLowerCase() === "yes";
-                  } else {
-                    // Fall back to age-based calculation
-                    const age = numberOrNull(newFieldsAndExtra["age"] ?? member.fields["age"]);
-                    let minEligibleAge = 30;
-                    try {
-                      const { getHealthThresholdSettings } =
-                        await import("@/services/settingsService");
-                      const s = await getHealthThresholdSettings();
-                      minEligibleAge = s.minimum_eligible_age ?? 30;
-                    } catch (e) {
-                      /* ignore - use default 30 */
-                    }
-                    isEligible = isEligibleForFollowUp(age, minEligibleAge);
-                  }
-
-                  // -- F. Create follow-up only for eligible members with clinical data --
-                  if (isEligible && hasClinicalData) {
+                  // -- F. Create follow-up only for eligible members WITH a valid Clinical Risk --
+                  // If Clinical Risk is missing/null, we cannot determine the correct interval,
+                  // so no follow-up is created. This prevents false scheduling.
+                  if (isEligible && hasClinicalData && risk !== null) {
                     // Get configured intervals (low=180, moderate=30, high=15)
-                    let customIntervals: Record<RiskLevel, number>;
-                    try {
-                      const { getHealthThresholdSettings } =
-                        await import("@/services/settingsService");
-                      const s = await getHealthThresholdSettings();
-                      customIntervals = {
-                        high: s.interval_high,
-                        moderate: s.interval_moderate,
-                        // "low" is the internal key for Excel's LOW / UI's Normal
-                        low: s.interval_normal,
-                      };
-                    } catch (e) {
-                      customIntervals = followUpConfig.intervalDays;
-                    }
+                    const { getHealthThresholdSettings } =
+                      await import("@/services/settingsService");
+                    const s = await getHealthThresholdSettings();
+                    const customIntervals: Record<RiskLevel, number> = {
+                      high: s.interval_high ?? 15,
+                      moderate: s.interval_moderate ?? 30,
+                      low: s.interval_low ?? 180,
+                    };
 
                     // -- G. Follow-up Anchor Date --
                     // RULE: Use SURVEY / SCREENING DATE from Excel as the initial anchor.
@@ -650,7 +633,7 @@ class ImportJobManager {
 
                     const nextDueDateStr = calculateNextFollowUpDate(
                       anchorDate,
-                      risk as RiskLevel,
+                      risk,
                       customIntervals,
                     );
 
@@ -668,7 +651,7 @@ class ImportJobManager {
                         .from(tables.followUps)
                         .update({
                           due_date: nextDueDateStr,
-                          risk_level: risk as RiskLevel,
+                          risk_level: risk,
                           reason: `Imported ${risk} risk follow-up`,
                           updated_at: new Date().toISOString(),
                         })
@@ -690,7 +673,7 @@ class ImportJobManager {
                           member_uuid: memberUuid,
                           due_date: nextDueDateStr,
                           reason: `Imported ${risk} risk follow-up`,
-                          risk_level: risk as RiskLevel,
+                          risk_level: risk,
                           status: "pending",
                           created_by: validUploadedBy,
                         })
@@ -710,7 +693,7 @@ class ImportJobManager {
                       }
                     }
                   }
-                  // If isEligible = false: no follow-up is created (per spec)
+                  // If isEligible=false or risk=null: no follow-up is created (per spec)
                 }
 
                 job.processedRows += 1;

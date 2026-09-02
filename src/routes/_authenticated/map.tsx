@@ -29,7 +29,7 @@ import { supabase } from "@/db/client";
 
 import { SharedMap } from "@/components/map/SharedMap";
 import { PIN_TYPES, pinTypeDef, pinTypeLabel, distanceMeters, type Pin } from "@/lib/pin-types";
-import type { RiskLevel } from "@/config/risk";
+import type { RiskLevel, ClinicalRiskState } from "@/config/risk";
 
 import {
   Drawer,
@@ -249,7 +249,7 @@ function MapPage() {
   }, [search.filter, pins, position]);
 
   const riskByHouse = useMemo(() => {
-    const out: Record<string, RiskLevel> = {};
+    const out: Record<string, ClinicalRiskState> = {};
     for (const h of houses) {
       if (h.house.house_id) {
         out[h.house.house_id.trim().toUpperCase()] = h.risk;

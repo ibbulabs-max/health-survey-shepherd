@@ -45,11 +45,7 @@ import { tables } from "@/config/database";
 import { supabase } from "@/db/client";
 import { updateLastFollowUpDate } from "@/services/followUpService";
 import type { RiskLevel } from "@/config/risk";
-import {
-  extractMemberFollowUpSummary,
-  formatDisplayDate,
-  isEligibleForFollowUp,
-} from "@/lib/followUpEngine";
+import { extractMemberFollowUpSummary, formatDisplayDate } from "@/lib/followUpEngine";
 
 export const Route = createFileRoute("/_authenticated/members/$memberId")({
   component: MemberSummaryPage,
@@ -87,7 +83,6 @@ function MemberSummaryPage() {
       member,
       member.assessment,
       data.followUps,
-      30, // minEligibleAge default
       followUpConfig.intervalDays,
     );
   }, [member, data]);
@@ -182,8 +177,8 @@ function MemberSummaryPage() {
               }`}
             >
               {followUpSummary?.isEligible
-                ? "Eligible (Age ≥ 30)"
-                : "Not Eligible for Follow-up (Age < 30)"}
+                ? "Eligible for Follow-up"
+                : "Not Eligible for Follow-up"}
             </span>
           </div>
           <p className="text-sm text-muted-foreground truncate mt-0.5">

@@ -8,7 +8,6 @@ import { getHealthThresholdSettings } from "@/services/settingsService";
 interface SettingsState {
   followUpIntervals: Record<RiskLevel, number>;
   dailyTarget: number;
-  minEligibleAge: number;
   thresholds: any | null; // You can type this better later if needed
   updateDailyTarget: (target: number) => Promise<void>;
   loadSettings: (userId?: string, role?: string, supervisorId?: string) => Promise<void>;
@@ -17,7 +16,6 @@ interface SettingsState {
 export const useSettings = create<SettingsState>()((set, get) => ({
   followUpIntervals: { ...followUpConfig.intervalDays },
   dailyTarget: followUpConfig.defaultDailyTarget,
-  minEligibleAge: 30, // Default fallback
   thresholds: null,
 
   loadSettings: async (userId?: string, role?: string, supervisorId?: string) => {
@@ -39,26 +37,13 @@ export const useSettings = create<SettingsState>()((set, get) => ({
       const s = await getHealthThresholdSettings(false, userId, role, supervisorId, supabase);
       if (s) {
         set({
-          minEligibleAge: s.minimum_eligible_age ?? 30,
           followUpIntervals: {
             high: s.interval_high ?? followUpConfig.intervalDays.high,
             moderate: s.interval_moderate ?? followUpConfig.intervalDays.moderate,
             // "low" is the internal key (Excel: LOW, DB: low, UI: Normal)
-            low: s.interval_normal ?? followUpConfig.intervalDays.low,
+            low: s.interval_low ?? followUpConfig.intervalDays.low,
           },
-          thresholds: {
-            ...s,
-            vitals_config: s.vitals_config ?? {
-              bloodPressure: true,
-              bloodSugar: true,
-              weight: true,
-              height: true,
-              bmi: true,
-              pulse: true,
-              spo2: true,
-              temperature: true,
-            },
-          },
+          thresholds: s,
         });
       }
     } catch (e) {

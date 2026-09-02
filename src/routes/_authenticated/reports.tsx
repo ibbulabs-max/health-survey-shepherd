@@ -8,7 +8,7 @@ import { ErrorState, LoadingState } from "@/components/common/EmptyState";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Button } from "@/components/ui/button";
 import { appConfig } from "@/config/app";
-import { riskLabels } from "@/config/risk";
+import { riskDisplayLabel } from "@/config/risk";
 import { useAuth } from "@/hooks/useAuth";
 import { useDataset } from "@/hooks/useDataset";
 import { toDateKey } from "@/lib/domain";
@@ -59,7 +59,7 @@ function ReportsPage() {
     Diastolic: m.diastolic ?? "",
     "Blood sugar": m.bloodSugar ?? "",
     Conditions: m.conditions.join("; "),
-    Risk: riskLabels[m.risk],
+    Risk: riskDisplayLabel(m.risk),
     "Last screened": m.screenedAt ? new Date(m.screenedAt).toLocaleDateString() : "",
     Flags: m.dataIssues.join("; "),
   }));
@@ -71,7 +71,7 @@ function ReportsPage() {
     Members: h.members.length,
     Eligible: h.eligible,
     Screened: h.screened,
-    "Household risk": riskLabels[h.risk],
+    "Household risk": riskDisplayLabel(h.risk),
     Latitude: h.house.latitude ?? "",
     Longitude: h.house.longitude ?? "",
     Mapped: h.hasLocation ? "Yes" : "No",

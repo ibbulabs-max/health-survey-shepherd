@@ -1,4 +1,4 @@
-import type { RiskLevel } from "@/config/risk";
+import type { RiskLevel, ClinicalRiskState } from "@/config/risk";
 import type { MemberView, HouseView } from "@/lib/domain";
 import type { MemberFollowUpSummary } from "@/lib/followUpEngine";
 
@@ -13,7 +13,7 @@ export interface EnrichedFollowUpItem {
   surveyDate: string | null;
   displaySurveyDate: string;
   status: "today" | "upcoming" | "overdue" | "completed" | "missed" | "not_available";
-  risk: RiskLevel;
+  risk: ClinicalRiskState;
   vitalsToCheck: ("BP" | "Sugar" | "Weight" | "Pulse")[];
   daysDiffFromToday: number;
 }

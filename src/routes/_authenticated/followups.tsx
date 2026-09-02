@@ -44,7 +44,7 @@ import {
 } from "@/components/ui/dialog";
 import { Drawer, DrawerContent } from "@/components/ui/drawer";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import type { RiskLevel } from "@/config/risk";
+import type { RiskLevel, ClinicalRiskState } from "@/config/risk";
 import { useDataset, useRefreshDataset } from "@/hooks/useDataset";
 import { useAuth } from "@/hooks/useAuth";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -58,7 +58,6 @@ import {
   daysDiff,
   extractMemberFollowUpSummary,
   formatDisplayDate,
-  isEligibleForFollowUp,
   type MemberFollowUpSummary,
   toDateKeySafe,
 } from "@/lib/followUpEngine";
@@ -104,7 +103,7 @@ function FollowUpsPage() {
   const { data: users } = useUsers();
 
   // Settings
-  const { minEligibleAge, followUpIntervals, dailyTarget, loadSettings, thresholds } =
+  const { followUpIntervals, dailyTarget, loadSettings, thresholds } =
     useSettings();
   const [holidaysSet, setHolidaysSet] = useState<Set<string>>(new Set());
 
@@ -145,7 +144,7 @@ function FollowUpsPage() {
   const [completeDiastolic, setCompleteDiastolic] = useState("");
   const [completeSugar, setCompleteSugar] = useState("");
   const [completeNotes, setCompleteNotes] = useState("");
-  const [completeRisk, setCompleteRisk] = useState<RiskLevel | "">("");
+  const [completeRisk, setCompleteRisk] = useState<ClinicalRiskState | "">("");
 
   const [rescheduleTarget, setRescheduleTarget] = useState<EnrichedFollowUpItem | null>(null);
   const [rescheduleDate, setRescheduleDate] = useState("");
@@ -186,7 +185,6 @@ function FollowUpsPage() {
         member,
         member.assessment,
         data.followUps,
-        minEligibleAge,
         followUpIntervals,
         holidaysSet,
         undefined,
@@ -219,7 +217,6 @@ function FollowUpsPage() {
     data,
     todayKey,
     userMap,
-    minEligibleAge,
     followUpIntervals,
     holidaysSet,
     thresholds?.working_days,
@@ -260,7 +257,7 @@ function FollowUpsPage() {
     let completed = 0;
     let high = 0;
     let moderate = 0;
-    let normal = 0;
+    let lowCount = 0;
 
     if (data) {
       completed = data.followUps.filter((f) => f.status === "completed").length;
@@ -270,7 +267,7 @@ function FollowUpsPage() {
       if (item.summary.isEligible) {
         if (item.risk === "high") high++;
         else if (item.risk === "moderate") moderate++;
-        else normal++;
+        else lowCount++;
 
         if (item.status === "today") dueToday++;
         else if (item.status === "overdue") overdue++;
@@ -290,7 +287,7 @@ function FollowUpsPage() {
       completed,
       high,
       moderate,
-      normal,
+      low: lowCount,
     };
   }, [baseFollowUps, data]);
 
@@ -298,15 +295,15 @@ function FollowUpsPage() {
   const followUpDateCounts = useMemo(() => {
     const counts = new Map<
       string,
-      { total: number; high: number; moderate: number; normal: number }
+      { total: number; high: number; moderate: number; low: number }
     >();
     for (const item of baseFollowUps) {
       if (item.dueDate) {
-        const curr = counts.get(item.dueDate) ?? { total: 0, high: 0, moderate: 0, normal: 0 };
+        const curr = counts.get(item.dueDate) ?? { total: 0, high: 0, moderate: 0, low: 0 };
         curr.total++;
         if (item.risk === "high") curr.high++;
         else if (item.risk === "moderate") curr.moderate++;
-        else curr.normal++;
+        else curr.low++;
         counts.set(item.dueDate, curr);
       }
     }
@@ -454,7 +451,7 @@ function FollowUpsPage() {
     const pieData = [
       { name: "High Risk", value: high, color: "#ef4444" },
       { name: "Moderate Risk", value: moderate, color: "#f97316" },
-      { name: "Normal Risk", value: low, color: "#3b82f6" },
+      { name: "Low Risk", value: low, color: "#3b82f6" },
     ].filter((d) => d.value > 0);
     return {
       date: targetDate,
@@ -462,7 +459,7 @@ function FollowUpsPage() {
       total: dateItems.length,
       high,
       moderate,
-      normal: low,
+      low: low,
       pieData,
     };
   }, [baseFollowUps, selectedCalDate, todayKey]);
@@ -740,7 +737,7 @@ function FollowUpsPage() {
                     ? counters.high
                     : r === "moderate"
                       ? counters.moderate
-                      : counters.normal;
+                      : counters.low;
               const isActive = riskFilter === r;
               const colorCls =
                 r === "high"
@@ -772,7 +769,7 @@ function FollowUpsPage() {
                     {count}
                   </span>
                   <span className="mt-0.5 capitalize">
-                    {r === "all" ? "Total" : r === "low" ? "Normal" : r}
+                    {r === "all" ? "Total" : r.charAt(0).toUpperCase() + r.slice(1)}
                   </span>
                 </button>
               );
@@ -893,7 +890,7 @@ function FollowUpsPage() {
               <FollowUpCard
                 key={item.id}
                 item={item}
-                minEligibleAge={minEligibleAge}
+                dailyTarget={dailyTarget}
                 onReschedule={(i) => {
                   setRescheduleTarget(i);
                   setRescheduleDate(i.dueDate || todayKey);
@@ -1178,7 +1175,7 @@ function FollowUpsPage() {
                     <FollowUpCard
                       key={item.id}
                       item={item}
-                      minEligibleAge={minEligibleAge}
+                      dailyTarget={dailyTarget}
                       onReschedule={(i) => {
                         setRescheduleTarget(i);
                         setRescheduleDate(i.dueDate || todayKey);
@@ -1243,7 +1240,7 @@ function FollowUpsPage() {
                         colorCls,
                       )}
                     >
-                      {r === "low" ? "Normal" : r.charAt(0).toUpperCase() + r.slice(1)}
+                      {r.charAt(0).toUpperCase() + r.slice(1)}
                     </button>
                   );
                 })}
@@ -1494,7 +1491,9 @@ function FollowUpsPage() {
                   />
                 </div>
                 <div className="space-y-1.5 pt-2 border-t border-border/50">
-                  <label className="text-xs font-bold text-foreground">Current Risk Level <span className="text-red-500">*</span></label>
+                  <label className="text-xs font-bold text-foreground">
+                    Current Risk Level <span className="text-red-500">*</span>
+                  </label>
                   <p className="text-[10px] text-muted-foreground pb-1">
                     This determines the next follow-up interval.
                   </p>
@@ -1509,7 +1508,7 @@ function FollowUpsPage() {
                       <SelectItem value="low">
                         <div className="flex items-center gap-2">
                           <div className="size-2 rounded-full bg-emerald-500"></div>
-                          Normal (180 days)
+                          Low (180 days)
                         </div>
                       </SelectItem>
                       <SelectItem value="moderate">

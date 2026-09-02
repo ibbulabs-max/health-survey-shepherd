@@ -50,25 +50,30 @@ export async function loadDataset(): Promise<Dataset> {
       followUps: FollowUp[];
     try {
       [houses, members, assessments, followUps] = await Promise.all([
-        fetchAll<House>(tables.houses, "id, house_id, house_number, address, owner_name, latitude, longitude, location_status, status, mapped_by, mapped_at, data"),
-        fetchAll<HouseMember>(tables.houseMembers, "id, house_uuid, member_id, member_name, data, possible_duplicate"),
-        fetchAll<MemberAssessment>(tables.memberAssessments, "id, house_uuid, member_uuid, systolic, diastolic, blood_sugar, known_history, risk_level, risk_reasons, assessed_at"),
-        fetchAll<FollowUp>(tables.followUps, "id, house_uuid, member_uuid, due_date, status, reason, notes, risk_level, created_at, completed_at, created_by"),
+        fetchAll<House>(
+          tables.houses,
+          "id, house_id, house_number, address, owner_name, status, latitude, longitude, accuracy, location_status, location_source, mapped_by, mapped_at, pin_type, custom_type, assigned_csw_id, supervisor_id, monthly_income, earning_members, total_members, data, created_by, uploaded_by, uploaded_at, created_at, updated_at, pin_id",
+        ),
+        fetchAll<HouseMember>(
+          tables.houseMembers,
+          "id, house_uuid, member_id, member_name, data, uploaded_by, uploaded_at, possible_duplicate, created_at, updated_at",
+        ),
+        fetchAll<MemberAssessment>(
+          tables.memberAssessments,
+          "id, house_uuid, member_uuid, available, known_history, medication, medical_details, alcohol, alcohol_frequency, smoking, smoking_frequency, tobacco, tobacco_frequency, waist, physical_activity, height_cm, weight_kg, bmi, bmi_category, systolic, diastolic, bp_symptoms, blood_sugar, sugar_symptoms, referral_needed, referral, notes, risk_level, risk_reasons, extra, assessed_by, assessed_at, created_at, updated_at",
+        ),
+        fetchAll<FollowUp>(
+          tables.followUps,
+          "id, house_uuid, member_uuid, due_date, reason, status, risk_level, notes, created_by, created_at, updated_at",
+        ),
       ]);
     } catch (err) {
       console.error("loadDataset fetchAll failed!", err);
       throw err;
     }
 
-    // Load health threshold settings from useSettings (Single Source of Truth)
-    let minEligibleAge: number | undefined = undefined;
-    let thresholds: Parameters<typeof buildMemberView>[4] = undefined;
-
     try {
       const s = useSettings.getState();
-      if (typeof s.minEligibleAge === "number") {
-        minEligibleAge = s.minEligibleAge;
-      }
 
       if (s.thresholds) {
         thresholds = {
@@ -110,7 +115,6 @@ export async function loadDataset(): Promise<Dataset> {
         m,
         latestAssessment.get(m.id) ?? null,
         houseById.get(m.house_uuid ?? ""),
-        minEligibleAge,
         thresholds,
       ),
     );
@@ -167,9 +171,9 @@ export interface DashboardStats {
 
 export function computeStats(dataset: Dataset): DashboardStats {
   const today = toDateKey(new Date());
-  const risk: Record<RiskLevel, number> = { low: 0, moderate: 0, high: 0 };
+  const risk: Record<string, number> = { low: 0, moderate: 0, high: 0, missing: 0, invalid: 0 };
   dataset.members.forEach((m) => {
-    risk[m.risk] += 1;
+    risk[m.risk] = (risk[m.risk] || 0) + 1;
   });
 
   const dueToday = dataset.followUps.filter((f) => (f.due_date ?? "") === today);

@@ -8,7 +8,7 @@ interface MiniCalendarGridProps {
   todayKey: string;
   selectedDate: string | null;
   onSelectDate: (d: string) => void;
-  countsMap: Map<string, { total: number; high: number; moderate: number; normal: number }>;
+  countsMap: Map<string, { total: number; high: number; moderate: number; low: number }>;
 }
 
 export function MiniCalendarGrid({
@@ -77,18 +77,11 @@ export function MiniCalendarGrid({
             >
               <span>{date.getDate()}</span>
               {countInfo && countInfo.total > 0 && (
-                <span
-                  className={cn(
-                    "size-1 rounded-full absolute bottom-1",
-                    isSelected
-                      ? "bg-card"
-                      : countInfo.high > 0
-                        ? "bg-red-500"
-                        : countInfo.moderate > 0
-                          ? "bg-orange-500"
-                          : "bg-blue-500",
-                  )}
-                />
+                <div className="flex gap-0.5 absolute bottom-1">
+                  {countInfo.high > 0 && <span className="size-1 rounded-full bg-red-500" />}
+                  {countInfo.moderate > 0 && <span className="size-1 rounded-full bg-orange-500" />}
+                  {countInfo.low > 0 && <span className="size-1 rounded-full bg-blue-500" />}
+                </div>
               )}
             </button>
           );

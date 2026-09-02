@@ -498,7 +498,7 @@ function AnalyticsPage() {
             {/* Clinical Risk Level */}
             <CandleRail
               title="CLINICAL RISK LEVEL"
-              infoTooltip="High, Moderate, and Normal risk summary."
+              infoTooltip="High, Moderate, and Low risk summary."
               onViewMembers={() => setShowRightPanel(true)}
               hasData={analytics.risks.length > 0}
               className="md:col-span-4"

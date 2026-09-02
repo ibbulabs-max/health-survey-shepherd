@@ -4,12 +4,14 @@ import { renderToStaticMarkup } from "react-dom/server";
 
 import "leaflet/dist/leaflet.css";
 import { pinTypeDef, type Pin } from "@/lib/pin-types";
-import type { RiskLevel } from "@/config/risk";
+import type { RiskLevel, ClinicalRiskState } from "@/config/risk";
 const RISK_META: Record<string, { color: string }> = {
   high: { color: "oklch(0.6 0.22 25)" },
   moderate: { color: "oklch(0.7 0.16 60)" },
   low: { color: "oklch(0.62 0.17 240)" },
   unknown: { color: "oklch(0.6 0 0)" },
+  missing: { color: "oklch(0.7 0 0)" },
+  invalid: { color: "oklch(0.6 0.22 25)" },
 };
 import type { GeoPosition } from "@/hooks/useGeolocation";
 
@@ -25,7 +27,7 @@ type Props = {
   /** when true, authorised pins become draggable */
   editMode: boolean;
   /** health risk per House ID (uppercase) — drawn as a coloured ring on the pin */
-  riskByHouse?: Record<string, RiskLevel> | undefined;
+  riskByHouse?: Record<string, ClinicalRiskState> | undefined;
   /** Optional array of coordinates to draw a route/polyline through (e.g. for TSP RUN mode) */
   route?: { lat: number; lng: number }[] | undefined;
   canMove: (pin: Pin) => boolean;
@@ -36,12 +38,12 @@ type Props = {
   onPinDragged: (pin: Pin, latlng: { lat: number; lng: number }) => void;
 };
 
-function riskRing(level: RiskLevel | undefined) {
-  if (!level || (level as string) === "unknown") return "";
-  return `box-shadow:0 0 0 3px ${RISK_META[level]?.color ?? "transparent"}, 0 6px 16px -4px rgba(10,30,60,0.45);`;
+function riskRing(level: ClinicalRiskState | RiskLevel | undefined) {
+  if (!level || (level as string) === "unknown" || (level as string) === "missing") return "";
+  return `box-shadow:0 0 0 3px ${RISK_META[level as string]?.color ?? "transparent"}, 0 6px 16px -4px rgba(10,30,60,0.45);`;
 }
 
-function markerHtml(pin: Pin, dim: boolean, risk?: RiskLevel) {
+function markerHtml(pin: Pin, dim: boolean, risk?: ClinicalRiskState | RiskLevel) {
   const def = pinTypeDef(pin.pin_type);
   const icon = renderToStaticMarkup(
     createElement(def.icon, { size: 15, color: "white", strokeWidth: 2.4 }),
@@ -55,7 +57,7 @@ function markerHtml(pin: Pin, dim: boolean, risk?: RiskLevel) {
     </div>`;
 }
 
-function stackHtml(pins: Pin[], risk?: RiskLevel) {
+function stackHtml(pins: Pin[], risk?: ClinicalRiskState | RiskLevel) {
   const def = pinTypeDef(pins[0]!.pin_type);
   const ring = riskRing(risk) || "box-shadow:0 6px 16px -4px rgba(10,30,60,0.45);";
   return `<div style="position:relative;width:38px;height:38px;">

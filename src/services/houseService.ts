@@ -352,8 +352,7 @@ export const commitCreateHouse = createServerFn({ method: "POST" })
     let count30Plus = 0;
     const createdMembers = [];
 
-    const s = await getHealthThresholdSettings(false, userId, userRole?.role, null);
-    const minAge = s.minimum_eligible_age ?? 30;
+    const minAge = 30;
 
     for (const m of input.members) {
       const is30Plus = m.age != null && m.age >= minAge;
@@ -446,8 +445,7 @@ export async function updateHouseWithDetails(houseUuid: string, input: Partial<C
 
   // If House ID changed, cascade-update all 30+ member IDs
   if (houseIdChanged) {
-    const s = await getHealthThresholdSettings(false, null, null, null);
-    const minAge = s.minimum_eligible_age ?? 30;
+    const minAge = 30;
 
     const { data: members } = await supabase
       .from(tables.houseMembers)

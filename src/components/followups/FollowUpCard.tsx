@@ -6,7 +6,7 @@ import type { EnrichedFollowUpItem } from "./types";
 
 interface FollowUpCardProps {
   item: EnrichedFollowUpItem;
-  minEligibleAge?: number;
+  dailyTarget?: number;
   onReschedule: (item: EnrichedFollowUpItem) => void;
   onComplete: (item: EnrichedFollowUpItem) => void;
   /** Optional: show assigned CHW distance (for CHW view) */
@@ -15,7 +15,7 @@ interface FollowUpCardProps {
 
 export function FollowUpCard({
   item,
-  minEligibleAge = 30,
+  dailyTarget = 10,
   onReschedule,
   onComplete,
   showDistance,
@@ -173,7 +173,7 @@ export function FollowUpCard({
 
           {!isEligible && (
             <span className="text-[10px] font-semibold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md">
-              Age {item.member?.age ?? "?"} &lt; {minEligibleAge} (Not eligible)
+              Age {item.member?.age ?? "?"} (Not eligible)
             </span>
           )}
         </div>

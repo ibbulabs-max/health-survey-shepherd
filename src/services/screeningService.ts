@@ -2,7 +2,6 @@ import { tables } from "@/config/database";
 import type { RiskLevel } from "@/config/risk";
 import { supabase } from "@/db/client";
 import type { Json, MemberAssessment } from "@/db/types";
-import { calculateRisk } from "@/lib/domain";
 import { logActivity } from "@/services/activityService";
 import { scheduleFollowUp } from "@/services/followUpService";
 import { loadSessionUser } from "@/services/authService";
@@ -26,13 +25,26 @@ export interface ScreeningInput {
   notes: string | null;
   referralNeeded: boolean;
   surveyDate?: string | null;
+  /**
+   * CANONICAL Clinical Risk entered by the CHW during assessment.
+   * This value is stored DIRECTLY to member_assessments.risk_level.
+   *
+   * Rules:
+   * - When provided by the CHW → store as-is.
+   * - When not provided → store null (NOT auto-calculated from vitals).
+   * - NEVER calculated from BP / Blood Sugar / BMI / Age / Conditions.
+   *
+   * The CHW form should present: Low | Moderate | High as explicit options.
+   */
+  clinicalRisk?: RiskLevel | null;
   extra?: Record<string, Json>;
 }
 
 const bmiCategory = (bmi: number) => {
   if (bmi < 18.5) return "Underweight";
-  if (bmi < 25) return "Normal";
-  if (bmi < 30) return "Overweight";
+  if (bmi < 23) return "Normal";
+  if (bmi < 25) return "Overweight";
+  if (bmi < 30) return "Pre-obese";
   return "Obese";
 };
 
@@ -43,35 +55,24 @@ export async function saveScreening(input: ScreeningInput) {
     throw new Error("Unauthorized: Only CHW (Survey Users) can save assessments.");
   }
 
-  const risk = calculateRisk(
-    {
-      systolic: input.systolic,
-      diastolic: input.diastolic,
-      bloodSugar: input.bloodSugar,
-      conditions: input.knownHistory,
-    },
-    // Server-side: prefer DB-configured thresholds
-    await (async () => {
-      try {
-        const { getHealthThresholdSettings } = await import("@/services/settingsService");
-        const s = await getHealthThresholdSettings();
-        return {
-          bp: {
-            high: { systolic: s.systolic_high_min, diastolic: s.diastolic_high_min },
-            moderate: { systolic: s.systolic_moderate_min, diastolic: s.diastolic_moderate_min },
-          },
-          sugar: { high: s.sugar_high_min, moderate: s.sugar_moderate_min },
-        };
-      } catch (e) {
-        return undefined;
-      }
-    })(),
-  );
+  // ── CANONICAL CLINICAL RISK ───────────────────────────────────────────────────
+  // Use the CHW's explicit selection. If not provided, store null.
+  // DO NOT auto-calculate from BP / Sugar / BMI.
+  const riskLevel: RiskLevel | null = input.clinicalRisk ?? null;
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  const auditReasons: string[] = riskLevel
+    ? [`Clinical Risk explicitly entered: ${riskLevel}`]
+    : ["Clinical Risk not entered by CHW — vitals recorded for reference only"];
 
   const bmi =
     input.heightCm && input.weightKg
       ? Number((input.weightKg / (input.heightCm / 100) ** 2).toFixed(1))
       : null;
+
+  const assessedAt = input.surveyDate
+    ? new Date(input.surveyDate).toISOString()
+    : new Date().toISOString();
 
   const payload = {
     house_uuid: input.houseUuid,
@@ -93,13 +94,12 @@ export async function saveScreening(input: ScreeningInput) {
     physical_activity: input.physicalActivity,
     notes: input.notes,
     referral_needed: input.referralNeeded,
-    risk_level: risk.level,
-    risk_reasons: risk.reasons as unknown as Json,
+    // CANONICAL FIELD: risk_level comes from CHW selection, never from vitals
+    risk_level: riskLevel,
+    risk_reasons: auditReasons as unknown as Json,
     extra: (input.extra ?? {}) as Json,
     assessed_by: auth.user?.id ?? null,
-    assessed_at: input.surveyDate
-      ? new Date(input.surveyDate).toISOString()
-      : new Date().toISOString(),
+    assessed_at: assessedAt,
   };
 
   const { data, error } = await supabase
@@ -109,25 +109,44 @@ export async function saveScreening(input: ScreeningInput) {
     .single();
   if (error) throw error;
 
-  await logActivity("screening.saved", { member_uuid: input.memberUuid, risk: risk.level });
+  // ── CANONICAL CLINICAL RISK PERSISTENCE ──────────────────────────
+  // If the CHW explicitly selects a new Risk Level during screening,
+  // we MUST save it as the new canonical source of truth in house_members.
+  if (riskLevel && input.memberUuid) {
+    const { data: currentMember } = await supabase
+      .from(tables.houseMembers)
+      .select("data")
+      .eq("id", input.memberUuid)
+      .maybeSingle();
 
-  // Auto-close any pending follow-ups for this member
-  // Mark existing pending follow-ups as completed and record the assessment time
-  const completionIso = input.surveyDate
-    ? new Date(input.surveyDate).toISOString()
-    : new Date().toISOString();
+    if (currentMember) {
+      const updatedData = { ...(currentMember.data as Record<string, any> || {}) };
+      updatedData.clinical_risk = riskLevel;
+
+      await supabase
+        .from(tables.houseMembers)
+        .update({ data: updatedData, updated_at: assessedAt })
+        .eq("id", input.memberUuid);
+    }
+  }
+  // ──────────────────────────────────────────────────────────────────
+
+  await logActivity("screening.saved", { member_uuid: input.memberUuid, risk: riskLevel });
+
+  // Mark existing pending follow-ups as completed (new assessment supersedes old schedule)
   await supabase
     .from(tables.followUps)
     .update({
       status: "completed",
-      notes: "Automatically completed by new survey",
-      updated_at: completionIso,
-      completed_at: completionIso,
+      notes: "Automatically completed by new assessment",
+      updated_at: assessedAt,
+      // completed_at exists in the schema (added by 10_remote_bootstrap.sql)
+      completed_at: assessedAt,
     })
     .eq("member_uuid", input.memberUuid)
     .eq("status", "pending");
 
-  // Call the centralized follow-up engine to calculate risk and next due date based on eligibility (age >= minEligibleAge)
+  // Recalculate and schedule the next follow-up using canonical risk
   const { recalculatePendingFollowUp } = await import("@/services/followUpService");
   await recalculatePendingFollowUp(input.memberUuid);
 

@@ -55,7 +55,6 @@ function HouseDetailPage() {
   const { data, isLoading, error, refetch } = useDataset();
   const refresh = useRefreshDataset();
   const { role, can } = useAuth();
-  const { minEligibleAge } = useSettings();
   const isCHW = role === "survey_user" || role === "admin" || role === "super_admin";
 
   const allHouses = useMemo(() => data?.houses ?? [], [data]);
@@ -213,7 +212,7 @@ function HouseDetailPage() {
           <div>
             <p className="text-sm font-bold text-foreground">{pinConfig.label}</p>
             <p className="text-xs text-muted-foreground">
-              {house.counts.high} High • {house.counts.moderate} Mod • {house.counts.low} Normal
+              {house.counts.high} High • {house.counts.moderate} Mod • {house.counts.low} Low
               Risk
             </p>
           </div>
@@ -232,7 +231,7 @@ function HouseDetailPage() {
               houseUuid={house.house.id}
               houseId={house.house.house_id}
               currentMembers30Plus={
-                house.members.filter((m) => m.age != null && m.age >= minEligibleAge).length
+                house.members.filter((m) => m.eligible).length
               }
             />
           )}

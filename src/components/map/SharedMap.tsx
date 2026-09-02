@@ -3,7 +3,7 @@ import { Loader2 } from "lucide-react";
 
 import { useGeolocation, type GeoPosition } from "@/hooks/useGeolocation";
 import type { Pin } from "@/lib/pin-types";
-import type { RiskLevel } from "@/config/risk";
+import type { RiskLevel, ClinicalRiskState } from "@/config/risk";
 
 const LeafletMap = lazy(() => import("@/components/map/LeafletMap"));
 
@@ -16,7 +16,7 @@ type SharedMapProps = {
   focus: { lat: number; lng: number } | null;
   addMode: boolean;
   editMode: boolean;
-  riskByHouse?: Record<string, RiskLevel> | undefined;
+  riskByHouse?: Record<string, ClinicalRiskState> | undefined;
   route?: { lat: number; lng: number }[] | undefined;
   canMove: (pin: Pin) => boolean;
   onMapTap: (latlng: { lat: number; lng: number }) => void;

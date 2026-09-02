@@ -1,4 +1,4 @@
-import { riskConfig, type RiskLevel } from "@/config/risk";
+import { riskConfig, type RiskLevel, type ClinicalRiskState } from "@/config/risk";
 import type { FollowUp, HouseMember, MemberAssessment } from "@/db/types";
 import type { MemberView } from "@/lib/domain";
 
@@ -8,11 +8,8 @@ import type { MemberView } from "@/lib/domain";
 /*                           ELIGIBILITY LOGIC                                */
 /* -------------------------------------------------------------------------- */
 
-export function isEligibleForFollowUp(
-  age: number | null | undefined,
-  minEligibleAge: number,
-): boolean {
-  return age != null && age >= minEligibleAge;
+export function isEligibleForFollowUp(eligible: boolean): boolean {
+  return eligible;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -358,7 +355,7 @@ export interface MemberFollowUpSummary {
   memberId: string;
   isEligible: boolean;
   age: number | null;
-  currentRisk: RiskLevel;
+  currentRisk: ClinicalRiskState;
   surveyDate: string | null;
   surveyDateFormatted: string;
   lastFollowUpDate: string | null;
@@ -412,13 +409,12 @@ export function extractMemberFollowUpSummary(
   member: MemberView,
   assessment: MemberAssessment | null,
   dbFollowUps: FollowUp[],
-  minEligibleAge: number,
   customIntervals: Record<RiskLevel, number>,
   holidaysSet?: Set<string>,
   todayKey: string = toDateKeySafe(new Date()),
   workingDays?: string[],
 ): MemberFollowUpSummary {
-  const isEligible = isEligibleForFollowUp(member.age, minEligibleAge);
+  const isEligible = member.eligible;
   const currentRisk = member.risk;
 
   // 1. Survey date
@@ -492,22 +488,26 @@ export function extractMemberFollowUpSummary(
     if (recurrenceAnchor) {
       if (completedHistory.length > 0) {
         // If history exists, calculate directly from the latest completion date
-        nextFollowUpDate = calculateNextFollowUpDate(
-          lastCompletedDate!,
-          currentRisk,
-          customIntervals,
-          holidaysSet,
-          workingDays,
-        );
+        if (currentRisk === "high" || currentRisk === "moderate" || currentRisk === "low") {
+          nextFollowUpDate = calculateNextFollowUpDate(
+            lastCompletedDate!,
+            currentRisk,
+            customIntervals,
+            holidaysSet,
+            workingDays,
+          );
+        }
       } else {
         // Initial calculation from survey date
-        nextFollowUpDate = calculateNextFollowUpDate(
-          recurrenceAnchor,
-          currentRisk,
-          customIntervals,
-          holidaysSet,
-          workingDays,
-        );
+        if (currentRisk === "high" || currentRisk === "moderate" || currentRisk === "low") {
+          nextFollowUpDate = calculateNextFollowUpDate(
+            recurrenceAnchor,
+            currentRisk,
+            customIntervals,
+            holidaysSet,
+            workingDays,
+          );
+        }
       }
     }
   }

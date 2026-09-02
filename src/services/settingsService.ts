@@ -4,7 +4,6 @@ import { riskConfig } from "@/config/risk";
 import { followUpConfig } from "@/config/followups";
 
 export type HealthThresholds = {
-  minimum_eligible_age: number;
   systolic_normal_max: number;
   systolic_moderate_min: number;
   systolic_high_min: number;
@@ -17,7 +16,7 @@ export type HealthThresholds = {
   sugar_high_min: number;
   interval_high: number;
   interval_moderate: number;
-  interval_normal: number;
+  interval_low: number;
   vitals_config: {
     bloodPressure: boolean;
     bloodSugar: boolean;
@@ -33,7 +32,6 @@ export type HealthThresholds = {
 };
 
 export const defaultSettings: HealthThresholds = {
-  minimum_eligible_age: 30,
   systolic_normal_max: riskConfig.bp.moderate.systolic - 1,
   systolic_moderate_min: riskConfig.bp.moderate.systolic,
   systolic_high_min: riskConfig.bp.high.systolic,
@@ -46,7 +44,7 @@ export const defaultSettings: HealthThresholds = {
   sugar_high_min: riskConfig.sugar.high,
   interval_high: followUpConfig.intervalDays.high,
   interval_moderate: followUpConfig.intervalDays.moderate,
-  interval_normal: followUpConfig.intervalDays.low,
+  interval_low: followUpConfig.intervalDays.low,
   vitals_config: {
     bloodPressure: true,
     bloodSugar: true,
@@ -171,11 +169,8 @@ export async function updateHealthThresholdSettings(
   if (next.sugar_moderate_max >= next.sugar_high_min) {
     throw new Error("Invalid sugar thresholds: sugar_moderate_max must be < sugar_high_min");
   }
-  if (next.interval_high <= 0 || next.interval_moderate <= 0 || next.interval_normal <= 0) {
+  if (next.interval_high <= 0 || next.interval_moderate <= 0 || next.interval_low <= 0) {
     throw new Error("Intervals must be greater than 0");
-  }
-  if (next.minimum_eligible_age < 0) {
-    throw new Error("Minimum eligible age cannot be negative");
   }
 
   const dbClient = client || getSupabaseAdmin();
@@ -195,7 +190,6 @@ export async function updateHealthThresholdSettings(
   }
 
   const payload = {
-    minimum_eligible_age: next.minimum_eligible_age,
     systolic_normal_max: next.systolic_normal_max,
     systolic_moderate_min: next.systolic_moderate_min,
     systolic_high_min: next.systolic_high_min,
@@ -208,7 +202,7 @@ export async function updateHealthThresholdSettings(
     sugar_high_min: next.sugar_high_min,
     interval_high: next.interval_high,
     interval_moderate: next.interval_moderate,
-    interval_normal: next.interval_normal,
+    interval_low: next.interval_low,
     vitals_config: next.vitals_config,
     working_days: next.working_days ?? defaultSettings.working_days,
     working_hours: next.working_hours ?? defaultSettings.working_hours,

@@ -3,7 +3,6 @@ import { followUpConfig } from "@/config/followups";
 import type { RiskLevel } from "@/config/risk";
 import { supabase } from "@/db/client";
 import type { FollowUp } from "@/db/types";
-import { calculateRisk } from "@/lib/domain";
 import {
   calculateNextFollowUpDate,
   isEligibleForFollowUp,
@@ -25,20 +24,25 @@ export interface ScheduleFollowUpInput {
 
 /**
  * Returns interval days for a given risk level.
- * Intervals: high=15d, moderate=30d, low=180d (low displayed as Normal in UI).
+ * Uses admin-configured intervals from settings; falls back to static config defaults.
+ *
+ * Intervals (defaults):
+ *   high     = 15 days
+ *   moderate = 30 days
+ *   low      = 180 days
+ *
+ * "low" includes members whose Excel Clinical Risk was "Normal" (normalized to "low").
  */
 export function getRiskInterval(risk: RiskLevel): number {
   const intervals = useSettings.getState().followUpIntervals;
-  // Risk key "low" matches Excel LOW (displayed as Normal). Falls back to config.
   return intervals?.[risk] ?? followUpConfig.intervalDays[risk] ?? 180;
 }
 
 /**
- * Checks if a member is eligible for follow‑up (strictly age >= 30).
+ * Checks if a member is eligible for follow‑up based on the boolean flag.
  */
-export function isEligible(age: number | null | undefined): boolean {
-  const minEligibleAge = useSettings.getState().minEligibleAge;
-  return isEligibleForFollowUp(age, minEligibleAge);
+export function isEligible(eligibleFlag: boolean): boolean {
+  return isEligibleForFollowUp(eligibleFlag);
 }
 
 /**
@@ -98,6 +102,21 @@ export async function scheduleFollowUp(input: ScheduleFollowUpInput) {
   return data as FollowUp;
 }
 
+/**
+ * Completes a follow-up and schedules the next one.
+ *
+ * CLINICAL RISK RULES:
+ * - If the user explicitly selects a new riskLevel during completion → use that value.
+ * - If vitals are provided WITHOUT a riskLevel → store vitals only. Do NOT derive risk.
+ * - The canonical risk comes from riskLevel parameter ONLY.
+ * - Vitals are stored independently and never override clinical risk.
+ *
+ * FLOW:
+ * 1. Mark current follow-up as completed.
+ * 2. If riskLevel provided → update member_assessments.risk_level.
+ * 3. If vitals provided → update vitals fields in member_assessments.
+ * 4. If eligible → create next follow-up using currentRisk + configured interval.
+ */
 export async function completeFollowUp(params: {
   id: string;
   notes?: string | undefined;
@@ -124,6 +143,7 @@ export async function completeFollowUp(params: {
       status: "completed",
       notes: notes ?? current.notes ?? null,
       updated_at: completedAt,
+      completed_at: completedAt,
     })
     .eq("id", id);
   if (error) throw error;
@@ -138,119 +158,84 @@ export async function completeFollowUp(params: {
     })
     .eq("follow_up_id", id);
 
-  let currentRisk = (current.risk_level as RiskLevel) || "low";
+  // 3. Determine canonical current risk
+  // RULE: Use the user's explicitly selected riskLevel.
+  //       If not provided, preserve the existing risk from house_members.data.clinical_risk.
+  //       NEVER derive risk from vitals or assessment fallbacks.
+  const memberData = (current.house_members as any)?.data as Record<string, unknown> | undefined;
+  const existingRisk = (memberData?.["clinical_risk"] as RiskLevel | null) ?? null;
+  const currentRisk: RiskLevel | null = riskLevel ?? existingRisk;
 
-  // 3. Dynamic Vitals / Risk Loop
-  let latestAssessment: any = null;
+  const { data: latestAssessment } = await supabase
+    .from(tables.memberAssessments)
+    .select("*")
+    .eq("member_uuid", current.member_uuid)
+    .order("assessed_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  // Update member_assessments record with new data
   if (vitals || riskLevel) {
-    const { data } = await supabase
-      .from(tables.memberAssessments)
-      .select("*")
-      .eq("member_uuid", current.member_uuid)
-      .order("assessed_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    latestAssessment = data;
-  }
+    const assessmentUpdate: Record<string, unknown> = {
+      updated_at: completedAt,
+    };
 
-  if (vitals) {
-
-    const existingConditions = latestAssessment?.known_history
-      ? typeof latestAssessment.known_history === "string"
-        ? latestAssessment.known_history.split(",")
-        : latestAssessment.known_history
-      : [];
-
-    // Use DB-configured thresholds when available (server authoritative)
-    const s = useSettings.getState().thresholds;
-    let thresholds;
-    if (s) {
-      thresholds = {
-        bp: {
-          high: { systolic: s.systolic_high_min, diastolic: s.diastolic_high_min },
-          moderate: {
-            systolic: s.systolic_moderate_min,
-            diastolic: s.diastolic_moderate_min,
-          },
-        },
-        sugar: { high: s.sugar_high_min, moderate: s.sugar_moderate_min },
-      };
-    }
-
-    const newRiskResult = calculateRisk(
-      {
-        systolic: vitals.systolic,
-        diastolic: vitals.diastolic,
-        bloodSugar: vitals.bloodSugar,
-        conditions: Array.isArray(existingConditions) ? existingConditions : [],
-      },
-      thresholds,
-    );
-
-    // Override with manual riskLevel if provided
+    // If a new risk level was selected, store it canonically
     if (riskLevel) {
-      currentRisk = riskLevel;
-    } else {
-      currentRisk = newRiskResult.level;
+      (assessmentUpdate as any)["risk_level"] = riskLevel;
+    }
+    if (vitals) {
+      (assessmentUpdate as any)["systolic"] = vitals.systolic;
+      (assessmentUpdate as any)["diastolic"] = vitals.diastolic;
+      (assessmentUpdate as any)["blood_sugar"] = vitals.bloodSugar;
     }
 
     if (latestAssessment) {
       await supabase
         .from(tables.memberAssessments)
-        .update({
-          systolic: vitals.systolic,
-          diastolic: vitals.diastolic,
-          blood_sugar: vitals.bloodSugar,
-          risk_level: currentRisk,
-          updated_at: completedAt,
-        })
+        .update(assessmentUpdate)
         .eq("id", latestAssessment.id);
     } else {
+      // No existing assessment — create one with what we have
       await supabase.from(tables.memberAssessments).insert({
         member_uuid: current.member_uuid,
         house_uuid: current.house_uuid,
-        systolic: vitals.systolic,
-        diastolic: vitals.diastolic,
-        blood_sugar: vitals.bloodSugar,
-        risk_level: currentRisk,
+        ...(riskLevel ? { risk_level: riskLevel } : {}),
+        ...(vitals
+          ? {
+              systolic: vitals.systolic,
+              diastolic: vitals.diastolic,
+              blood_sugar: vitals.bloodSugar,
+            }
+          : {}),
         assessed_at: completedAt,
       });
     }
-  } else {
-    // If no vitals were provided but a risk level was selected manually
-    if (riskLevel) {
-      currentRisk = riskLevel;
-      
-      if (latestAssessment) {
-        await supabase
-          .from(tables.memberAssessments)
-          .update({
-            risk_level: currentRisk,
-            updated_at: completedAt,
-          })
-          .eq("id", latestAssessment.id);
-      } else {
-        await supabase.from(tables.memberAssessments).insert({
-          member_uuid: current.member_uuid,
-          house_uuid: current.house_uuid,
-          risk_level: currentRisk,
-          assessed_at: completedAt,
-        });
-      }
+
+    // ── CANONICAL CLINICAL RISK PERSISTENCE ──────────────────────────
+    // If the CHW explicitly selects a new Risk Level during follow-up,
+    // we MUST save it as the new canonical source of truth in house_members.
+    if (riskLevel && current.member_uuid) {
+      const updatedData = { ...((current.house_members as any)?.data || {}) };
+      updatedData.clinical_risk = riskLevel;
+
+      await supabase
+        .from(tables.houseMembers)
+        .update({ data: updatedData, updated_at: completedAt })
+        .eq("id", current.member_uuid);
     }
+    // ──────────────────────────────────────────────────────────────────
   }
-  // NOTE: If vitals were skipped, currentRisk remains unchanged! Never downgrade or assume normal.
 
-  // 4. Check eligibility - Excel field first, then Age >= 30
-  const memberData = (current.house_members as any)?.data as Record<string, unknown> | undefined;
-
+  // 4. Check eligibility — Excel field first ONLY
   let eligible = false;
-  const eligibleRaw = memberData?.["eligible"] ?? memberData?.["Eligible (≥30)"];
+  const eligibleRaw =
+    memberData?.["eligible"] ?? memberData?.["Eligible (≥30)"] ?? memberData?.["eligible_30"];
   if (eligibleRaw != null && String(eligibleRaw).trim() !== "") {
     eligible = String(eligibleRaw).trim().toLowerCase() === "yes";
   } else {
-    const age = memberData?.["age"] != null ? Number(memberData["age"]) : null;
-    eligible = isEligible(age);
+    // If eligibility is missing, treat it as missing/data-quality information. Do not silently assume Yes.
+    eligible = false;
   }
 
   // 5. Automatically generate next recurring follow-up if eligible
@@ -274,11 +259,10 @@ export async function completeFollowUp(params: {
         const holidaysList = await fetchHolidays();
         holidaysSet = new Set(holidaysList.map((h) => h.holiday_date));
       } catch (e) {
-        // Fall back to frontend state if fetch fails
+        // Fall back to static config if fetch fails
       }
 
-      // Use the recorded completion timestamp as the recurrence anchor
-      // so next follow-up is calculated from the actual completed date.
+      // Next follow-up is anchored from the actual completion date
       const nextDateKey = calculateNextFollowUpDate(
         completedAt,
         currentRisk,
@@ -379,6 +363,8 @@ export const skipFollowUp = markFollowUpMissed;
 
 /**
  * Recalculates pending follow‑up for a member after a new assessment or import.
+ * Uses canonical risk from member_assessments.risk_level ONLY.
+ * If risk is missing from DB, does NOT create a follow-up (no false-positive scheduling).
  */
 export async function recalculatePendingFollowUp(memberUuid: string) {
   const { data: member, error: memErr } = await supabase
@@ -388,19 +374,36 @@ export async function recalculatePendingFollowUp(memberUuid: string) {
     .single();
   if (memErr) throw memErr;
 
-  const data = (member?.data ?? {}) as Record<string, any>;
-  const age = data["age"] != null ? Number(data["age"]) : null;
-  if (!isEligible(age)) return; // not eligible
+  // Check eligibility — Excel field ONLY
+  const memberData = (member?.data ?? {}) as Record<string, any>;
+  const eligibleRaw =
+    memberData["eligible"] ?? memberData["Eligible (≥30)"] ?? memberData["eligible_30"];
+  let eligible = false;
+  if (eligibleRaw != null && String(eligibleRaw).trim() !== "") {
+    eligible = String(eligibleRaw).trim().toLowerCase() === "yes";
+  } else {
+    // Do not fallback to age if missing
+    eligible = false;
+  }
 
-  const { data: assessment } = await supabase
-    .from(tables.memberAssessments)
-    .select("systolic, diastolic, blood_sugar, risk_level, assessed_at")
-    .eq("member_uuid", memberUuid)
-    .order("assessed_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+  if (!eligible) return; // Not eligible — no follow-up
 
-  const risk = (assessment?.risk_level as RiskLevel) ?? "low";
+  // Get canonical clinical risk from the member's data
+  const rawRisk = memberData["clinical_risk"];
+
+  // If no valid risk is recorded, do NOT create a follow-up with a fabricated risk
+  if (!rawRisk || rawRisk === "missing" || rawRisk === "invalid") {
+    // No valid Clinical Risk — cannot schedule follow-up with unknown interval
+    return;
+  }
+
+  // Normalize the stored value (handles "High" → "high" etc.)
+  const riskState = rawRisk.trim().toLowerCase();
+  if (riskState !== "low" && riskState !== "moderate" && riskState !== "high") {
+    return; // Unrecognised value — skip
+  }
+  const risk = riskState as RiskLevel;
+
   const s = useSettings.getState();
   const intervals = s.followUpIntervals;
   let holidaysSet: Set<string> | undefined;
@@ -411,15 +414,25 @@ export async function recalculatePendingFollowUp(memberUuid: string) {
     const holidaysList = await fetchHolidays();
     holidaysSet = new Set(holidaysList.map((h) => h.holiday_date));
   } catch (e) {
-    // Fall back to frontend state if fetch fails
+    // Fall back to static config
   }
 
+  // Anchor from last completion or from assessment date
   const { data: lastCompleted } = await supabase
     .from(tables.followUps)
     .select("completed_at")
     .eq("member_uuid", memberUuid)
     .eq("status", "completed")
     .order("completed_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  // Fetch latest assessment for fallback date if needed
+  const { data: assessment } = await supabase
+    .from(tables.memberAssessments)
+    .select("assessed_at")
+    .eq("member_uuid", memberUuid)
+    .order("assessed_at", { ascending: false })
     .limit(1)
     .maybeSingle();
 
@@ -532,9 +545,16 @@ export async function updateLastFollowUpDate(
 
   // 4. Check eligibility before scheduling next
   const memberData = (member?.data ?? {}) as Record<string, any>;
-  const age = memberData["age"] != null ? Number(memberData["age"]) : null;
+  const eligibleRaw =
+    memberData["eligible"] ?? memberData["Eligible (≥30)"] ?? memberData["eligible_30"];
+  let eligible = false;
+  if (eligibleRaw != null && String(eligibleRaw).trim() !== "") {
+    eligible = String(eligibleRaw).trim().toLowerCase() === "yes";
+  } else {
+    eligible = false;
+  }
 
-  if (isEligible(age)) {
+  if (eligible) {
     const s = useSettings.getState();
     const intervals = s.followUpIntervals;
     let holidaysSet: Set<string> | undefined;
@@ -545,7 +565,7 @@ export async function updateLastFollowUpDate(
       const holidaysList = await fetchHolidays();
       holidaysSet = new Set(holidaysList.map((h) => h.holiday_date));
     } catch (e) {
-      // Fall back to frontend state if fetch fails
+      // Fall back to static config
     }
 
     const nextDateKey = calculateNextFollowUpDate(
