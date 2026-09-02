@@ -72,7 +72,6 @@ function CreateHousePage() {
   const refresh = useRefreshDataset();
   const { role } = useAuth();
   const isCHW = role === "survey_user";
-  const isCHW = role === "survey_user";
 
   const [currentStep, setCurrentStep] = useState(
     searchParams.houseId ? 6 : searchParams.mode === "new" ? 1 : (searchParams.step ?? 0),

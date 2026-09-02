@@ -436,7 +436,7 @@ function levenshtein(a: string, b: string): number {
       );
     }
     prev = cur;
-}
+  }
   return prev[n] ?? 0;
 }
 
@@ -457,6 +457,6 @@ export function isEligibleMember(member: {
   if (eligibleRaw != null && String(eligibleRaw).trim() !== "") {
     return String(eligibleRaw).trim().toLowerCase() === "yes";
   }
-  
+
   return false;
 }

@@ -344,7 +344,7 @@ function SettingsPage() {
                       const anyEmpty = [
                         thresholds.interval_high,
                         thresholds.interval_moderate,
-                        thresholds.interval_low
+                        thresholds.interval_low,
                       ].some((v) => v === "" || v === undefined || v === null);
                       if (anyEmpty) {
                         toast.error("Please fill in all numeric interval fields.");

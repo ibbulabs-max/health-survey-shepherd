@@ -103,8 +103,7 @@ function FollowUpsPage() {
   const { data: users } = useUsers();
 
   // Settings
-  const { followUpIntervals, dailyTarget, loadSettings, thresholds } =
-    useSettings();
+  const { followUpIntervals, dailyTarget, loadSettings, thresholds } = useSettings();
   const [holidaysSet, setHolidaysSet] = useState<Set<string>>(new Set());
 
   useEffect(() => {
@@ -213,14 +212,7 @@ function FollowUpsPage() {
     }
 
     return items;
-  }, [
-    data,
-    todayKey,
-    userMap,
-    followUpIntervals,
-    holidaysSet,
-    thresholds?.working_days,
-  ]);
+  }, [data, todayKey, userMap, followUpIntervals, holidaysSet, thresholds?.working_days]);
 
   const isSearching = searchQuery.trim().length > 0;
 

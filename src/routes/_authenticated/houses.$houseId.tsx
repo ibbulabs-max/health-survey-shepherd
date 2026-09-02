@@ -212,8 +212,7 @@ function HouseDetailPage() {
           <div>
             <p className="text-sm font-bold text-foreground">{pinConfig.label}</p>
             <p className="text-xs text-muted-foreground">
-              {house.counts.high} High • {house.counts.moderate} Mod • {house.counts.low} Low
-              Risk
+              {house.counts.high} High • {house.counts.moderate} Mod • {house.counts.low} Low Risk
             </p>
           </div>
         </div>
@@ -230,9 +229,7 @@ function HouseDetailPage() {
             <AddMemberSheet
               houseUuid={house.house.id}
               houseId={house.house.house_id}
-              currentMembers30Plus={
-                house.members.filter((m) => m.eligible).length
-              }
+              currentMembers30Plus={house.members.filter((m) => m.eligible).length}
             />
           )}
         </div>

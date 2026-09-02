@@ -120,7 +120,7 @@ export async function saveScreening(input: ScreeningInput) {
       .maybeSingle();
 
     if (currentMember) {
-      const updatedData = { ...(currentMember.data as Record<string, any> || {}) };
+      const updatedData = { ...((currentMember.data as Record<string, any>) || {}) };
       updatedData.clinical_risk = riskLevel;
 
       await supabase
