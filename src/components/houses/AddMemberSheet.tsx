@@ -27,7 +27,6 @@ import { supabase } from "@/db/client";
 import { generateMemberId } from "@/services/houseService";
 import { useRefreshDataset } from "@/hooks/useDataset";
 import { useAuth } from "@/hooks/useAuth";
-import { useSettings } from "@/hooks/useSettings";
 
 interface AddMemberSheetProps {
   houseUuid: string;
@@ -42,7 +41,7 @@ export function AddMemberSheet({ houseUuid, houseId, currentMembers30Plus }: Add
   const [gender, setGender] = useState("");
   const { user } = useAuth();
   const refresh = useRefreshDataset();
-  const { minEligibleAge } = useSettings();
+  const minEligibleAge = 30;
 
   const is30Plus = parseInt(age, 10) >= minEligibleAge;
 

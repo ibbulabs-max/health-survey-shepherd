@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import type { CreateHouseMemberInput } from "@/services/houseService";
 import { generateMemberId } from "@/services/houseService";
-import { useSettings } from "@/hooks/useSettings";
+
 import { cn } from "@/lib/utils";
 
 export interface MemberSlotListProps {
@@ -15,7 +15,7 @@ export interface MemberSlotListProps {
 }
 
 export function MemberSlotList({ houseId, members, onMembersChange }: MemberSlotListProps) {
-  const { minEligibleAge } = useSettings();
+  const minEligibleAge = 30;
 
   const handleUpdateMember = (index: number, updates: Partial<CreateHouseMemberInput>) => {
     const updated = [...members];

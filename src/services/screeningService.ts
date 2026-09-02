@@ -121,7 +121,7 @@ export async function saveScreening(input: ScreeningInput) {
 
     if (currentMember) {
       const updatedData = { ...((currentMember.data as Record<string, any>) || {}) };
-      updatedData.clinical_risk = riskLevel;
+      updatedData["clinical_risk"] = riskLevel;
 
       await supabase
         .from(tables.houseMembers)

@@ -71,7 +71,7 @@ export async function loadDataset(): Promise<Dataset> {
       console.error("loadDataset fetchAll failed!", err);
       throw err;
     }
-
+    let thresholds: any = undefined;
     try {
       const s = useSettings.getState();
 
