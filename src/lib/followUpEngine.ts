@@ -474,7 +474,8 @@ export function extractMemberFollowUpSummary(
   // Find last completed date
   const completedHistory = history.filter((h) => h.status === "completed");
   const lastCompletedDate = completedHistory.length > 0 ? completedHistory[0]!.dateKey : null;
-  const lastFollowUpDateFormatted = formatDisplayDate(lastCompletedDate);
+  const lastFollowUpDate = lastCompletedDate ?? surveyDate;
+  const lastFollowUpDateFormatted = formatDisplayDate(lastFollowUpDate);
 
   // 3. Find next / active follow-up
   const activePending = memberDbFollowUps.find((f) => (f.status ?? "pending") === "pending");
@@ -548,7 +549,7 @@ export function extractMemberFollowUpSummary(
     currentRisk,
     surveyDate,
     surveyDateFormatted,
-    lastFollowUpDate: lastCompletedDate,
+    lastFollowUpDate,
     lastFollowUpDateFormatted,
     nextFollowUpDate,
     nextFollowUpDateFormatted,
