@@ -1,0 +1,7 @@
+House ID,Member Name,Member ID,Age,Gender,Eligible (≥30),Survey Date,Clinical Risk,Follow-ups
+H1,Rahul NoHist,M1,45,Male,Yes,01 Sep 2026,HIGH,
+H2,Jane OneHist,M2,50,Female,Yes,01 Sep 2026,HIGH,05 Sep 2026 | COMPLETED | Routine check
+H3,Ahmed MultiHist,M3,60,Male,Yes,01 Jun 2026,HIGH,"15 Jun 2026 | COMPLETED | Check 1
+20 Jul 2026 | COMPLETED | Check 2
+01 Sep 2026 | COMPLETED | Check 3"
+H4,Sara LowRisk,M4,35,Female,Yes,01 Jun 2026,LOW,01 Sep 2026 | COMPLETED | Check
