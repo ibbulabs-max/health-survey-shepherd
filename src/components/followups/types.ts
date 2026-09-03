@@ -13,6 +13,7 @@ export interface EnrichedFollowUpItem {
   surveyDate: string | null;
   displaySurveyDate: string;
   status: "today" | "upcoming" | "overdue" | "completed" | "missed" | "not_available";
+  completedAt?: string | null;
   risk: ClinicalRiskState;
   vitalsToCheck: ("BP" | "Sugar" | "Weight" | "Pulse")[];
   daysDiffFromToday: number;

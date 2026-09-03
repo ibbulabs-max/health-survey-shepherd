@@ -13,6 +13,7 @@ import { tables } from "@/config/database";
 import { useAuth } from "@/hooks/useAuth";
 import { useRefreshDataset } from "@/hooks/useDataset";
 import { deleteImportBatch } from "@/services/importBackendService";
+import { cn } from "@/lib/utils";
 
 export function ImportHistory() {
   const { can, isAdmin, role } = useAuth();
@@ -76,12 +77,26 @@ export function ImportHistory() {
           {(batches.data ?? []).map((b) => (
             <div
               key={b.id}
-              className="card-surface p-4 flex flex-col gap-3 relative overflow-hidden group"
+              className={cn(
+                "card-surface p-4 flex flex-col gap-3 relative overflow-hidden group",
+                b.status === "deleted" && "opacity-80 bg-surface/50",
+              )}
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0 flex-1">
-                  <p className="flex items-center gap-2 truncate text-sm font-semibold">
-                    <FileSpreadsheet className="size-4 text-primary" />
+                  <p
+                    className={cn(
+                      "flex items-center gap-2 truncate text-sm font-semibold",
+                      b.status === "deleted" &&
+                        "line-through decoration-red-500 decoration-2 text-muted-foreground",
+                    )}
+                  >
+                    <FileSpreadsheet
+                      className={cn(
+                        "size-4",
+                        b.status === "deleted" ? "text-muted-foreground" : "text-primary",
+                      )}
+                    />
                     {Array.isArray(b.file_names) ? b.file_names.join(", ") : "Import"}
                   </p>
                   <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
@@ -102,41 +117,85 @@ export function ImportHistory() {
                     )}
                   </div>
                   <div className="mt-2 flex flex-wrap gap-2 text-xs">
-                    <span className="bg-surface-muted px-2 py-0.5 rounded-full">
+                    <span
+                      className={cn(
+                        "px-2 py-0.5 rounded-full",
+                        b.status === "deleted"
+                          ? "bg-surface-muted/50 line-through decoration-red-500 decoration-2 text-muted-foreground"
+                          : "bg-surface-muted",
+                      )}
+                    >
                       {b.total_rows ?? 0} rows
                     </span>
-                    <span className="bg-green-500/10 text-green-700 px-2 py-0.5 rounded-full">
+                    <span
+                      className={cn(
+                        "px-2 py-0.5 rounded-full",
+                        b.status === "deleted"
+                          ? "bg-surface-muted/50 line-through decoration-red-500 decoration-2 text-muted-foreground"
+                          : "bg-green-500/10 text-green-700",
+                      )}
+                    >
                       {b.houses_added ?? 0} houses
                     </span>
-                    <span className="bg-blue-500/10 text-blue-700 px-2 py-0.5 rounded-full">
+                    <span
+                      className={cn(
+                        "px-2 py-0.5 rounded-full",
+                        b.status === "deleted"
+                          ? "bg-surface-muted/50 line-through decoration-red-500 decoration-2 text-muted-foreground"
+                          : "bg-blue-500/10 text-blue-700",
+                      )}
+                    >
                       {b.members_added ?? 0} members
                     </span>
-                    <span className="bg-amber-500/10 text-amber-700 px-2 py-0.5 rounded-full">
+                    <span
+                      className={cn(
+                        "px-2 py-0.5 rounded-full",
+                        b.status === "deleted"
+                          ? "bg-surface-muted/50 line-through decoration-red-500 decoration-2 text-muted-foreground"
+                          : "bg-amber-500/10 text-amber-700",
+                      )}
+                    >
                       {b.merged_records ?? 0} merged
                     </span>
                     {(b.conflicts ?? 0) > 0 && (
-                      <span className="bg-red-500/10 text-red-700 px-2 py-0.5 rounded-full">
+                      <span
+                        className={cn(
+                          "px-2 py-0.5 rounded-full",
+                          b.status === "deleted"
+                            ? "bg-surface-muted/50 line-through decoration-red-500 decoration-2 text-muted-foreground"
+                            : "bg-red-500/10 text-red-700",
+                        )}
+                      >
                         {b.conflicts} conflicts
                       </span>
                     )}
                   </div>
                 </div>
                 <div className="flex flex-col items-end gap-2">
-                  <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-1 bg-surface-muted rounded text-muted-foreground">
+                  <span
+                    className={cn(
+                      "text-[10px] uppercase font-bold tracking-wider px-2 py-1 rounded",
+                      b.status === "deleted"
+                        ? "bg-destructive/10 text-destructive"
+                        : "bg-surface-muted text-muted-foreground",
+                    )}
+                  >
                     {b.status ?? "Unknown"}
                   </span>
                 </div>
               </div>
 
               <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-border/50">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-8 rounded-lg text-xs"
-                  onClick={() => setSelectedBatch(b)}
-                >
-                  <Eye className="size-3 mr-1.5" /> View Changes
-                </Button>
+                {b.status !== "deleted" && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 rounded-lg text-xs"
+                    onClick={() => setSelectedBatch(b)}
+                  >
+                    <Eye className="size-3 mr-1.5" /> View Changes
+                  </Button>
+                )}
 
                 <div className="flex-1" />
 

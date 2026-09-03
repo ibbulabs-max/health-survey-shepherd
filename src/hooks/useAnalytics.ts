@@ -4,12 +4,7 @@ import type { MemberView } from "@/lib/domain";
 import { riskConfig, type RiskLevel } from "@/config/risk";
 import type { CandleTone } from "@/components/analytics/AnalyticsCandle";
 
-export type ScopeType = "all" | "by_supervisor" | "by_chw";
-
 export interface ActiveFilters {
-  scope: ScopeType;
-  supervisorId: string | null;
-  chwId: string | null;
   age: number | null;
   gender: string | null;
   risk: RiskLevel | null;
@@ -23,13 +18,9 @@ export interface ActiveFilters {
   assessmentStatus: string | null;
   dataQuality: string | null;
   search: string;
-  eligibleOnly: boolean;
 }
 
 export const initialFilters: ActiveFilters = {
-  scope: "all",
-  supervisorId: null,
-  chwId: null,
   age: null,
   gender: null,
   risk: null,
@@ -43,7 +34,6 @@ export const initialFilters: ActiveFilters = {
   assessmentStatus: null,
   dataQuality: null,
   search: "",
-  eligibleOnly: true,
 };
 
 export interface AnalyticsItem {
@@ -65,7 +55,7 @@ export function useAnalytics() {
   };
 
   const clearFilter = (key: keyof ActiveFilters) => {
-    setFilters((prev) => ({ ...prev, [key]: key === "scope" ? "all" : null }));
+    setFilters((prev) => ({ ...prev, [key]: null }));
   };
 
   const clearAllFilters = () => {
@@ -75,26 +65,10 @@ export function useAnalytics() {
   const analytics = useMemo(() => {
     if (!data) return null;
 
-    // 1. First apply Scope filtering to define the dataset scope
+    // 1. Dataset is already globally scoped via useDataset
     let scopedMembers = data.members;
     let scopedHouses = data.houses;
     const allFollowUps = data.followUps ?? [];
-
-    if (filters.scope === "by_chw" && filters.chwId) {
-      scopedHouses = scopedHouses.filter(
-        (h) => h.house.assigned_csw_id === filters.chwId || h.house.uploaded_by === filters.chwId,
-      );
-      const houseIds = new Set(scopedHouses.map((h) => h.house.id));
-      scopedMembers = scopedMembers.filter((m) => m.houseUuid && houseIds.has(m.houseUuid));
-    } else if (filters.scope === "by_supervisor" && filters.supervisorId) {
-      scopedHouses = scopedHouses.filter((h) => h.house.supervisor_id === filters.supervisorId);
-      const houseIds = new Set(scopedHouses.map((h) => h.house.id));
-      scopedMembers = scopedMembers.filter((m) => m.houseUuid && houseIds.has(m.houseUuid));
-    }
-
-    if (filters.eligibleOnly) {
-      scopedMembers = scopedMembers.filter((m) => m.eligible);
-    }
 
     const totalScopedMembers = scopedMembers.length;
 

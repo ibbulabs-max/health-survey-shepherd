@@ -122,13 +122,11 @@ export function FollowUpCard({
             {item.status === "completed" ? (
               <>
                 <p className="text-[10px] font-bold uppercase text-muted-foreground tracking-wider">
-                  Last Follow-up
+                  Survey Date
                 </p>
-                <p className="text-xs font-semibold text-foreground">
-                  {item.summary.lastFollowUpDateFormatted}
-                </p>
+                <p className="text-xs font-semibold text-foreground">{item.displaySurveyDate}</p>
                 <p className="text-[10px] font-bold uppercase text-muted-foreground tracking-wider mt-1.5">
-                  Next Follow-up
+                  Completed Date
                 </p>
                 <p className="text-xs font-bold text-foreground">{item.displayDueDate}</p>
               </>
@@ -194,27 +192,31 @@ export function FollowUpCard({
           </Link>
 
           {/* Reschedule */}
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => onReschedule(item)}
-            className="rounded-xl size-9 text-amber-700 bg-amber-50/50 hover:bg-amber-50 border-amber-200 shadow-sm"
-            title="Reschedule"
-            aria-label="Reschedule follow-up"
-          >
-            <CalendarClock className="size-4" />
-          </Button>
+          {item.status !== "completed" && (
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => onReschedule(item)}
+              className="rounded-xl size-9 text-amber-700 bg-amber-50/50 hover:bg-amber-50 border-amber-200 shadow-sm"
+              title="Reschedule"
+              aria-label="Reschedule follow-up"
+            >
+              <CalendarClock className="size-4" />
+            </Button>
+          )}
 
           {/* Complete */}
-          <Button
-            size="sm"
-            onClick={() => onComplete(item)}
-            className="flex-1 rounded-xl text-xs font-semibold h-9 bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm"
-            aria-label="Complete follow-up"
-          >
-            <Check className="size-4 mr-1.5" />
-            <span>Complete</span>
-          </Button>
+          {item.status !== "completed" && (
+            <Button
+              size="sm"
+              onClick={() => onComplete(item)}
+              className="flex-1 rounded-xl text-xs font-semibold h-9 bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm"
+              aria-label="Complete follow-up"
+            >
+              <Check className="size-4 mr-1.5" />
+              <span>Complete</span>
+            </Button>
+          )}
         </div>
       </div>
     </div>

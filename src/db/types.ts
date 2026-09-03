@@ -126,6 +126,8 @@ export interface FollowUp {
   risk_level: string | null;
   notes: string | null;
   created_by: string | null;
+  completed_by?: string | null;
+  completed_at?: string | null;
   created_at: string | null;
   updated_at: string | null;
 }

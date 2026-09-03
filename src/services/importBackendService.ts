@@ -261,7 +261,7 @@ export const deleteImportBatch = createServerFn({ method: "POST" })
       const { data: members, error: mError } = await adminClient
         .from(tables.houseMembers)
         .select("id, source_files")
-        .contains("source_files", [filename]);
+        .contains("source_files", JSON.stringify([filename]));
 
       if (mError) throw mError;
 
@@ -284,7 +284,7 @@ export const deleteImportBatch = createServerFn({ method: "POST" })
       const { data: houses, error: hError } = await adminClient
         .from(tables.houses)
         .select("id, source_files")
-        .contains("source_files", [filename]);
+        .contains("source_files", JSON.stringify([filename]));
 
       if (hError) throw hError;
 
@@ -367,7 +367,7 @@ export const transferImportBatch = createServerFn({ method: "POST" })
       await adminClient
         .from(tables.houses)
         .update({ assigned_csw_id: newAssigneeId, supervisor_id: supervisorId })
-        .contains("source_files", [file]);
+        .contains("source_files", JSON.stringify([file]));
     }
 
     return { success: true };

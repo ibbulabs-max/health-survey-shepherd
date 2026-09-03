@@ -27,7 +27,9 @@ import { useUsers, useTeamMemberships } from "@/hooks/useUsers";
 import { followUpStatus, priorityScore, type HouseView } from "@/lib/domain";
 import { computeStats } from "@/services/dataService";
 import { getUserDisplayName } from "@/services/userService";
+import { toDateKeySafe } from "@/lib/followUpEngine";
 import { HouseDetailSheet } from "@/components/houses/HouseDetailSheet";
+import { GlobalFilterSheet } from "@/components/common/GlobalFilterSheet";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({
@@ -75,23 +77,10 @@ function DashboardSkeleton() {
 
 function DashboardPage() {
   const { user, role, can } = useAuth();
-  const { data: originalData, stats: originalStats, isLoading, error, refetch } = useDataset();
+  const { data, stats, isLoading, error, refetch } = useDataset();
   const { data: users } = useUsers();
   const { data: teamMemberships } = useTeamMemberships();
   const [selectedHouse, setSelectedHouse] = useState<HouseView | null>(null);
-  const [onlyEligible, setOnlyEligible] = useState(false);
-
-  const data = useMemo(() => {
-    if (!originalData) return originalData;
-    return onlyEligible
-      ? { ...originalData, members: originalData.members.filter((m) => m.eligible) }
-      : originalData;
-  }, [originalData, onlyEligible]);
-
-  const stats = useMemo(() => {
-    if (!data || !originalStats) return originalStats;
-    return onlyEligible ? computeStats(data) : originalStats;
-  }, [data, originalStats, onlyEligible]);
 
   if (isLoading) return <DashboardSkeleton />;
   if (error)
@@ -162,7 +151,7 @@ function DashboardPage() {
         .length,
       completedToday: cswFollowUps.filter(
         (f) =>
-          followUpStatus(f.status, f.due_date) === "completed" && f.updated_at?.startsWith(today),
+          followUpStatus(f.status, f.due_date) === "completed" && f.completed_at && toDateKeySafe(f.completed_at) === today,
       ).length,
     };
   });
@@ -174,15 +163,7 @@ function DashboardPage() {
         subtitle={`${role ? roleLabels[role] : "No role"} • ${stats.houses} households in your view`}
         actions={
           <div className="flex items-center gap-2">
-            <div className="flex items-center space-x-2 mr-2 bg-card px-3 py-2 rounded-xl shadow-xs border border-border/50">
-              <Switch id="eligible-mode" checked={onlyEligible} onCheckedChange={setOnlyEligible} />
-              <Label
-                htmlFor="eligible-mode"
-                className="text-sm cursor-pointer font-medium whitespace-nowrap"
-              >
-                Eligible Members
-              </Label>
-            </div>
+            <GlobalFilterSheet />
             {role === "survey_user" && (
               <Button
                 asChild

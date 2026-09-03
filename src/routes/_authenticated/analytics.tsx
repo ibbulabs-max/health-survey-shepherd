@@ -9,9 +9,9 @@ import { Label } from "@/components/ui/label";
 import { AnalyticsCandle } from "@/components/analytics/AnalyticsCandle";
 import { CandleRail } from "@/components/analytics/CandleRail";
 import { AnalyticsMemberPanel } from "@/components/analytics/AnalyticsMemberPanel";
+import { GlobalFilterSheet } from "@/components/common/GlobalFilterSheet";
 import { useAnalytics } from "@/hooks/useAnalytics";
 import { useAuth } from "@/hooks/useAuth";
-import { useTeamTree } from "@/hooks/useTeamTree";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/analytics")({
@@ -33,7 +33,6 @@ function AnalyticsPage() {
     useAnalytics();
 
   const { role, isAdmin } = useAuth();
-  const { data: teamTree } = useTeamTree();
   const [isSyncing, setIsSyncing] = useState(false);
   const [showRightPanel, setShowRightPanel] = useState(true);
 
@@ -115,81 +114,12 @@ function AnalyticsPage() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 items-center">
           {/* Top Left Filters */}
           <div className="lg:col-span-6 flex flex-wrap items-center gap-2">
-            {/* Scope Selector */}
-            {isScopeSelectable && (
-              <div className="relative">
-                <select
-                  aria-label="Filter scope"
-                  value={filters.scope}
-                  onChange={(e) => setFilter("scope", e.target.value as any)}
-                  className="bg-surface text-xs font-semibold px-3 py-2 pr-8 rounded-xl border border-border/70 shadow-xs appearance-none outline-none focus:border-primary text-foreground cursor-pointer"
-                >
-                  {isAdmin && <option value="all">All Areas</option>}
-                  {isAdmin && <option value="by_supervisor">By Supervisor</option>}
-                  <option value="by_chw">By Health Worker (CHW)</option>
-                </select>
-                <ChevronDown className="size-3 text-muted-foreground absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-              </div>
-            )}
-
-            {/* Supervisor / CHW dropdown */}
-            {filters.scope === "by_supervisor" && isAdmin && (
-              <div className="relative">
-                <select
-                  aria-label="Select Supervisor"
-                  value={filters.supervisorId ?? ""}
-                  onChange={(e) => setFilter("supervisorId", e.target.value || null)}
-                  className="bg-surface text-xs font-semibold px-3 py-2 pr-8 rounded-xl border border-border/70 shadow-xs appearance-none outline-none focus:border-primary text-foreground cursor-pointer"
-                >
-                  <option value="">All Supervisors</option>
-                  {teamTree?.supervisors.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.full_name ?? s.username}
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown className="size-3 text-muted-foreground absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-              </div>
-            )}
-
-            {filters.scope === "by_chw" && (
-              <div className="relative">
-                <select
-                  aria-label="Select Health Worker"
-                  value={filters.chwId ?? ""}
-                  onChange={(e) => setFilter("chwId", e.target.value || null)}
-                  className="bg-surface text-xs font-semibold px-3 py-2 pr-8 rounded-xl border border-border/70 shadow-xs appearance-none outline-none focus:border-primary text-foreground cursor-pointer"
-                >
-                  <option value="">All Health Workers</option>
-                  {teamTree?.csws.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.full_name ?? c.username}
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown className="size-3 text-muted-foreground absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-              </div>
-            )}
+            <GlobalFilterSheet />
 
             {/* Date Range Badge */}
             <div className="flex items-center gap-1.5 bg-surface text-xs font-medium px-3 py-2 rounded-xl border border-border/70 shadow-xs text-foreground">
               <Calendar className="size-3.5 text-muted-foreground" />
               <span>01 May 2025 - 30 May 2025</span>
-            </div>
-
-            {/* Eligible Members Toggle */}
-            <div className="flex items-center space-x-2 bg-surface text-xs font-medium px-3 py-2 rounded-xl border border-border/70 shadow-xs text-foreground">
-              <Switch
-                id="analytics-eligible-mode"
-                checked={filters.eligibleOnly}
-                onCheckedChange={(val) => setFilter("eligibleOnly", val)}
-              />
-              <Label
-                htmlFor="analytics-eligible-mode"
-                className="text-xs cursor-pointer font-medium whitespace-nowrap"
-              >
-                Only Eligible
-              </Label>
             </div>
 
             {/* More Filters button */}

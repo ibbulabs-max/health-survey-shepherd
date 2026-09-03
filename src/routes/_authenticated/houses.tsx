@@ -19,6 +19,8 @@ import { HouseDetailSheet } from "@/components/houses/HouseDetailSheet";
 import type { HouseView } from "@/lib/domain";
 import { cn } from "@/lib/utils";
 
+import { GlobalFilterSheet } from "@/components/common/GlobalFilterSheet";
+
 export const Route = createFileRoute("/_authenticated/houses")({
   head: () => ({
     meta: [
@@ -134,6 +136,7 @@ function HousesPage() {
         subtitle={`${houses.length} of ${data?.houses.length ?? 0} shown`}
         actions={
           <div className="flex items-center gap-2">
+            <GlobalFilterSheet />
             {(role === "admin" || role === "supervisor") && (
               <Button
                 variant={isSelectionMode ? "secondary" : "outline"}

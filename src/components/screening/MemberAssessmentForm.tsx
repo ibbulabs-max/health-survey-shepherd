@@ -114,6 +114,7 @@ export function MemberAssessmentForm({
   const [customDestination, setCustomDestination] = useState("");
   const [referralNotes, setReferralNotes] = useState("");
   const [screeningNotes, setScreeningNotes] = useState("");
+  const [selectedClinicalRisk, setSelectedClinicalRisk] = useState<string>("");
 
   const referralDestinations = useMemo(() => getReferralDestinations(), []);
 
@@ -169,6 +170,7 @@ export function MemberAssessmentForm({
     setScreeningNotes(member.assessment?.notes ?? "");
     setReferralNeeded(member.assessment?.referral_needed ?? false);
     setAvailable(member.assessment?.available ?? true);
+    setSelectedClinicalRisk(["low", "moderate", "high"].includes(member.risk) ? member.risk : "");
     setInitialized(true);
   }
 
@@ -265,6 +267,7 @@ export function MemberAssessmentForm({
           .filter(Boolean)
           .join(" | "),
         referralNeeded,
+        clinicalRisk: (selectedClinicalRisk as "low" | "moderate" | "high") || null,
         extra: referralNeeded
           ? {
               referral_destination: destinationName,

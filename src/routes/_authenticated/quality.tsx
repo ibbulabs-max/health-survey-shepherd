@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { EmptyState, ErrorState, LoadingState } from "@/components/common/EmptyState";
 import { PageHeader } from "@/components/common/PageHeader";
 import { RiskBadge } from "@/components/common/RiskBadge";
+import { GlobalFilterSheet } from "@/components/common/GlobalFilterSheet";
 import { useDataset } from "@/hooks/useDataset";
 import { cn } from "@/lib/utils";
 
@@ -56,6 +57,7 @@ function QualityPage() {
       <PageHeader
         title="Data Quality"
         subtitle="Records are never deleted or auto-corrected — they are flagged for a human to confirm."
+        actions={<GlobalFilterSheet />}
       />
 
       <div className="flex gap-2 overflow-x-auto pb-1">
@@ -91,14 +93,22 @@ function QualityPage() {
               className="card-surface flex items-start justify-between gap-3 p-4 transition-shadow hover:shadow-float border border-risk-moderate-soft"
             >
               <div className="min-w-0">
-                <p className="truncate font-medium">{m.name}</p>
+                <p className="truncate font-medium">{m.name || "Unknown Member"}</p>
                 <p className="truncate text-xs text-muted-foreground">
-                  {m.houseId ? `House ${m.houseId} • ` : ""}
-                  {m.memberId}
+                  {[m.houseId ? `House ${m.houseId}` : null, m.memberId || null]
+                    .filter(Boolean)
+                    .join(" • ") || "No ID"}
                 </p>
-                <p className="mt-2 text-xs font-medium text-risk-moderate bg-risk-moderate-soft px-2 py-1 rounded-md inline-block">
-                  {m.dataIssues.join(" • ")}
-                </p>
+                <div className="mt-2 flex flex-wrap gap-1">
+                  {m.dataIssues.map((issue) => (
+                    <span
+                      key={issue}
+                      className="text-[10px] font-medium text-risk-moderate bg-risk-moderate-soft px-2 py-0.5 rounded-md"
+                    >
+                      {issue}
+                    </span>
+                  ))}
+                </div>
               </div>
               <div className="flex flex-col items-end gap-2">
                 <RiskBadge level={m.risk} />

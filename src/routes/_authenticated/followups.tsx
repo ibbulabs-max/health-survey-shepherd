@@ -65,6 +65,7 @@ import type { MemberView, HouseView } from "@/lib/domain";
 
 import { FollowUpCard } from "@/components/followups/FollowUpCard";
 import { FollowUpKpi } from "@/components/followups/FollowUpKpi";
+import { GlobalFilterSheet } from "@/components/common/GlobalFilterSheet";
 import { FollowUpSkeleton } from "@/components/followups/FollowUpSkeleton";
 import { MiniCalendarGrid } from "@/components/followups/MiniCalendarGrid";
 import type { EnrichedFollowUpItem } from "@/components/followups/types";
@@ -192,23 +193,47 @@ function FollowUpsPage() {
 
       const chwId = house?.house?.assigned_csw_id ?? null;
       const chwName = chwId ? (userMap.get(chwId) ?? null) : null;
-      const diff = summary.nextFollowUpDate ? daysDiff(todayKey, summary.nextFollowUpDate) : 0;
 
-      items.push({
-        id: summary.activeFollowUpId ?? member.id,
-        member,
-        house,
-        summary,
-        assignedChwName: chwName,
-        dueDate: summary.nextFollowUpDate,
-        displayDueDate: summary.nextFollowUpDateFormatted,
-        surveyDate: summary.surveyDate,
-        displaySurveyDate: summary.surveyDateFormatted,
-        status: summary.status,
-        risk: member.risk,
-        vitalsToCheck: summary.vitalsToCheck,
-        daysDiffFromToday: diff,
-      });
+      // 1. Active / Projected Follow-up
+      if (summary.status !== "not_available" && summary.nextFollowUpDate) {
+        items.push({
+          id: summary.activeFollowUpId ?? `projected-${member.id}`,
+          member,
+          house,
+          summary,
+          assignedChwName: chwName,
+          dueDate: summary.nextFollowUpDate,
+          displayDueDate: summary.nextFollowUpDateFormatted,
+          surveyDate: summary.surveyDate,
+          displaySurveyDate: summary.surveyDateFormatted,
+          status: summary.status as "today" | "upcoming" | "overdue",
+          risk: member.risk,
+          vitalsToCheck: summary.vitalsToCheck,
+          daysDiffFromToday: daysDiff(todayKey, summary.nextFollowUpDate),
+        });
+      }
+
+      // 2. Completed Follow-ups from History
+      for (const hist of summary.history) {
+        if (hist.status === "completed") {
+          items.push({
+            id: hist.id ?? `hist-${hist.dateKey}-${member.id}`,
+            member,
+            house,
+            summary,
+            assignedChwName: chwName,
+            dueDate: hist.dateKey,
+            displayDueDate: hist.formattedDate,
+            surveyDate: summary.surveyDate,
+            displaySurveyDate: summary.surveyDateFormatted,
+            status: "completed",
+            completedAt: hist.completedAt ?? null,
+            risk: member.risk,
+            vitalsToCheck: summary.vitalsToCheck,
+            daysDiffFromToday: daysDiff(todayKey, hist.dateKey),
+          });
+        }
+      }
     }
 
     return items;
@@ -251,24 +276,17 @@ function FollowUpsPage() {
     let moderate = 0;
     let lowCount = 0;
 
-    if (data) {
-      completed = data.followUps.filter((f) => f.status === "completed").length;
-    }
-
     for (const item of baseFollowUps) {
-      if (item.summary.isEligible) {
-        if (item.risk === "high") high++;
-        else if (item.risk === "moderate") moderate++;
-        else lowCount++;
+      // Risk is counted based on the total items displayed in the list
+      if (item.risk === "high") high++;
+      else if (item.risk === "moderate") moderate++;
+      else lowCount++;
 
-        if (item.status === "today") dueToday++;
-        else if (item.status === "overdue") overdue++;
-        else if (item.status === "upcoming") {
-          if (item.daysDiffFromToday >= 0 && item.daysDiffFromToday <= 7) {
-            upcoming++;
-          }
-        }
-      }
+      // Canonical status count
+      if (item.status === "today") dueToday++;
+      else if (item.status === "overdue") overdue++;
+      else if (item.status === "upcoming") upcoming++;
+      else if (item.status === "completed") completed++;
     }
 
     return {
@@ -281,7 +299,7 @@ function FollowUpsPage() {
       moderate,
       low: lowCount,
     };
-  }, [baseFollowUps, data]);
+  }, [baseFollowUps]);
 
   /* -------- CALENDAR DATE COUNTS ----------------------------------------- */
   const followUpDateCounts = useMemo(() => {
@@ -290,7 +308,7 @@ function FollowUpsPage() {
       { total: number; high: number; moderate: number; low: number }
     >();
     for (const item of baseFollowUps) {
-      if (item.dueDate) {
+      if (item.dueDate && item.status !== "completed") {
         const curr = counts.get(item.dueDate) ?? { total: 0, high: 0, moderate: 0, low: 0 };
         curr.total++;
         if (item.risk === "high") curr.high++;
@@ -332,26 +350,18 @@ function FollowUpsPage() {
     }
 
     // 3. LEVEL 2 — Status/Date Filter
-    // Business definitions:
-    // "today"    = follow-up date is today
-    // "upcoming" = follow-up date is in the future (> today)
-    // "due"      = has an ACTIVE PENDING follow-up record in the DB (status=pending)
-    //              This means follow-up has been formally scheduled and awaits completion.
-    //              Distinct from "overdue" (which is a date-past condition).
-    // "completed"= follow-up occurrence has been completed
     if (!isSearching) {
       if (statusFilter === "today") {
-        list = list.filter((i) => i.dueDate === todayKey);
+        list = list.filter((i) => i.status === "today");
       } else if (statusFilter === "upcoming") {
-        list = list.filter((i) => i.daysDiffFromToday > 0 && i.status !== "completed");
+        list = list.filter((i) => i.status === "upcoming");
       } else if (statusFilter === "due") {
-        // "Due" = members with a formal active pending follow-up record in DB
-        // i.e. summary.activeFollowUpId is set (DB status = 'pending')
-        list = list.filter((i) => Boolean(i.summary.activeFollowUpId));
+        list = list.filter((i) => i.status === "overdue");
       } else if (statusFilter === "completed") {
-        list = list.filter((i) => i.status === "completed" || i.summary.history.length > 0);
+        list = list.filter(
+          (i) => i.status === "completed" && toDateKeySafe(i.completedAt) === todayKey,
+        );
       }
-      // "all" = show everything
     }
 
     // 4. House filter
@@ -424,7 +434,7 @@ function FollowUpsPage() {
   const completedTodayCount = useMemo(() => {
     if (!data) return 0;
     return data.followUps.filter(
-      (f) => f.status === "completed" && f.updated_at && toDateKeySafe(f.updated_at) === todayKey,
+      (f) => f.status === "completed" && f.completed_at && toDateKeySafe(f.completed_at) === todayKey,
     ).length;
   }, [data, todayKey]);
 
@@ -642,6 +652,7 @@ function FollowUpsPage() {
           <div className="flex items-center justify-between gap-2">
             <h1 className="font-display font-bold text-xl text-foreground">Follow-ups</h1>
             <div className="flex items-center gap-1.5">
+              <GlobalFilterSheet />
               <button
                 onClick={() => setShowMobileSearch(!showMobileSearch)}
                 className="size-9 flex items-center justify-center rounded-xl bg-surface-muted hover:bg-muted transition-colors"
@@ -925,6 +936,7 @@ function FollowUpsPage() {
             </p>
           </div>
           <div className="flex items-center gap-2">
+            <GlobalFilterSheet />
             <div className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground bg-surface-muted/60 px-3.5 py-2 rounded-xl border border-border/50">
               <CalendarIcon className="size-4 text-primary" />
               <span>
@@ -1013,12 +1025,12 @@ function FollowUpsPage() {
       </div>
 
       {/* SCROLLING CONTENT AREA */}
-      <div className="flex-1 overflow-hidden px-6 pt-4 pb-4">
-        <div className="flex flex-col lg:grid lg:grid-cols-12 gap-5 h-full">
+      <div className="flex-1 flex flex-col min-h-0 overflow-hidden px-6 pt-4 pb-4">
+        <div className="flex-1 flex flex-col lg:grid lg:grid-cols-12 gap-5 min-h-0">
           {/* ============================================================== */}
           {/* CENTER COLUMN: Search + Cards                                   */}
           {/* ============================================================== */}
-          <div className="col-span-8 flex flex-col h-full gap-3">
+          <div className="col-span-8 flex flex-col h-full min-h-0 gap-3">
             {/* Search + Action Bar */}
             <div className="shrink-0 flex items-center gap-2.5">
               <div className="relative flex-1">
@@ -1135,7 +1147,7 @@ function FollowUpsPage() {
             </div>
 
             {/* CARDS — THE ONLY SCROLLING REGION */}
-            <div className="flex-1 overflow-y-auto min-h-0 pr-1 pb-6">
+            <div className="flex-1 overflow-y-auto min-h-0 pr-1 pb-6 custom-scrollbar">
               {visibleItems.length === 0 ? (
                 <div className="card-surface p-12 rounded-3xl border border-dashed border-border text-center space-y-3 bg-card">
                   <CalendarDays className="size-10 text-muted-foreground/40 mx-auto" />
@@ -1190,7 +1202,7 @@ function FollowUpsPage() {
           {/* ============================================================== */}
           {/* RIGHT PANEL — Fixed stable panel                                */}
           {/* ============================================================== */}
-          <div className="hidden lg:flex lg:col-span-4 flex-col gap-4 h-full overflow-y-auto pr-1 pb-6">
+          <div className="hidden lg:flex lg:col-span-4 flex-col gap-4 h-full min-h-0 overflow-y-auto pr-1 pb-6 custom-scrollbar">
             {/* FILTERS SECTION */}
             <div className="card-surface p-4 rounded-2xl border border-border/60 bg-card shadow-card space-y-3">
               <div className="flex items-center justify-between">

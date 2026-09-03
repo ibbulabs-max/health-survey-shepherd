@@ -259,18 +259,28 @@ export function buildMemberView(
   if (!member.member_name) dataIssues.push("Missing name");
   if (age == null) dataIssues.push("Missing age");
   if (!gender) dataIssues.push("Missing gender");
-  if (systolic == null || diastolic == null) dataIssues.push("Missing BP");
-  if (bloodSugar == null) dataIssues.push("Missing sugar");
+
+  // Missing BP (only if eligible and missing)
+  if (eligible && (systolic == null || diastolic == null))
+    dataIssues.push("Missing Blood Pressure");
+
+  // Clinical Risk validation
   if (risk === "missing") dataIssues.push("Clinical Risk not recorded");
   if (risk === "invalid") dataIssues.push("Invalid Clinical Risk value");
-  if (
-    conditions.length === 0 &&
-    !hasExplicitNone &&
-    ((systolic ?? 0) >= riskConfig.bp.high.systolic ||
-      (bloodSugar ?? 0) >= riskConfig.sugar.high ||
-      Boolean(assessment?.medication && toStringArray(assessment.medication).length))
-  )
-    dataIssues.push("Known condition may be missing");
+
+  // Assessment Basis conditional validation
+  const rawBasis = data["assessment_basis"] ?? data["Assessment Basis"];
+  const basis = rawBasis ? String(rawBasis).trim().toUpperCase() : null;
+  if (basis === "KNOWN" && conditions.length === 0) {
+    dataIssues.push("Known Condition Missing");
+  }
+
+  // Door Number validation
+  const hn = house?.house_number?.trim().toLowerCase();
+  if (!hn || /^(na|n\/a|nil|none|-)$/i.test(hn) || !/\d/.test(hn)) {
+    dataIssues.push("Invalid Door Number");
+  }
+
   if (systolic != null && (systolic < 60 || systolic > 260)) dataIssues.push("Invalid BP reading");
   if (bloodSugar != null && (bloodSugar < 20 || bloodSugar > 700))
     dataIssues.push("Invalid sugar reading");

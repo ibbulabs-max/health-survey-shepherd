@@ -286,6 +286,7 @@ export interface ParsedFollowUpHistoryItem {
   dateKey: string;
   formattedDate: string;
   status: "completed" | "pending" | "missed";
+  completedAt?: string | null | undefined;
   notes?: string | undefined;
   reason?: string | undefined;
   vitals?:
@@ -446,6 +447,7 @@ export function extractMemberFollowUpSummary(
           dateKey: dKey,
           formattedDate: formatDisplayDate(dKey),
           status: f.status as "completed" | "missed",
+          completedAt: f.completed_at ?? undefined,
           notes: f.notes ?? undefined,
           reason: f.reason ?? undefined,
         });
@@ -515,6 +517,7 @@ export function extractMemberFollowUpSummary(
   const nextFollowUpDateFormatted = formatDisplayDate(nextFollowUpDate);
 
   // 4. Derive Status
+  // 4. Derive Status (for the active/projected follow-up)
   let status: "today" | "upcoming" | "overdue" | "completed" | "not_available" = "not_available";
 
   if (activePending) {
@@ -526,8 +529,6 @@ export function extractMemberFollowUpSummary(
     } else {
       status = "upcoming";
     }
-  } else if (completedHistory.length > 0) {
-    status = "completed";
   } else if (nextFollowUpDate) {
     if (nextFollowUpDate === todayKey) {
       status = "today";

@@ -40,6 +40,7 @@ import {
 } from "@/components/ui/drawer";
 import { cn } from "@/lib/utils";
 import { HouseDetailSheet } from "@/components/houses/HouseDetailSheet";
+import { GlobalFilterSheet } from "@/components/common/GlobalFilterSheet";
 // Using existing components from Management App where appropriate.
 
 const mapSearchSchema = z.object({
@@ -77,7 +78,6 @@ function MapPage() {
   const followUps = data?.followUps ?? [];
   const members = data?.members ?? [];
 
-  const [selectedTeamMember, setSelectedTeamMember] = useState<string>("all");
   const [types, setTypes] = useState<string[]>([]);
   const [showPins, setShowPins] = useState(true);
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -154,10 +154,8 @@ function MapPage() {
     for (const h of houses) {
       if (!h.hasLocation || h.house.latitude == null || h.house.longitude == null) continue;
 
-      // Filter by team member (if selected in dropdown)
-      if (selectedTeamMember !== "all") {
-        if (!h.house.mapped_by || h.house.mapped_by !== selectedTeamMember) continue;
-      }
+      // The GlobalFilterSheet (via useDataset) handles general role filtering,
+      // but we maintain the base security scope here just in case.
 
       // Security role check based on architecture requirement
       if (!isAdmin && user) {
@@ -213,7 +211,7 @@ function MapPage() {
       });
     }
     return list;
-  }, [houses, selectedTeamMember, types, houseTerm]);
+  }, [houses, types, houseTerm, isAdmin, user, teamMemberships]);
 
   // Real road routing logic for RUN mode
   const [route, setRoute] = useState<{ lat: number; lng: number }[] | undefined>(undefined);
@@ -448,10 +446,13 @@ function MapPage() {
                   : "Locating…"}
             </p>
           </div>
-          <span className="flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1.5 text-[12px] font-semibold text-primary">
-            <MapPin className="size-3.5" />
-            {pins.length}
-          </span>
+          <div className="flex items-center gap-2">
+            <GlobalFilterSheet />
+            <span className="flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1.5 text-[12px] font-semibold text-primary">
+              <MapPin className="size-3.5" />
+              {pins.length}
+            </span>
+          </div>
         </div>
 
         <div className="card-surface ios-glass pointer-events-auto mt-2 rounded-2xl px-3 py-2.5 bg-background/80 backdrop-blur-xl border border-white/40 shadow-sm">
@@ -478,24 +479,6 @@ function MapPage() {
             />
           </div>
         </div>
-
-        {teamMembers.length > 0 && (
-          <div className="card-surface ios-glass pointer-events-auto mt-2 flex items-center gap-2 rounded-2xl px-3 py-2.5 bg-background/80 backdrop-blur-xl border border-white/40 shadow-sm">
-            <Users className="size-4 shrink-0 text-muted-foreground" />
-            <select
-              value={selectedTeamMember}
-              onChange={(e) => setSelectedTeamMember(e.target.value)}
-              className="w-full bg-transparent text-[13px] font-medium outline-none text-foreground"
-            >
-              <option value="all">All team members</option>
-              {teamMembers.map((tm) => (
-                <option key={tm.id} value={tm.id}>
-                  {tm.name}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
 
         {/* Filters */}
         <div className="card-surface ios-glass pointer-events-auto mt-2 rounded-2xl px-3 py-2.5 bg-background/80 backdrop-blur-xl border border-white/40 shadow-sm">
