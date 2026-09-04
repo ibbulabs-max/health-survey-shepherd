@@ -169,18 +169,37 @@ export const finalizeImportBatchFn = createServerFn({ method: "POST" })
     // Fetch the batch to find out who to notify
     const { data: batch } = await adminClient
       .from(tables.importBatches)
-      .select("uploaded_by")
+      .select("uploaded_by, assigned_to, supervisor_id")
       .eq("id", data.batchId)
       .single();
 
-    if (batch?.uploaded_by) {
-      await adminClient.from("notifications").insert({
-        user_id: batch.uploaded_by,
+    if (batch) {
+      // Find all admins
+      const { data: admins } = await adminClient
+        .from("user_roles")
+        .select("user_id")
+        .eq("role", "admin");
+
+      const adminIds = (admins || []).map((a) => a.user_id).filter(Boolean) as string[];
+      
+      const recipients = new Set<string>();
+      
+      if (batch.uploaded_by) recipients.add(batch.uploaded_by);
+      if (batch.assigned_to) recipients.add(batch.assigned_to);
+      if (batch.supervisor_id) recipients.add(batch.supervisor_id);
+      adminIds.forEach((id) => recipients.add(id));
+
+      const notifications = Array.from(recipients).map((userId) => ({
+        user_id: userId,
         title: data.hasErrors ? "Import Completed with Errors" : "Import Completed",
-        message: `Your import job finished processing ${data.housesAdded} new houses and ${data.membersAdded} new members.`,
+        message: `Import job finished processing ${data.housesAdded} new houses and ${data.membersAdded} new members.`,
         type: data.hasErrors ? "warning" : "info",
         metadata: { batch_id: data.batchId },
-      });
+      }));
+
+      if (notifications.length > 0) {
+        await adminClient.from("notifications").insert(notifications);
+      }
     }
 
     return { success: true };

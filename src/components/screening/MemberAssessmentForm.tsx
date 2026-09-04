@@ -116,7 +116,23 @@ export function MemberAssessmentForm({
   const [screeningNotes, setScreeningNotes] = useState("");
   const [selectedClinicalRisk, setSelectedClinicalRisk] = useState<string>("");
 
-  const referralDestinations = useMemo(() => getReferralDestinations(), []);
+  const referralDestinations = useMemo(() => {
+    const staticDestinations = getReferralDestinations();
+    
+    // Add dynamic map hospitals
+    const mapHospitals = data?.houses
+      .filter((h) => h.house.pin_type === "hospital" && h.house.location_status === "mapped")
+      .map((h) => ({
+        id: `map_hospital_${h.house.id}`,
+        name: h.house.owner_name || h.house.house_id || "Unnamed Map Hospital",
+        type: "map_hospital",
+        latitude: h.house.latitude,
+        longitude: h.house.longitude,
+        originalId: h.house.id,
+      })) || [];
+
+    return [...staticDestinations, ...mapHospitals];
+  }, [data?.houses]);
 
   // History Sheet State
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -273,6 +289,12 @@ export function MemberAssessmentForm({
               referral_destination: destinationName,
               referral_notes: referralNotes,
               lifestyle_score: lifestyleRiskScore,
+              ...(selectedDest?.type === "map_hospital" ? {
+                referral_hospital_id: selectedDest.originalId,
+                referral_hospital_name: selectedDest.name,
+                referral_hospital_lat: selectedDest.latitude,
+                referral_hospital_lng: selectedDest.longitude,
+              } : {})
             }
           : { lifestyle_score: lifestyleRiskScore },
       });

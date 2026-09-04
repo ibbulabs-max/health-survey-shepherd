@@ -8,6 +8,7 @@ import {
   parseLegacyFollowUps,
   calculateNextFollowUpDate,
 } from "@/lib/followUpEngine";
+import { normalizePinType } from "@/lib/pin-types";
 
 
 export interface PreviewMemberPayload {
@@ -157,6 +158,9 @@ export async function processImportChunk(
               ? uploadedBy
               : null;
 
+          const rawPinType = house.extra?.["Type"] ?? house.extra?.["type"] ?? house.extra?.["Pin Type"] ?? house.extra?.["pin_type"] ?? house.fields?.["Type"] ?? house.fields?.["type"] ?? (house.fields?.["house_id"] || house.fields?.["house_number"] ? "house" : undefined);
+          const { pin_type: finalPinType, custom_type: finalCustomType } = normalizePinType(rawPinType);
+
           const housePayload = {
             house_id: house.fields["house_id"]?.toString() ?? null,
             house_number: house.fields["house_number"]?.toString() ?? null,
@@ -167,7 +171,8 @@ export async function processImportChunk(
             longitude: validLng,
             location_status: locationStatus,
             location_source: validLat != null && validLng != null ? "import" : null,
-            pin_type: "house",
+            pin_type: finalPinType,
+            custom_type: finalCustomType,
             data: house.extra as Record<string, any>,
             source_files: house.sourceFiles,
             uploaded_by: validUploadedBy,
