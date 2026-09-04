@@ -84,7 +84,8 @@ export function NotificationBell() {
         },
         (payload) => {
           queryClient.setQueryData(["notifications", user.id], (old: Notification[] = []) => {
-            return old.map(n => n.id === payload.new.id ? (payload.new as Notification) : n);
+            const newNotif = payload.new as Notification;
+            return old.map(n => n.id === newNotif.id ? newNotif : n);
           });
         }
       )
@@ -188,6 +189,15 @@ export function NotificationBell() {
               </div>
             ))
           )}
+        </div>
+
+        <DropdownMenuSeparator className="bg-border/50" />
+        <div className="p-2">
+          <Button asChild variant="ghost" className="w-full text-xs font-semibold text-primary">
+            <Link to="/notifications" onClick={() => setIsOpen(false)}>
+              View all notifications
+            </Link>
+          </Button>
         </div>
       </DropdownMenuContent>
     </DropdownMenu>

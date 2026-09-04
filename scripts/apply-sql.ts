@@ -1,4 +1,4 @@
-import { createClient } from "@supabase/supabase-js";
+import { Client } from "pg";
 import * as fs from "fs";
 import * as path from "path";
 
@@ -19,14 +19,32 @@ function loadEnv() {
 
 async function runSQL() {
   loadEnv();
-  const url = process.env.VITE_SUPABASE_URL || "";
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
+  const connStr = process.env.DATABASE_URL;
+  if (!connStr) {
+    console.error("No DATABASE_URL found. Cannot apply migration.");
+    return;
+  }
 
-  // Actually, standard supabase-js client doesn't support raw SQL easily unless there's an RPC.
-  // The most standard way is to rely on Supabase CLI to push migrations.
-  console.log(
-    "To enforce constraint, please run supabase db push, or the user can do it from the console.",
-  );
+  const sqlFile = process.argv[2];
+  if (!sqlFile) {
+    console.error("Please provide a SQL file path as an argument.");
+    return;
+  }
+  
+  const sql = fs.readFileSync(path.resolve(process.cwd(), sqlFile), "utf-8");
+
+  const client = new Client({ connectionString: connStr });
+  await client.connect();
+
+  console.log(`Applying SQL from ${sqlFile}...`);
+  try {
+    await client.query(sql);
+    console.log("Migration applied successfully!");
+  } catch (err) {
+    console.error("Error applying migration:", err);
+  } finally {
+    await client.end();
+  }
 }
 
 runSQL().catch(console.error);

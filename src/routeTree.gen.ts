@@ -20,6 +20,7 @@ import { Route as AuthenticatedFollowupsRouteImport } from './routes/_authentica
 import { Route as AuthenticatedHousesRouteImport } from './routes/_authenticated/houses'
 import { Route as AuthenticatedImportRouteImport } from './routes/_authenticated/import'
 import { Route as AuthenticatedMapRouteImport } from './routes/_authenticated/map'
+import { Route as AuthenticatedNotificationsRouteImport } from './routes/_authenticated/notifications'
 import { Route as AuthenticatedQualityRouteImport } from './routes/_authenticated/quality'
 import { Route as AuthenticatedReportsRouteImport } from './routes/_authenticated/reports'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
@@ -85,6 +86,12 @@ const AuthenticatedMapRoute = AuthenticatedMapRouteImport.update({
   path: '/map',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedNotificationsRoute =
+  AuthenticatedNotificationsRouteImport.update({
+    id: '/notifications',
+    path: '/notifications',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedQualityRoute = AuthenticatedQualityRouteImport.update({
   id: '/quality',
   path: '/quality',
@@ -145,6 +152,7 @@ export interface FileRoutesByFullPath {
   '/houses': typeof AuthenticatedHousesRouteWithChildren
   '/import': typeof AuthenticatedImportRoute
   '/map': typeof AuthenticatedMapRoute
+  '/notifications': typeof AuthenticatedNotificationsRoute
   '/quality': typeof AuthenticatedQualityRoute
   '/reports': typeof AuthenticatedReportsRoute
   '/settings': typeof AuthenticatedSettingsRoute
@@ -166,6 +174,7 @@ export interface FileRoutesByTo {
   '/houses': typeof AuthenticatedHousesRouteWithChildren
   '/import': typeof AuthenticatedImportRoute
   '/map': typeof AuthenticatedMapRoute
+  '/notifications': typeof AuthenticatedNotificationsRoute
   '/quality': typeof AuthenticatedQualityRoute
   '/reports': typeof AuthenticatedReportsRoute
   '/settings': typeof AuthenticatedSettingsRoute
@@ -189,6 +198,7 @@ export interface FileRoutesById {
   '/_authenticated/houses': typeof AuthenticatedHousesRouteWithChildren
   '/_authenticated/import': typeof AuthenticatedImportRoute
   '/_authenticated/map': typeof AuthenticatedMapRoute
+  '/_authenticated/notifications': typeof AuthenticatedNotificationsRoute
   '/_authenticated/quality': typeof AuthenticatedQualityRoute
   '/_authenticated/reports': typeof AuthenticatedReportsRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
@@ -212,6 +222,7 @@ export interface FileRouteTypes {
     | '/houses'
     | '/import'
     | '/map'
+    | '/notifications'
     | '/quality'
     | '/reports'
     | '/settings'
@@ -233,6 +244,7 @@ export interface FileRouteTypes {
     | '/houses'
     | '/import'
     | '/map'
+    | '/notifications'
     | '/quality'
     | '/reports'
     | '/settings'
@@ -255,6 +267,7 @@ export interface FileRouteTypes {
     | '/_authenticated/houses'
     | '/_authenticated/import'
     | '/_authenticated/map'
+    | '/_authenticated/notifications'
     | '/_authenticated/quality'
     | '/_authenticated/reports'
     | '/_authenticated/settings'
@@ -348,6 +361,13 @@ declare module '@tanstack/react-router' {
       path: '/map'
       fullPath: '/map'
       preLoaderRoute: typeof AuthenticatedMapRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/notifications': {
+      id: '/_authenticated/notifications'
+      path: '/notifications'
+      fullPath: '/notifications'
+      preLoaderRoute: typeof AuthenticatedNotificationsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/quality': {
@@ -452,6 +472,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedHousesRoute: typeof AuthenticatedHousesRouteWithChildren
   AuthenticatedImportRoute: typeof AuthenticatedImportRoute
   AuthenticatedMapRoute: typeof AuthenticatedMapRoute
+  AuthenticatedNotificationsRoute: typeof AuthenticatedNotificationsRoute
   AuthenticatedQualityRoute: typeof AuthenticatedQualityRoute
   AuthenticatedReportsRoute: typeof AuthenticatedReportsRoute
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
@@ -471,6 +492,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedHousesRoute: AuthenticatedHousesRouteWithChildren,
   AuthenticatedImportRoute: AuthenticatedImportRoute,
   AuthenticatedMapRoute: AuthenticatedMapRoute,
+  AuthenticatedNotificationsRoute: AuthenticatedNotificationsRoute,
   AuthenticatedQualityRoute: AuthenticatedQualityRoute,
   AuthenticatedReportsRoute: AuthenticatedReportsRoute,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,

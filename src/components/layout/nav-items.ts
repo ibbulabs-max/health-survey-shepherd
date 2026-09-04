@@ -10,6 +10,7 @@ import {
   Users,
   FileText,
   Settings,
+  Bell,
 } from "lucide-react";
 
 import type { Permission, AppRole } from "@/config/roles";
@@ -36,5 +37,6 @@ export const navItems: NavItem[] = [
   { to: "/quality", label: "Data Quality", icon: Sparkles },
   { to: "/reports", label: "Reports", icon: FileText },
   { to: "/users", label: "Users", icon: ShieldCheck, permission: "manage_users" },
+  { to: "/notifications", label: "Notifications & Chat", icon: Bell },
   { to: "/settings", label: "Settings", icon: Settings },
 ];
