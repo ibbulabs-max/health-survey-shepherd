@@ -58,8 +58,9 @@ export function NotificationBell() {
   useEffect(() => {
     if (!user?.id) return;
 
+    const channelId = `notifications-bell-${user.id}-${Math.random().toString(36).substring(7)}`;
     const channel = supabase
-      .channel(`public:notifications:user_id=eq.${user.id}`)
+      .channel(channelId)
       .on(
         "postgres_changes",
         {

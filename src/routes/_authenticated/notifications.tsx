@@ -88,8 +88,9 @@ function NotificationsPage() {
   useEffect(() => {
     if (!user?.id) return;
 
+    const channelId = `notifications-page-${user.id}-${Math.random().toString(36).substring(7)}`;
     const channel = supabase
-      .channel(`public:notifications_page:user_id=eq.${user.id}`)
+      .channel(channelId)
       .on(
         "postgres_changes",
         {
