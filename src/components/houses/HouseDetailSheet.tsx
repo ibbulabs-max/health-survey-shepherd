@@ -207,7 +207,7 @@ export function HouseDetailSheet({
                       <MapPin className="size-4 mr-1.5" /> Map House
                     </button>
                   ) : (
-                    <Link to="/map">
+                    <Link to="/map" search={{ houseId: house.house.id, locate: true }}>
                       <MapPin className="size-4 mr-1.5" /> Add Location on Map
                     </Link>
                   )}

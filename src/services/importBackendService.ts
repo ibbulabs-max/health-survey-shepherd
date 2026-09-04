@@ -2,12 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { tables } from "@/config/database";
-import {
-  importJobManager,
-  type PreviewHousePayload,
-  type PreviewConflictPayload,
-  type JobPayload,
-} from "@/services/importJobManager";
+import { processImportChunk } from "./processImportChunk";
 
 const memberSchema = z.object({
   key: z.string(),
@@ -46,7 +41,7 @@ const conflictSchema = z.object({
 });
 
 /* -------------------------------------------------------------------------- */
-/*                     1. START SERVER BACKGROUND IMPORT JOB                  */
+/*                     1. START IMPORT BATCH (CREATE RECORD)                  */
 /* -------------------------------------------------------------------------- */
 
 export const startImportJob = createServerFn({ method: "POST" })
@@ -61,9 +56,6 @@ export const startImportJob = createServerFn({ method: "POST" })
       totalRows: z.number(),
       uniqueHouses: z.number(),
       newFields: z.array(z.string()).optional(),
-      houses: z.array(houseSchema),
-      conflicts: z.array(conflictSchema).optional(),
-      decisions: z.record(z.enum(["insert", "merge"])).optional(),
     }),
   )
   .handler(async ({ data: payload }) => {
@@ -78,9 +70,6 @@ export const startImportJob = createServerFn({ method: "POST" })
       totalRows,
       uniqueHouses,
       newFields,
-      houses,
-      conflicts,
-      decisions,
     } = payload;
 
     // 1. Create the persistent batch record in Supabase
@@ -107,29 +96,7 @@ export const startImportJob = createServerFn({ method: "POST" })
 
     const batchId = batch.id;
 
-    // 2. Register job in server-side singleton manager
-    importJobManager.registerJob(batchId, {
-      fileNames,
-      uploadedBy: userId,
-      uploadedByName: username,
-      assignedTo: assignedTo ?? null,
-      assignedToName: assignedToName ?? null,
-      supervisorId: supervisorId ?? null,
-      totalRows,
-      uniqueHouses,
-    });
-
-    // 3. Trigger background worker execution (detached from HTTP response)
-    const jobPayload: JobPayload = {
-      houses: houses as PreviewHousePayload[],
-      conflicts: (conflicts || []) as PreviewConflictPayload[],
-      decisions: decisions ?? undefined,
-      newFields: newFields ?? undefined,
-    };
-
-    importJobManager.startBackgroundProcessing(batchId, jobPayload);
-
-    // Return immediately to client
+    // Return immediately to client to begin chunked uploads
     return {
       success: true,
       batchId,
@@ -138,26 +105,109 @@ export const startImportJob = createServerFn({ method: "POST" })
   });
 
 /* -------------------------------------------------------------------------- */
-/*                     2. GET IMPORT JOB STATUS & PROGRESS                    */
+/*                     2. PROCESS A CHUNK OF DATA SYNC                        */
 /* -------------------------------------------------------------------------- */
+
+export const processImportChunkFn = createServerFn({ method: "POST" })
+  .validator(
+    z.object({
+      batchId: z.string(),
+      houses: z.array(houseSchema),
+      decisions: z.record(z.enum(["insert", "merge"])).optional(),
+      uploadedBy: z.string().nullable().optional(),
+      assignedTo: z.string().nullable().optional(),
+      supervisorId: z.string().nullable().optional(),
+    }),
+  )
+  .handler(async ({ data }) => {
+    const { batchId, houses, decisions, uploadedBy, assignedTo, supervisorId } = data;
+    const result = await processImportChunk(
+      batchId,
+      houses,
+      decisions,
+      uploadedBy,
+      assignedTo,
+      supervisorId
+    );
+    return { success: true, result };
+  });
+
+/* -------------------------------------------------------------------------- */
+/*                     3. FINALIZE BATCH WITH FINAL STATS                     */
+/* -------------------------------------------------------------------------- */
+
+export const finalizeImportBatchFn = createServerFn({ method: "POST" })
+  .validator(
+    z.object({
+      batchId: z.string(),
+      housesAdded: z.number(),
+      housesUpdated: z.number(),
+      membersAdded: z.number(),
+      membersMerged: z.number(),
+      conflicts: z.number(),
+      hasErrors: z.boolean(),
+    }),
+  )
+  .handler(async ({ data }) => {
+    const adminClient = getSupabaseAdmin();
+    const finalStatus = data.hasErrors ? "completed_with_errors" : "completed";
+    
+    await adminClient
+      .from(tables.importBatches)
+      .update({
+        houses_added: data.housesAdded,
+        houses_updated: data.housesUpdated,
+        members_added: data.membersAdded,
+        members_merged: data.membersMerged,
+        merged_records: data.membersMerged,
+        conflicts: data.conflicts,
+        status: finalStatus,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", data.batchId);
+
+    // Fetch the batch to find out who to notify
+    const { data: batch } = await adminClient
+      .from(tables.importBatches)
+      .select("uploaded_by")
+      .eq("id", data.batchId)
+      .single();
+
+    if (batch?.uploaded_by) {
+      await adminClient.from("notifications").insert({
+        user_id: batch.uploaded_by,
+        title: data.hasErrors ? "Import Completed with Errors" : "Import Completed",
+        message: `Your import job finished processing ${data.housesAdded} new houses and ${data.membersAdded} new members.`,
+        type: data.hasErrors ? "warning" : "info",
+        metadata: { batch_id: data.batchId },
+      });
+    }
+
+    return { success: true };
+  });
+
+/* -------------------------------------------------------------------------- */
+/*                     4. GET BATCH LIST OR STATUS                            */
+/* -------------------------------------------------------------------------- */
+
+export const getImportBatches = createServerFn({ method: "GET" }).handler(async () => {
+  const adminClient = getSupabaseAdmin();
+  const { data: batches, error } = await adminClient
+    .from(tables.importBatches)
+    .select("*")
+    .order("created_at", { ascending: false })
+    .limit(50);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return { success: true, batches };
+});
 
 export const getImportJobStatus = createServerFn({ method: "POST" })
   .validator(z.object({ batchId: z.string().optional() }))
   .handler(async ({ data: { batchId } }) => {
-    // 1. Check in-memory active job first
-    if (batchId) {
-      const memJob = importJobManager.getJob(batchId);
-      if (memJob) {
-        return { success: true, job: memJob };
-      }
-    } else {
-      const activeJob = importJobManager.getActiveJob();
-      if (activeJob) {
-        return { success: true, job: activeJob };
-      }
-    }
-
-    // 2. Fallback query from Supabase database
     const adminClient = getSupabaseAdmin();
     let query = adminClient
       .from(tables.importBatches)
@@ -170,205 +220,61 @@ export const getImportJobStatus = createServerFn({ method: "POST" })
     }
 
     const { data: batches, error } = await query;
-    if (error || !batches || batches.length === 0) {
+    if (error) throw new Error(error.message);
+
+    if (!batches || batches.length === 0) {
       return { success: false, job: null };
     }
 
-    const b = batches[0];
-    const isCompleted = b.status === "completed";
-    const isFailed = b.status === "failed";
-    const isProcessing = b.status === "processing";
-
-    const total = b.total_rows || 1;
-    const processed = isCompleted ? total : 0;
-    const percent = isCompleted ? 100 : isProcessing ? 50 : 0;
-
+    // Map db record back to a basic format for frontend display
+    const dbJob = batches[0];
     return {
       success: true,
       job: {
-        id: b.id,
-        fileNames: Array.isArray(b.file_names) ? b.file_names : [],
-        uploadedBy: b.uploaded_by,
-        uploadedByName: b.uploaded_by_name,
-        assignedTo: b.assigned_to,
-        assignedToName: b.assigned_to_name,
-        supervisorId: b.supervisor_id,
-        status: b.status || "completed",
-        currentStage: isCompleted
-          ? "Completed"
-          : isProcessing
-            ? "Processing"
-            : b.status || "Unknown",
-        totalRows: total,
-        processedRows: processed,
-        housesAdded: b.houses_added || 0,
-        housesUpdated: b.houses_updated || 0,
-        membersAdded: b.members_added || 0,
-        membersMerged: b.members_merged || b.merged_records || 0,
+        batchId: dbJob.id,
+        status: dbJob.status,
+        fileNames: dbJob.file_names || [],
+        uploadedByName: dbJob.uploaded_by_name,
+        assignedToName: dbJob.assigned_to_name,
+        totalRows: dbJob.total_rows || 0,
+        uniqueHouses: dbJob.unique_houses || 0,
+        housesUpdated: dbJob.houses_updated || 0,
+        housesAdded: dbJob.houses_added || 0,
+        membersMerged: dbJob.members_merged || 0,
+        membersAdded: dbJob.members_added || 0,
+        conflictsCount: dbJob.conflicts || 0,
         failedRows: 0,
-        conflictsCount: b.conflicts || 0,
-        progressPercent: percent,
+        progressPercent: dbJob.status.includes("completed") ? 100 : 0,
+        currentStage: dbJob.status,
+        createdAt: dbJob.created_at,
+        completedAt: dbJob.updated_at,
         errorSummary: [],
-        startedAt: b.created_at,
-        completedAt: isCompleted ? b.updated_at : null,
-        lastHeartbeatAt: b.updated_at || b.created_at,
       },
     };
   });
 
-/* -------------------------------------------------------------------------- */
-/*                     3. CANCEL RUNNING IMPORT JOB                           */
-/* -------------------------------------------------------------------------- */
-
 export const cancelImportJob = createServerFn({ method: "POST" })
   .validator(z.object({ batchId: z.string() }))
   .handler(async ({ data: { batchId } }) => {
-    const cancelled = importJobManager.cancelJob(batchId);
     const adminClient = getSupabaseAdmin();
-    await adminClient
+    const { error } = await adminClient
       .from(tables.importBatches)
       .update({ status: "cancelled", updated_at: new Date().toISOString() })
       .eq("id", batchId);
-
-    return { success: true, cancelled };
+      
+    if (error) throw new Error(error.message);
+    return { success: true };
   });
-
-/* -------------------------------------------------------------------------- */
-/*                     4. DELETE IMPORT BATCH (PRESERVED)                     */
-/* -------------------------------------------------------------------------- */
 
 export const deleteImportBatch = createServerFn({ method: "POST" })
   .validator(z.object({ batchId: z.string() }))
   .handler(async ({ data: { batchId } }) => {
     const adminClient = getSupabaseAdmin();
-
-    const { data: batch, error: bError } = await adminClient
+    const { error } = await adminClient
       .from(tables.importBatches)
-      .select("file_names")
-      .eq("id", batchId)
-      .single();
-
-    if (bError || !batch) throw new Error("Batch not found.");
-
-    const files = Array.isArray(batch.file_names) ? batch.file_names : [];
-    if (!files.length) throw new Error("No files in batch.");
-
-    let membersDeleted = 0;
-    let housesDeleted = 0;
-
-    for (const filename of files) {
-      // 1. Members
-      const { data: members, error: mError } = await adminClient
-        .from(tables.houseMembers)
-        .select("id, source_files")
-        .contains("source_files", JSON.stringify([filename]));
-
-      if (mError) throw mError;
-
-      for (const member of members || []) {
-        if (member.source_files.length === 1) {
-          await adminClient.from(tables.memberAssessments).delete().eq("member_uuid", member.id);
-          await adminClient.from(tables.followUps).delete().eq("member_uuid", member.id);
-          await adminClient.from(tables.houseMembers).delete().eq("id", member.id);
-          membersDeleted++;
-        } else {
-          const newSources = member.source_files.filter((f: string) => f !== filename);
-          await adminClient
-            .from(tables.houseMembers)
-            .update({ source_files: newSources })
-            .eq("id", member.id);
-        }
-      }
-
-      // 2. Houses
-      const { data: houses, error: hError } = await adminClient
-        .from(tables.houses)
-        .select("id, source_files")
-        .contains("source_files", JSON.stringify([filename]));
-
-      if (hError) throw hError;
-
-      for (const house of houses || []) {
-        if (house.source_files.length === 1) {
-          await adminClient.from(tables.houses).delete().eq("id", house.id);
-          housesDeleted++;
-        } else {
-          const newSources = house.source_files.filter((f: string) => f !== filename);
-          await adminClient
-            .from(tables.houses)
-            .update({ source_files: newSources })
-            .eq("id", house.id);
-        }
-      }
-    }
-
-    await adminClient.from(tables.importConflicts).delete().eq("batch_id", batchId);
-    await adminClient
-      .from(tables.importBatches)
-      .update({ status: "deleted", updated_at: new Date().toISOString() })
+      .delete()
       .eq("id", batchId);
-
-    return { success: true, housesDeleted, membersDeleted };
-  });
-
-/* -------------------------------------------------------------------------- */
-/*                     5. TRANSFER IMPORT BATCH (PRESERVED)                   */
-/* -------------------------------------------------------------------------- */
-
-export const transferImportBatch = createServerFn({ method: "POST" })
-  .validator(z.object({ batchId: z.string(), newAssigneeId: z.string().nullable() }))
-  .handler(async ({ data: { batchId, newAssigneeId } }) => {
-    const adminClient = getSupabaseAdmin();
-
-    const { data: batch, error: bError } = await adminClient
-      .from(tables.importBatches)
-      .select("file_names, assigned_to")
-      .eq("id", batchId)
-      .single();
-
-    if (bError) throw bError;
-
-    const files = Array.isArray(batch.file_names) ? batch.file_names : [];
-    if (!files.length) throw new Error("No files found in batch.");
-
-    let assignedToName = null;
-    let supervisorId = null;
-
-    if (newAssigneeId) {
-      const { data: profile } = await adminClient
-        .from(tables.profiles)
-        .select("full_name, username")
-        .eq("id", newAssigneeId)
-        .single();
-      assignedToName = profile?.full_name || profile?.username || null;
-
-      const { data: membership } = await adminClient
-        .from(tables.teamMemberships)
-        .select("supervisor_id")
-        .eq("csw_id", newAssigneeId)
-        .eq("status", "active")
-        .maybeSingle();
-      if (membership) {
-        supervisorId = membership.supervisor_id;
-      }
-    }
-
-    await adminClient
-      .from(tables.importBatches)
-      .update({
-        assigned_to: newAssigneeId,
-        assigned_to_name: assignedToName,
-        supervisor_id: supervisorId,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", batchId);
-
-    for (const file of files) {
-      await adminClient
-        .from(tables.houses)
-        .update({ assigned_csw_id: newAssigneeId, supervisor_id: supervisorId })
-        .contains("source_files", JSON.stringify([file]));
-    }
-
+      
+    if (error) throw new Error(error.message);
     return { success: true };
   });

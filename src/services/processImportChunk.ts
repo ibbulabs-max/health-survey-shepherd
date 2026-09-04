@@ -9,30 +9,6 @@ import {
   calculateNextFollowUpDate,
 } from "@/lib/followUpEngine";
 
-export interface ImportJobState {
-  id: string; // batch ID
-  fileNames: string[];
-  uploadedBy: string;
-  uploadedByName: string | null;
-  assignedTo: string | null;
-  assignedToName: string | null;
-  supervisorId: string | null;
-  status: "queued" | "processing" | "completed" | "completed_with_errors" | "failed" | "cancelled";
-  currentStage: string;
-  totalRows: number;
-  processedRows: number;
-  housesAdded: number;
-  housesUpdated: number;
-  membersAdded: number;
-  membersMerged: number;
-  failedRows: number;
-  conflictsCount: number;
-  progressPercent: number;
-  errorSummary: Array<{ row: number; item: string; error: string }>;
-  startedAt: string;
-  completedAt: string | null;
-  lastHeartbeatAt: string;
-}
 
 export interface PreviewMemberPayload {
   key: string;
@@ -70,141 +46,40 @@ export interface PreviewConflictPayload {
   sourceFile: string;
 }
 
-export interface JobPayload {
-  houses: PreviewHousePayload[];
-  conflicts: PreviewConflictPayload[];
-  decisions?: Record<string, "insert" | "merge"> | undefined;
-  newFields?: string[] | undefined;
-}
 
-/**
- * Server-Side In-Memory + DB Sync Import Job Manager.
- * Retains job state in memory and persists progress and results to Supabase.
- */
-class ImportJobManager {
-  private jobs: Map<string, ImportJobState> = new Map();
-  private abortControllers: Map<string, AbortController> = new Map();
+export async function processImportChunk(
+  batchId: string,
+  houses: PreviewHousePayload[],
+  decisions?: Record<string, "insert" | "merge">,
+  uploadedBy?: string | null,
+  assignedTo?: string | null,
+  supervisorId?: string | null
+) {
+  const adminClient = getSupabaseAdmin();
+  const result = {
+    housesAdded: 0,
+    housesUpdated: 0,
+    membersAdded: 0,
+    membersMerged: 0,
+    errorSummary: [] as Array<{row: number, item: string, error: string}>
+  };
+    
 
-  public registerJob(
-    batchId: string,
-    meta: {
-      fileNames: string[];
-      uploadedBy: string;
-      uploadedByName: string | null;
-      assignedTo: string | null;
-      assignedToName: string | null;
-      supervisorId: string | null;
-      totalRows: number;
-      uniqueHouses: number;
-    },
-  ): ImportJobState {
-    const state: ImportJobState = {
-      id: batchId,
-      fileNames: meta.fileNames,
-      uploadedBy: meta.uploadedBy,
-      uploadedByName: meta.uploadedByName,
-      assignedTo: meta.assignedTo,
-      assignedToName: meta.assignedToName,
-      supervisorId: meta.supervisorId,
-      status: "queued",
-      currentStage: "Queued",
-      totalRows: meta.totalRows,
-      processedRows: 0,
-      housesAdded: 0,
-      housesUpdated: 0,
-      membersAdded: 0,
-      membersMerged: 0,
-      failedRows: 0,
-      conflictsCount: 0,
-      progressPercent: 0,
-      errorSummary: [],
-      startedAt: new Date().toISOString(),
-      completedAt: null,
-      lastHeartbeatAt: new Date().toISOString(),
-    };
+    
+    
+    
 
-    this.jobs.set(batchId, state);
-    this.abortControllers.set(batchId, new AbortController());
-    return state;
-  }
-
-  public getJob(batchId: string): ImportJobState | null {
-    return this.jobs.get(batchId) ?? null;
-  }
-
-  public getActiveJob(): ImportJobState | null {
-    for (const job of this.jobs.values()) {
-      if (job.status === "processing" || job.status === "queued") {
-        return job;
-      }
-    }
-    // Return latest job if available
-    const all = Array.from(this.jobs.values());
-    if (all.length > 0) {
-      return all[all.length - 1]!;
-    }
-    return null;
-  }
-
-  public cancelJob(batchId: string): boolean {
-    const ac = this.abortControllers.get(batchId);
-    if (ac) {
-      ac.abort();
-    }
-    const job = this.jobs.get(batchId);
-    if (job && (job.status === "processing" || job.status === "queued")) {
-      job.status = "cancelled";
-      job.currentStage = "Cancelled by user";
-      job.completedAt = new Date().toISOString();
-      job.lastHeartbeatAt = new Date().toISOString();
-      return true;
-    }
-    return false;
-  }
-
-  /**
-   * Starts background processing in a detached async execution context on the server.
-   */
-  public startBackgroundProcessing(batchId: string, payload: JobPayload) {
-    // Run asynchronously without awaiting in HTTP response
-    setTimeout(() => {
-      this.executeJob(batchId, payload).catch((err) => {
-        console.error(`[ImportJobManager] Critical unhandled error in job ${batchId}:`, err);
-        const job = this.jobs.get(batchId);
-        if (job) {
-          job.status = "failed";
-          job.currentStage = "Failed";
-          job.completedAt = new Date().toISOString();
-          job.errorSummary.push({
-            row: 0,
-            item: "System Error",
-            error: err instanceof Error ? err.message : String(err),
-          });
-        }
-      });
-    }, 10);
-  }
-
-  private async executeJob(batchId: string, payload: JobPayload) {
-    const job = this.jobs.get(batchId);
-    const ac = this.abortControllers.get(batchId);
-    if (!job) return;
-
-    job.status = "processing";
-    job.currentStage = "Initializing database connection";
-    job.lastHeartbeatAt = new Date().toISOString();
-
-    const adminClient = getSupabaseAdmin();
-    const { houses, conflicts, decisions } = payload;
+    
+    
 
     // 1. Resolve supervisor if needed
-    let actualSupervisorId = job.supervisorId;
-    if (job.assignedTo && !actualSupervisorId) {
+    let actualSupervisorId = supervisorId;
+    if (assignedTo && !actualSupervisorId) {
       try {
         const { data: membership } = await adminClient
           .from(tables.teamMemberships)
           .select("supervisor_id")
-          .eq("csw_id", job.assignedTo)
+          .eq("csw_id", assignedTo)
           .eq("status", "active")
           .maybeSingle();
         if (membership) {
@@ -215,13 +90,13 @@ class ImportJobManager {
       }
     }
 
-    let validUploadedBy: string | null = job.supervisorId || job.assignedTo || null;
+    let validUploadedBy: string | null = supervisorId || assignedTo || null;
     if (validUploadedBy === "admin" || validUploadedBy === "supervisor") {
       validUploadedBy = null;
     }
 
-    job.currentStage = "Checking existing records & indexing";
-    job.lastHeartbeatAt = new Date().toISOString();
+    
+    
 
     // 2. Local Maps for duplicate detection (populated dynamically per-chunk)
     const houseMap = new Map<string, string>(); // key -> house.id
@@ -231,19 +106,10 @@ class ImportJobManager {
     const CHUNK_SIZE = 50;
     const totalHouses = houses.length;
 
-    job.currentStage = "Importing members & assessments";
+    
 
     for (let i = 0; i < totalHouses; i += CHUNK_SIZE) {
-      if (ac?.signal.aborted) {
-        job.status = "cancelled";
-        job.currentStage = "Cancelled by user";
-        job.completedAt = new Date().toISOString();
-        await adminClient
-          .from(tables.importBatches)
-          .update({ status: "cancelled", updated_at: new Date().toISOString() })
-          .eq("id", batchId);
-        return;
-      }
+      
 
       const chunk = houses.slice(i, i + CHUNK_SIZE);
 
@@ -286,9 +152,9 @@ class ImportJobManager {
           const locationStatus = validLat != null && validLng != null ? "mapped" : "not_mapped";
 
           const validUploadedBy =
-            job.uploadedBy &&
-            /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(job.uploadedBy)
-              ? job.uploadedBy
+            uploadedBy &&
+            /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(uploadedBy)
+              ? uploadedBy
               : null;
 
           const housePayload = {
@@ -306,7 +172,7 @@ class ImportJobManager {
             source_files: house.sourceFiles,
             uploaded_by: validUploadedBy,
             uploaded_at: new Date().toISOString(),
-            assigned_csw_id: job.assignedTo ?? null,
+            assigned_csw_id: assignedTo ?? null,
             supervisor_id: actualSupervisorId,
           };
 
@@ -327,7 +193,7 @@ class ImportJobManager {
               Object.entries(housePayload).filter(([, v]) => v != null),
             );
             await adminClient.from(tables.houses).update(clean).eq("id", houseUuid);
-            job.housesUpdated += 1;
+            result.housesUpdated += 1;
           } else {
             const { data, error } = await adminClient
               .from(tables.houses)
@@ -336,7 +202,7 @@ class ImportJobManager {
               .single();
             if (error) throw error;
             houseUuid = data.id;
-            job.housesAdded += 1;
+            result.housesAdded += 1;
 
             if (housePayload.house_id && houseUuid) {
               houseMap.set(`id:${housePayload.house_id.trim().toLowerCase()}`, houseUuid);
@@ -453,7 +319,7 @@ class ImportJobManager {
                   .eq("id", targetId);
 
                 memberUuid = targetId;
-                job.membersMerged += 1;
+                result.membersMerged += 1;
 
                 if (houseUuid && memberUuid && member.memberId) {
                   memberMap.set(`${houseUuid}:${member.memberId.trim().toLowerCase()}`, {
@@ -486,7 +352,7 @@ class ImportJobManager {
 
                 if (insErr) throw insErr;
                 memberUuid = inserted.id;
-                job.membersAdded += 1;
+                result.membersAdded += 1;
 
                 // Index in local map for subsequent rows in this same upload
                 if (houseUuid && memberUuid && member.memberId) {
@@ -549,8 +415,8 @@ class ImportJobManager {
                   riskReasons = [`Clinical Risk from Excel: ${excelClinicalRisk}`];
                 } else if (excelClinicalRisk === "invalid") {
                   riskReasons = [`Invalid Clinical Risk value in Excel — stored as null`];
-                  job.errorSummary.push({
-                    row: job.processedRows + 1,
+                  result.errorSummary.push({
+                    row: 0 + 1,
                     item: member.name || "Member",
                     error: `Invalid Clinical Risk in Excel. Stored as null.`,
                   });
@@ -558,8 +424,8 @@ class ImportJobManager {
                   riskReasons = ["Clinical Risk not provided in Excel — stored as null"];
                   const hasSomeData = systolic != null || diastolic != null || bloodSugar != null;
                   if (hasSomeData) {
-                    job.errorSummary.push({
-                      row: job.processedRows + 1,
+                    result.errorSummary.push({
+                      row: 0 + 1,
                       item: member.name || "Member",
                       error: `Clinical Risk missing in Excel (vitals present). Stored as null — please update source data.`,
                     });
@@ -727,12 +593,12 @@ class ImportJobManager {
                 // If isEligible=false or risk=null: no follow-up is created (per spec)
               }
 
-              job.processedRows += 1;
+              
             } catch (memberErr: any) {
-              job.failedRows += 1;
-              job.processedRows += 1;
-              job.errorSummary.push({
-                row: job.processedRows,
+              
+              
+              result.errorSummary.push({
+                row: 0,
                 item: member.name || "Member",
                 error:
                   memberErr?.message ||
@@ -741,10 +607,10 @@ class ImportJobManager {
             }
           }
         } catch (houseErr: any) {
-          job.failedRows += house.members.length || 1;
-          job.processedRows += house.members.length || 1;
-          job.errorSummary.push({
-            row: job.processedRows,
+          
+          
+          result.errorSummary.push({
+            row: 0,
             item: house.houseId || "House",
             error:
               houseErr?.message ||
@@ -756,61 +622,12 @@ class ImportJobManager {
       // Update real progress
       job.progressPercent = Math.min(
         99,
-        Math.round((job.processedRows / Math.max(1, job.totalRows)) * 100),
+        Math.round((0 / Math.max(1, 0)) * 100),
       );
-      job.lastHeartbeatAt = new Date().toISOString();
-      job.currentStage = `Importing records (${job.processedRows} / ${job.totalRows})`;
+      
+      
     }
 
-    // 6. Record conflicts if any
-    if (conflicts && conflicts.length > 0) {
-      job.currentStage = "Recording conflicts";
-      const conflictRows = conflicts.map((c) => ({
-        batch_id: batchId,
-        entity: c.entity,
-        house_id: c.label || c.houseKey,
-        member_ref: c.memberKey ?? null,
-        field: c.field,
-        existing_value: c.existingValue,
-        new_value: c.newValue,
-        source_file: c.sourceFile,
-        status: "pending",
-      }));
-
-      for (let cIdx = 0; cIdx < conflictRows.length; cIdx += 100) {
-        await adminClient.from(tables.importConflicts).insert(conflictRows.slice(cIdx, cIdx + 100));
-      }
-      job.conflictsCount = conflicts.length;
-    }
-
-    // 7. Finalize Job
-    job.currentStage = "Finalizing";
-    const finalStatus = job.failedRows > 0 ? "completed_with_errors" : "completed";
-    job.status = finalStatus;
-    job.progressPercent = 100;
-    job.completedAt = new Date().toISOString();
-    job.lastHeartbeatAt = new Date().toISOString();
-    job.currentStage =
-      finalStatus === "completed" ? "Completed successfully" : "Completed with errors";
-
-    // Update Supabase import_batches record
-    await adminClient
-      .from(tables.importBatches)
-      .update({
-        houses_added: job.housesAdded,
-        houses_updated: job.housesUpdated,
-        members_added: job.membersAdded,
-        members_merged: job.membersMerged,
-        merged_records: job.membersMerged,
-        conflicts: job.conflictsCount,
-        status: "completed",
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", batchId);
-  }
+    return result;
 }
 
-// Global Singleton Instance
-const globalForImport = globalThis as unknown as { importJobManagerInstance?: ImportJobManager };
-export const importJobManager = globalForImport.importJobManagerInstance ?? new ImportJobManager();
-globalForImport.importJobManagerInstance = importJobManager;

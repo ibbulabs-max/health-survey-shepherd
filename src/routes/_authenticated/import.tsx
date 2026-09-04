@@ -73,6 +73,7 @@ function ImportPage() {
   const [activeBatchId, setActiveBatchId] = useState<string | null>(null);
   const [showErrorDetails, setShowErrorDetails] = useState(false);
   const [hasNotifiedComplete, setHasNotifiedComplete] = useState(false);
+  const [localProgress, setLocalProgress] = useState<{ stage: string; current: number; total: number; batch?: number; totalBatches?: number } | null>(null);
 
   // Poll for active background import job
   const jobQuery = useQuery({
@@ -213,6 +214,7 @@ function ImportPage() {
         assignedTo,
         assignedToName,
         supervisorId,
+        onProgress: (p) => setLocalProgress(p),
       });
 
       return res;
@@ -223,13 +225,16 @@ function ImportPage() {
       setPreview(null);
       setAssignedTo(null);
       setSupervisorId(null);
-      toast.info("Import job started on server. You can safely navigate away.", {
+      setLocalProgress(null);
+      toast.success("Import completed successfully!", {
         duration: 5000,
       });
       jobQuery.refetch();
+      void refresh();
     },
     onError: (e) => {
-      toast.error(e instanceof Error ? e.message : "Failed to start import.");
+      toast.error(e instanceof Error ? e.message : "Failed to complete import.");
+      setLocalProgress(null);
     },
   });
 
@@ -256,7 +261,15 @@ function ImportPage() {
   const csws = teamMembers.filter((m) => m.role === "survey_user");
 
   const isJobRunning =
-    activeJob && (activeJob.status === "processing" || activeJob.status === "queued");
+    commit.isPending || (activeJob && (activeJob.status === "processing" || activeJob.status === "queued"));
+
+  const displayProgressPercent = localProgress 
+    ? Math.min(99, Math.round((localProgress.current / Math.max(1, localProgress.total)) * 100))
+    : activeJob?.progressPercent || 0;
+    
+  const displayStage = localProgress?.stage || activeJob?.currentStage || "Processing records...";
+  const displayProcessed = localProgress?.current || activeJob?.processedRows || 0;
+  const displayTotal = localProgress?.total || activeJob?.totalRows || 0;
 
   return (
     <div className="space-y-5">
@@ -283,7 +296,7 @@ function ImportPage() {
       </div>
 
       {/* ============================================================== */}
-      {/*  ACTIVE SERVER BACKGROUND JOB BANNER                           */}
+      {/*  ACTIVE IMPORT JOB BANNER                           */}
       {/* ============================================================== */}
       {isJobRunning && (
         <div className="card-surface p-5 rounded-2xl border-2 border-primary/30 bg-primary-soft/40 shadow-card space-y-4 animate-in fade-in duration-300">
@@ -295,68 +308,70 @@ function ImportPage() {
               <div>
                 <div className="flex items-center gap-2">
                   <h3 className="font-display font-bold text-base text-foreground">
-                    Server Background Import in Progress
+                    Import in Progress
                   </h3>
                   <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-primary/20 text-primary">
                     Live
                   </span>
                 </div>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  {activeJob.currentStage || "Processing records on server..."}
+                  {displayStage}
                 </p>
               </div>
             </div>
 
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => cancelJobMutation.mutate(activeJob.id)}
-              disabled={cancelJobMutation.isPending}
-              className="text-xs rounded-xl h-8 text-destructive border-destructive/30 hover:bg-destructive/10"
-            >
-              Cancel Import
-            </Button>
+            {activeJob?.id && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => cancelJobMutation.mutate(activeJob.id)}
+                disabled={cancelJobMutation.isPending}
+                className="text-xs rounded-xl h-8 text-destructive border-destructive/30 hover:bg-destructive/10"
+              >
+                Cancel Import
+              </Button>
+            )}
           </div>
 
           {/* Progress bar */}
           <div className="space-y-1.5">
             <div className="flex justify-between text-xs font-semibold text-foreground">
-              <span>Progress: {activeJob.progressPercent}%</span>
+              <span>Progress: {displayProgressPercent}%</span>
               <span>
-                {activeJob.processedRows} / {activeJob.totalRows} rows
+                {displayProcessed} / {displayTotal} rows
               </span>
             </div>
             <div className="w-full bg-primary/10 rounded-full h-3 overflow-hidden p-0.5">
               <div
                 className="bg-primary h-full rounded-full transition-all duration-300"
-                style={{ width: `${Math.max(5, activeJob.progressPercent)}%` }}
+                style={{ width: `${Math.max(5, displayProgressPercent)}%` }}
               />
             </div>
           </div>
 
-          {/* Dynamic real-time statistics */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 border-t border-border/40 text-center">
-            <div className="p-2 rounded-xl bg-card/60">
-              <p className="text-[10px] text-muted-foreground font-semibold">Houses Added</p>
-              <p className="text-sm font-bold text-foreground">{activeJob.housesAdded}</p>
+          {activeJob && !commit.isPending && (
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 border-t border-border/40 text-center">
+              <div className="p-2 rounded-xl bg-card/60">
+                <p className="text-[10px] text-muted-foreground font-semibold">Houses Added</p>
+                <p className="text-sm font-bold text-foreground">{activeJob.housesAdded}</p>
+              </div>
+              <div className="p-2 rounded-xl bg-card/60">
+                <p className="text-[10px] text-muted-foreground font-semibold">Members Added</p>
+                <p className="text-sm font-bold text-emerald-600">{activeJob.membersAdded}</p>
+              </div>
+              <div className="p-2 rounded-xl bg-card/60">
+                <p className="text-[10px] text-muted-foreground font-semibold">Members Merged</p>
+                <p className="text-sm font-bold text-amber-600">{activeJob.membersMerged}</p>
+              </div>
+              <div className="p-2 rounded-xl bg-card/60">
+                <p className="text-[10px] text-muted-foreground font-semibold">Errors</p>
+                <p className="text-sm font-bold text-red-600">{activeJob.failedRows}</p>
+              </div>
             </div>
-            <div className="p-2 rounded-xl bg-card/60">
-              <p className="text-[10px] text-muted-foreground font-semibold">Members Added</p>
-              <p className="text-sm font-bold text-emerald-600">{activeJob.membersAdded}</p>
-            </div>
-            <div className="p-2 rounded-xl bg-card/60">
-              <p className="text-[10px] text-muted-foreground font-semibold">Members Merged</p>
-              <p className="text-sm font-bold text-amber-600">{activeJob.membersMerged}</p>
-            </div>
-            <div className="p-2 rounded-xl bg-card/60">
-              <p className="text-[10px] text-muted-foreground font-semibold">Errors</p>
-              <p className="text-sm font-bold text-red-600">{activeJob.failedRows}</p>
-            </div>
-          </div>
+          )}
 
           <p className="text-[11px] text-primary/80 font-medium bg-card/80 p-2.5 rounded-xl text-center">
-            ✨ This import is running safely in the background on the server. You can safely
-            navigate to any other page or close the app.
+            ✨ This import is processing in chunks. Please do not close the window until complete.
           </p>
         </div>
       )}

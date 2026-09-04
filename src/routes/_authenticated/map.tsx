@@ -41,11 +41,13 @@ import {
 import { cn } from "@/lib/utils";
 import { HouseDetailSheet } from "@/components/houses/HouseDetailSheet";
 import { GlobalFilterSheet } from "@/components/common/GlobalFilterSheet";
+import { PinFormSheet, type PinDraft } from "@/components/map/PinFormSheet";
 // Using existing components from Management App where appropriate.
 
 const mapSearchSchema = z.object({
   houseId: z.string().optional(),
   filter: z.enum(["today_followups"]).optional(),
+  locate: z.boolean().optional(),
 });
 
 export const Route = createFileRoute("/_authenticated/map")({
@@ -84,9 +86,19 @@ function MapPage() {
 
   const [houseTerm, setHouseTerm] = useState("");
   const [houseOpen, setHouseOpen] = useState(false);
+  const houseMatches = useMemo(() => {
+    if (!houseTerm.trim()) return [];
+    const q = houseTerm.trim().toLowerCase();
+    return houses.filter(h => {
+      const matchHouse = h.house.house_id?.toLowerCase().includes(q) || h.house.house_number?.toLowerCase().includes(q) || h.house.owner_name?.toLowerCase().includes(q);
+      const matchMember = h.members.some(m => m.name?.toLowerCase().includes(q));
+      return matchHouse || matchMember;
+    });
+  }, [houses, houseTerm]);
 
   const [activeHouse, setActiveHouse] = useState<any | null>(null);
   const [placing, setPlacing] = useState(false);
+  const [formOpen, setFormOpen] = useState(false);
   const [editMode, setEditMode] = useState(false);
 
   const [draft, setDraft] = useState<{ lat: number; lng: number } | null>(null);
@@ -246,6 +258,15 @@ function MapPage() {
     runRouting();
   }, [search.filter, pins, position]);
 
+  // Handle locate search param to start house mapping flow
+  useEffect(() => {
+    if (search.locate && search.houseId && houses.length > 0) {
+      if (!locatingHouse || locatingHouse.house.id !== search.houseId) {
+        startHouseLocation(search.houseId);
+      }
+    }
+  }, [search.locate, search.houseId, houses, locatingHouse, startHouseLocation]);
+
   const riskByHouse = useMemo(() => {
     const out: Record<string, ClinicalRiskState> = {};
     for (const h of houses) {
@@ -288,7 +309,7 @@ function MapPage() {
       }
       setDraft(latlng);
       setPlacing(true);
-      setNewPinType("house");
+      setFormOpen(true);
     },
     [editMode, locatingHouse, search.filter],
   );
@@ -339,16 +360,20 @@ function MapPage() {
     }
   }
 
-  async function confirmNewPin() {
+  async function confirmNewPin(pinDraft: PinDraft) {
     if (!draft) return;
     setSavingHouse(true);
     try {
       const { error } = await supabase.from("houses").insert({
-        house_id: `PIN-${Math.floor(Math.random() * 10000)}`,
-        latitude: draft.lat,
-        longitude: draft.lng,
-        pin_type: newPinType,
-        address: "Added from Map",
+        house_id: pinDraft.house_id || `PIN-${Math.floor(Math.random() * 10000)}`,
+        latitude: pinDraft.latitude,
+        longitude: pinDraft.longitude,
+        accuracy: pinDraft.accuracy,
+        pin_type: pinDraft.pin_type,
+        custom_type: pinDraft.custom_type,
+        house_number: pinDraft.house_number,
+        owner_name: pinDraft.owner_name,
+        address: pinDraft.notes || "Added from Map",
         mapped_by: user?.userId,
       });
 
@@ -356,6 +381,7 @@ function MapPage() {
 
       toast.success("Pin created");
       setPlacing(false);
+      setFormOpen(false);
       setDraft(null);
       await refetch();
     } catch (e: any) {
@@ -462,6 +488,7 @@ function MapPage() {
               value={houseTerm}
               onChange={(e) => {
                 setHouseTerm(e.target.value);
+                setHouseOpen(true);
               }}
               onKeyDown={(e) => {
                 if (e.key === "Enter" && pins.length > 0) {
@@ -478,6 +505,42 @@ function MapPage() {
               className="w-full bg-transparent text-[13px] outline-none text-foreground placeholder:text-muted-foreground"
             />
           </div>
+          {houseOpen && houseMatches.length > 0 ? (
+            <div className="mt-2 max-h-52 space-y-1.5 overflow-y-auto pr-1">
+              {houseMatches.slice(0, 20).map((h) => (
+                <button
+                  key={h.house.id}
+                  type="button"
+                  onClick={() => {
+                    setHouseOpen(false);
+                    setHouseTerm("");
+                    setActiveHouse(h);
+                    if (h.hasLocation && h.house.latitude !== null && h.house.longitude !== null) {
+                      setFocus({ lat: h.house.latitude, lng: h.house.longitude });
+                    }
+                  }}
+                  className="press flex w-full items-center justify-between gap-2 rounded-xl bg-card/70 px-3 py-2 text-left border border-white/10"
+                >
+                  <span className="min-w-0">
+                    <span className="block truncate text-[12px] font-semibold text-foreground">{h.house.house_id}</span>
+                    <span className="block truncate text-[10px] text-muted-foreground">
+                      House No. {h.house.house_number || "—"} · {h.members?.length ?? 0} members
+                    </span>
+                  </span>
+                  <span
+                    className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                      !h.hasLocation || h.house.latitude === null ? "bg-amber-500/15 text-amber-600" : "bg-primary/10 text-primary"
+                    }`}
+                  >
+                    {!h.hasLocation || h.house.latitude === null ? "Not mapped" : "Mapped"}
+                  </span>
+                </button>
+              ))}
+            </div>
+          ) : null}
+          {houseOpen && houseTerm.trim() && !houseMatches.length ? (
+            <p className="mt-2 text-[11px] text-muted-foreground">No matching house found.</p>
+          ) : null}
         </div>
 
         {/* Filters */}
@@ -632,49 +695,19 @@ function MapPage() {
           </div>
         ) : null}
 
-        {placing ? (
-          <div className="card-surface ios-glass pointer-events-auto mt-2 rounded-2xl px-4 py-3 bg-background/80 backdrop-blur-xl border border-white/40 shadow-sm">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-[13px] font-semibold text-foreground">New Pin Location</p>
-              <button
-                type="button"
-                onClick={() => {
-                  setPlacing(false);
-                  setDraft(null);
-                }}
-                className="press grid size-7 place-items-center rounded-full bg-card/70 border border-border"
-                aria-label="Exit add pin mode"
-              >
-                <X className="size-4 text-foreground" />
-              </button>
-            </div>
-
-            <p className="text-[11px] text-muted-foreground mb-3">
-              {draft
-                ? `${draft.lat.toFixed(6)}, ${draft.lng.toFixed(6)}`
-                : "Tap the map to place your pin"}
-            </p>
-
-            <select
-              value={newPinType}
-              onChange={(e) => setNewPinType(e.target.value)}
-              className="w-full bg-card/70 text-[13px] font-medium outline-none text-foreground border border-border rounded-xl px-3 py-2.5 mb-3"
-            >
-              {PIN_TYPES.map((t) => (
-                <option key={t.value} value={t.value}>
-                  {t.label}
-                </option>
-              ))}
-            </select>
-
+        {placing && !formOpen ? (
+          <div className="card-surface ios-glass pointer-events-auto mt-2 flex items-center justify-between rounded-2xl px-4 py-2.5 bg-background/80 backdrop-blur-xl border border-white/40 shadow-sm">
+            <p className="text-[13px] font-medium text-foreground">Tap the map to place your pin</p>
             <button
               type="button"
-              disabled={!draft || savingHouse}
-              onClick={confirmNewPin}
-              className="press w-full flex items-center justify-center gap-1.5 rounded-xl bg-primary py-2.5 text-[12px] font-semibold text-primary-foreground disabled:opacity-60 shadow-md"
+              onClick={() => {
+                setPlacing(false);
+                setDraft(null);
+              }}
+              className="press grid size-7 place-items-center rounded-full bg-card/70 border border-border"
+              aria-label="Exit add pin mode"
             >
-              <Check className="size-3.5" />
-              Save Pin
+              <X className="size-4 text-foreground" />
             </button>
           </div>
         ) : null}
@@ -787,6 +820,21 @@ function MapPage() {
           onAddLocation={startHouseLocation}
         />
       )}
+      <PinFormSheet
+        open={formOpen}
+        onOpenChange={(open) => {
+          if (open) setFormOpen(true);
+          else {
+             setFormOpen(false);
+             setPlacing(false);
+             setDraft(null);
+          }
+        }}
+        coords={draft}
+        accuracy={position?.accuracy ?? null}
+        saving={savingHouse}
+        onSave={confirmNewPin}
+      />
     </div>
   );
 }

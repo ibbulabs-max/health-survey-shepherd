@@ -29,6 +29,7 @@ import {
   DrawerDescription,
 } from "@/components/ui/drawer";
 import { cn } from "@/lib/utils";
+import { NotificationBell } from "@/components/layout/NotificationBell";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   React.useEffect(() => {
@@ -131,8 +132,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             })}
           </nav>
 
-          <div className="rounded-2xl border border-border bg-surface-muted p-3 mt-4">
-            <p className="truncate text-sm font-semibold text-foreground">
+          <div className="rounded-2xl border border-border bg-surface-muted p-3 mt-4 relative">
+            <div className="absolute right-2 top-2">
+              <NotificationBell />
+            </div>
+            <p className="truncate text-sm font-semibold text-foreground pr-8">
               {user?.profile?.full_name ?? user?.userId}
             </p>
             <p className="text-xs text-muted-foreground">{role ? roleLabels[role] : "No role"}</p>
@@ -161,6 +165,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 </p>
               </div>
               <div className="flex items-center gap-2">
+                <NotificationBell />
                 {role === "survey_user" && (
                   <Link
                     to="/survey/new"
