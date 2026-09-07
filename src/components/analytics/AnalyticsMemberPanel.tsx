@@ -1,15 +1,6 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import {
-  X,
-  Search,
-  SlidersHorizontal,
-  Download,
-  FileText,
-  ChevronLeft,
-  ChevronRight,
-  User,
-} from "lucide-react";
+import { X, Search, SlidersHorizontal, Download, FileText, User } from "lucide-react";
 import type { MemberView, HouseView } from "@/lib/domain";
 import type { ActiveFilters } from "@/hooks/useAnalytics";
 import { useDataset } from "@/hooks/useDataset";
@@ -26,7 +17,7 @@ export interface AnalyticsMemberPanelProps {
   className?: string;
 }
 
-const PAGE_SIZE = 8;
+const PAGE_SIZE = 15;
 
 export function AnalyticsMemberPanel({
   members,
@@ -39,7 +30,7 @@ export function AnalyticsMemberPanel({
 }: AnalyticsMemberPanelProps) {
   const navigate = useNavigate();
   const { data } = useDataset();
-  const [currentPage, setCurrentPage] = useState(1);
+  const [limit, setLimit] = useState(PAGE_SIZE);
   const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
   const [selectedHouseForSheet, setSelectedHouseForSheet] = useState<HouseView | null>(null);
 
@@ -68,10 +59,30 @@ export function AnalyticsMemberPanel({
 
   // Pagination calculation
   const totalMembers = members.length;
-  const totalPages = Math.max(1, Math.ceil(totalMembers / PAGE_SIZE));
-  const pageIndex = Math.min(currentPage, totalPages);
-  const startIndex = (pageIndex - 1) * PAGE_SIZE;
-  const paginatedMembers = members.slice(startIndex, startIndex + PAGE_SIZE);
+  const paginatedMembers = members.slice(0, limit);
+
+  const observerTarget = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          setLimit((prev) => prev + PAGE_SIZE);
+        }
+      },
+      { threshold: 0.1 },
+    );
+
+    if (observerTarget.current) {
+      observer.observe(observerTarget.current);
+    }
+
+    return () => {
+      if (observerTarget.current) {
+        observer.unobserve(observerTarget.current);
+      }
+    };
+  }, [observerTarget]);
 
   const handleExportCsv = () => {
     if (members.length === 0) return;
@@ -293,36 +304,15 @@ export function AnalyticsMemberPanel({
             );
           })
         )}
-      </div>
-
-      {/* Pagination Footer */}
-      <div className="p-3 bg-surface-muted/30 border-t border-border/50 flex items-center justify-between gap-2 text-xs">
-        <span className="text-[11px] text-muted-foreground">
-          Showing {totalMembers > 0 ? startIndex + 1 : 0} to{" "}
-          {Math.min(startIndex + PAGE_SIZE, totalMembers)} of {totalMembers}
-        </span>
-
-        <div className="flex items-center gap-1">
-          <button
-            type="button"
-            disabled={pageIndex <= 1}
-            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-            className="p-1 rounded-md border border-border/50 disabled:opacity-30 hover:bg-surface transition-colors"
-          >
-            <ChevronLeft className="size-3.5" />
-          </button>
-          <span className="text-[11px] font-bold px-1.5">
-            {pageIndex} / {totalPages}
-          </span>
-          <button
-            type="button"
-            disabled={pageIndex >= totalPages}
-            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-            className="p-1 rounded-md border border-border/50 disabled:opacity-30 hover:bg-surface transition-colors"
-          >
-            <ChevronRight className="size-3.5" />
-          </button>
-        </div>
+        {paginatedMembers.length < totalMembers ? (
+          <div ref={observerTarget} className="p-3 text-center text-xs text-muted-foreground">
+            Loading more members...
+          </div>
+        ) : totalMembers > 0 ? (
+          <div className="p-3 text-center text-xs text-muted-foreground/60">
+            End of list ({totalMembers} members)
+          </div>
+        ) : null}
       </div>
 
       {/* Unified Global House Detail Sheet */}

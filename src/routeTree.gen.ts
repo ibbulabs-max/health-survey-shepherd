@@ -11,6 +11,14 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
+import { Route as AboutRouteImport } from './routes/about'
+import { Route as ContactRouteImport } from './routes/contact'
+import { Route as DownloadRouteImport } from './routes/download'
+import { Route as FaqRouteImport } from './routes/faq'
+import { Route as FeaturesRouteImport } from './routes/features'
+import { Route as HelpSupportRouteImport } from './routes/help-support'
+import { Route as PrivacyRouteImport } from './routes/privacy'
+import { Route as TermsRouteImport } from './routes/terms'
 import { Route as AuthenticatedActivityRouteImport } from './routes/_authenticated/activity'
 import { Route as AuthenticatedAnalyticsRouteImport } from './routes/_authenticated/analytics'
 import { Route as AuthenticatedAssessmentsRouteImport } from './routes/_authenticated/assessments'
@@ -20,6 +28,7 @@ import { Route as AuthenticatedFollowupsRouteImport } from './routes/_authentica
 import { Route as AuthenticatedHousesRouteImport } from './routes/_authenticated/houses'
 import { Route as AuthenticatedImportRouteImport } from './routes/_authenticated/import'
 import { Route as AuthenticatedMapRouteImport } from './routes/_authenticated/map'
+import { Route as AuthenticatedMasterAdminRouteImport } from './routes/_authenticated/master-admin'
 import { Route as AuthenticatedNotificationsRouteImport } from './routes/_authenticated/notifications'
 import { Route as AuthenticatedQualityRouteImport } from './routes/_authenticated/quality'
 import { Route as AuthenticatedReportsRouteImport } from './routes/_authenticated/reports'
@@ -38,6 +47,46 @@ const IndexRoute = IndexRouteImport.update({
 } as any)
 const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
   id: '/_authenticated',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AboutRoute = AboutRouteImport.update({
+  id: '/about',
+  path: '/about',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ContactRoute = ContactRouteImport.update({
+  id: '/contact',
+  path: '/contact',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DownloadRoute = DownloadRouteImport.update({
+  id: '/download',
+  path: '/download',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FaqRoute = FaqRouteImport.update({
+  id: '/faq',
+  path: '/faq',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FeaturesRoute = FeaturesRouteImport.update({
+  id: '/features',
+  path: '/features',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HelpSupportRoute = HelpSupportRouteImport.update({
+  id: '/help-support',
+  path: '/help-support',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TermsRoute = TermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedActivityRoute = AuthenticatedActivityRouteImport.update({
@@ -86,6 +135,12 @@ const AuthenticatedMapRoute = AuthenticatedMapRouteImport.update({
   path: '/map',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedMasterAdminRoute =
+  AuthenticatedMasterAdminRouteImport.update({
+    id: '/master-admin',
+    path: '/master-admin',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedNotificationsRoute =
   AuthenticatedNotificationsRouteImport.update({
     id: '/notifications',
@@ -143,6 +198,14 @@ const AuthenticatedSurveyNewRoute = AuthenticatedSurveyNewRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
+  '/contact': typeof ContactRoute
+  '/download': typeof DownloadRoute
+  '/faq': typeof FaqRoute
+  '/features': typeof FeaturesRoute
+  '/help-support': typeof HelpSupportRoute
+  '/privacy': typeof PrivacyRoute
+  '/terms': typeof TermsRoute
   '/activity': typeof AuthenticatedActivityRoute
   '/analytics': typeof AuthenticatedAnalyticsRoute
   '/assessments': typeof AuthenticatedAssessmentsRouteWithChildren
@@ -152,6 +215,7 @@ export interface FileRoutesByFullPath {
   '/houses': typeof AuthenticatedHousesRouteWithChildren
   '/import': typeof AuthenticatedImportRoute
   '/map': typeof AuthenticatedMapRoute
+  '/master-admin': typeof AuthenticatedMasterAdminRoute
   '/notifications': typeof AuthenticatedNotificationsRoute
   '/quality': typeof AuthenticatedQualityRoute
   '/reports': typeof AuthenticatedReportsRoute
@@ -165,6 +229,14 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
+  '/contact': typeof ContactRoute
+  '/download': typeof DownloadRoute
+  '/faq': typeof FaqRoute
+  '/features': typeof FeaturesRoute
+  '/help-support': typeof HelpSupportRoute
+  '/privacy': typeof PrivacyRoute
+  '/terms': typeof TermsRoute
   '/activity': typeof AuthenticatedActivityRoute
   '/analytics': typeof AuthenticatedAnalyticsRoute
   '/assessments': typeof AuthenticatedAssessmentsRouteWithChildren
@@ -174,6 +246,7 @@ export interface FileRoutesByTo {
   '/houses': typeof AuthenticatedHousesRouteWithChildren
   '/import': typeof AuthenticatedImportRoute
   '/map': typeof AuthenticatedMapRoute
+  '/master-admin': typeof AuthenticatedMasterAdminRoute
   '/notifications': typeof AuthenticatedNotificationsRoute
   '/quality': typeof AuthenticatedQualityRoute
   '/reports': typeof AuthenticatedReportsRoute
@@ -189,6 +262,14 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
+  '/about': typeof AboutRoute
+  '/contact': typeof ContactRoute
+  '/download': typeof DownloadRoute
+  '/faq': typeof FaqRoute
+  '/features': typeof FeaturesRoute
+  '/help-support': typeof HelpSupportRoute
+  '/privacy': typeof PrivacyRoute
+  '/terms': typeof TermsRoute
   '/_authenticated/activity': typeof AuthenticatedActivityRoute
   '/_authenticated/analytics': typeof AuthenticatedAnalyticsRoute
   '/_authenticated/assessments': typeof AuthenticatedAssessmentsRouteWithChildren
@@ -198,6 +279,7 @@ export interface FileRoutesById {
   '/_authenticated/houses': typeof AuthenticatedHousesRouteWithChildren
   '/_authenticated/import': typeof AuthenticatedImportRoute
   '/_authenticated/map': typeof AuthenticatedMapRoute
+  '/_authenticated/master-admin': typeof AuthenticatedMasterAdminRoute
   '/_authenticated/notifications': typeof AuthenticatedNotificationsRoute
   '/_authenticated/quality': typeof AuthenticatedQualityRoute
   '/_authenticated/reports': typeof AuthenticatedReportsRoute
@@ -213,6 +295,14 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/about'
+    | '/contact'
+    | '/download'
+    | '/faq'
+    | '/features'
+    | '/help-support'
+    | '/privacy'
+    | '/terms'
     | '/activity'
     | '/analytics'
     | '/assessments'
@@ -222,6 +312,7 @@ export interface FileRouteTypes {
     | '/houses'
     | '/import'
     | '/map'
+    | '/master-admin'
     | '/notifications'
     | '/quality'
     | '/reports'
@@ -235,6 +326,14 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/about'
+    | '/contact'
+    | '/download'
+    | '/faq'
+    | '/features'
+    | '/help-support'
+    | '/privacy'
+    | '/terms'
     | '/activity'
     | '/analytics'
     | '/assessments'
@@ -244,6 +343,7 @@ export interface FileRouteTypes {
     | '/houses'
     | '/import'
     | '/map'
+    | '/master-admin'
     | '/notifications'
     | '/quality'
     | '/reports'
@@ -258,6 +358,14 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/_authenticated'
+    | '/about'
+    | '/contact'
+    | '/download'
+    | '/faq'
+    | '/features'
+    | '/help-support'
+    | '/privacy'
+    | '/terms'
     | '/_authenticated/activity'
     | '/_authenticated/analytics'
     | '/_authenticated/assessments'
@@ -267,6 +375,7 @@ export interface FileRouteTypes {
     | '/_authenticated/houses'
     | '/_authenticated/import'
     | '/_authenticated/map'
+    | '/_authenticated/master-admin'
     | '/_authenticated/notifications'
     | '/_authenticated/quality'
     | '/_authenticated/reports'
@@ -282,6 +391,14 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
+  AboutRoute: typeof AboutRoute
+  ContactRoute: typeof ContactRoute
+  DownloadRoute: typeof DownloadRoute
+  FaqRoute: typeof FaqRoute
+  FeaturesRoute: typeof FeaturesRoute
+  HelpSupportRoute: typeof HelpSupportRoute
+  PrivacyRoute: typeof PrivacyRoute
+  TermsRoute: typeof TermsRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -298,6 +415,62 @@ declare module '@tanstack/react-router' {
       path: ''
       fullPath: '/'
       preLoaderRoute: typeof AuthenticatedRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/about': {
+      id: '/about'
+      path: '/about'
+      fullPath: '/about'
+      preLoaderRoute: typeof AboutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/contact': {
+      id: '/contact'
+      path: '/contact'
+      fullPath: '/contact'
+      preLoaderRoute: typeof ContactRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/download': {
+      id: '/download'
+      path: '/download'
+      fullPath: '/download'
+      preLoaderRoute: typeof DownloadRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/faq': {
+      id: '/faq'
+      path: '/faq'
+      fullPath: '/faq'
+      preLoaderRoute: typeof FaqRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/features': {
+      id: '/features'
+      path: '/features'
+      fullPath: '/features'
+      preLoaderRoute: typeof FeaturesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/help-support': {
+      id: '/help-support'
+      path: '/help-support'
+      fullPath: '/help-support'
+      preLoaderRoute: typeof HelpSupportRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/terms': {
+      id: '/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof TermsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/activity': {
@@ -361,6 +534,13 @@ declare module '@tanstack/react-router' {
       path: '/map'
       fullPath: '/map'
       preLoaderRoute: typeof AuthenticatedMapRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/master-admin': {
+      id: '/_authenticated/master-admin'
+      path: '/master-admin'
+      fullPath: '/master-admin'
+      preLoaderRoute: typeof AuthenticatedMasterAdminRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/notifications': {
@@ -472,6 +652,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedHousesRoute: typeof AuthenticatedHousesRouteWithChildren
   AuthenticatedImportRoute: typeof AuthenticatedImportRoute
   AuthenticatedMapRoute: typeof AuthenticatedMapRoute
+  AuthenticatedMasterAdminRoute: typeof AuthenticatedMasterAdminRoute
   AuthenticatedNotificationsRoute: typeof AuthenticatedNotificationsRoute
   AuthenticatedQualityRoute: typeof AuthenticatedQualityRoute
   AuthenticatedReportsRoute: typeof AuthenticatedReportsRoute
@@ -492,6 +673,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedHousesRoute: AuthenticatedHousesRouteWithChildren,
   AuthenticatedImportRoute: AuthenticatedImportRoute,
   AuthenticatedMapRoute: AuthenticatedMapRoute,
+  AuthenticatedMasterAdminRoute: AuthenticatedMasterAdminRoute,
   AuthenticatedNotificationsRoute: AuthenticatedNotificationsRoute,
   AuthenticatedQualityRoute: AuthenticatedQualityRoute,
   AuthenticatedReportsRoute: AuthenticatedReportsRoute,
@@ -508,6 +690,14 @@ const AuthenticatedRouteRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
+  AboutRoute: AboutRoute,
+  ContactRoute: ContactRoute,
+  DownloadRoute: DownloadRoute,
+  FaqRoute: FaqRoute,
+  FeaturesRoute: FeaturesRoute,
+  HelpSupportRoute: HelpSupportRoute,
+  PrivacyRoute: PrivacyRoute,
+  TermsRoute: TermsRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -82,7 +82,7 @@ export function AnalyticsCandle({
       onClick={onClick}
       title={tooltipText}
       className={cn(
-        "group relative flex flex-col items-center justify-end h-40 min-w-[50px] px-1 py-1.5 rounded-xl transition-all duration-200 cursor-pointer select-none",
+        "group relative flex-1 flex flex-col items-center justify-end h-40 min-w-0 px-1 py-1.5 rounded-xl transition-all duration-200 cursor-pointer select-none",
         "hover:bg-surface-muted/70 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
         isSelected && "bg-primary/10 ring-1 ring-primary/40 shadow-xs",
       )}

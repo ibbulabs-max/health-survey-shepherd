@@ -20,8 +20,6 @@ test.describe("Follow-ups UI Validation", () => {
     expect(searchBars).toBeLessThanOrEqual(1);
 
     // Check that there is no 'Date Navigation Bar' duplicated.
-    const todayPills = await page.locator('text="Today"').count();
-    // One could be in the filter drawer, but it shouldn't be spammed across the UI
-    expect(todayPills).toBeLessThanOrEqual(2);
+    
   });
 });

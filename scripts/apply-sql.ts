@@ -30,7 +30,7 @@ async function runSQL() {
     console.error("Please provide a SQL file path as an argument.");
     return;
   }
-  
+
   const sql = fs.readFileSync(path.resolve(process.cwd(), sqlFile), "utf-8");
 
   const client = new Client({ connectionString: connStr });

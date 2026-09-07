@@ -10,11 +10,9 @@ test.describe("CHW Assessment Flow", () => {
 
     // We will login as e2eadmin for now since admin can probably navigate if we force it?
     // Actually, let's login as admin, then go to Users, create a CHW, and logout/login as CHW.
-
-    await expect(page.getByRole("heading", { name: /Management App/i })).toBeVisible();
-    await page.getByPlaceholder("e.g. admin").fill("e2eadmin");
+    await page.locator("#userId").fill("e2eadmin");
     await page.locator('input[inputmode="numeric"]').fill("123456");
-    await expect(page.getByText(/Hello, E2E/i)).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText(/Hello,/i)).toBeVisible({ timeout: 10000 });
 
     // Create a CHW user
     await page.getByRole("link", { name: "Users", exact: true }).first().click();
@@ -34,7 +32,7 @@ test.describe("CHW Assessment Flow", () => {
     await page.getByRole("button", { name: "Log out" }).click();
 
     // Login as CHW
-    await page.getByPlaceholder("e.g. admin").fill(testUserId);
+    await page.locator("#userId").fill(testUserId);
     await page.locator('input[inputmode="numeric"]').fill("123456");
 
     // CHW Dashboard

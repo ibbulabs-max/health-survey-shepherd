@@ -39,4 +39,5 @@ export const navItems: NavItem[] = [
   { to: "/users", label: "Users", icon: ShieldCheck, permission: "manage_users" },
   { to: "/notifications", label: "Notifications & Chat", icon: Bell },
   { to: "/settings", label: "Settings", icon: Settings },
+  { to: "/master-admin", label: "Master Admin", icon: ShieldCheck },
 ];

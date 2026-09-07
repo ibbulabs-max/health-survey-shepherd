@@ -14,6 +14,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { AdminUserActions } from "@/components/admin/AdminUserActions";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -223,7 +224,7 @@ function UsersPage() {
                   {profile.phone ? ` • ${profile.phone}` : ""}
                 </p>
               </div>
-              <div className="flex shrink-0 flex-wrap justify-end gap-1.5">
+              <div className="flex shrink-0 flex-wrap justify-end gap-1.5 items-center">
                 {roles.length ? (
                   roles.map((role) => (
                     <span
@@ -236,6 +237,18 @@ function UsersPage() {
                 ) : (
                   <span className="text-xs text-muted-foreground">No role</span>
                 )}
+
+                <div className="ml-2 pl-2 border-l border-border/40">
+                  <AdminUserActions
+                    userId={profile.id}
+                    currentRole={roles[0] ?? "none"}
+                    userName={profile.full_name ?? profile.username ?? "Unknown"}
+                    supervisors={supervisors.map((s) => ({
+                      id: s.profile.id,
+                      name: s.profile.full_name ?? s.profile.username ?? "Unknown",
+                    }))}
+                  />
+                </div>
               </div>
             </div>
           ))}

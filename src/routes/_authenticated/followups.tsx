@@ -361,6 +361,8 @@ function FollowUpsPage() {
         list = list.filter(
           (i) => i.status === "completed" && toDateKeySafe(i.completedAt) === todayKey,
         );
+      } else if (statusFilter === "all") {
+        list = list.filter((i) => i.status !== "completed");
       }
     }
 
@@ -434,7 +436,8 @@ function FollowUpsPage() {
   const completedTodayCount = useMemo(() => {
     if (!data) return 0;
     return data.followUps.filter(
-      (f) => f.status === "completed" && f.completed_at && toDateKeySafe(f.completed_at) === todayKey,
+      (f) =>
+        f.status === "completed" && f.completed_at && toDateKeySafe(f.completed_at) === todayKey,
     ).length;
   }, [data, todayKey]);
 

@@ -151,7 +151,9 @@ function DashboardPage() {
         .length,
       completedToday: cswFollowUps.filter(
         (f) =>
-          followUpStatus(f.status, f.due_date) === "completed" && f.completed_at && toDateKeySafe(f.completed_at) === today,
+          followUpStatus(f.status, f.due_date) === "completed" &&
+          f.completed_at &&
+          toDateKeySafe(f.completed_at) === today,
       ).length,
     };
   });

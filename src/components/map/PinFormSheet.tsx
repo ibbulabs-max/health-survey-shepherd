@@ -118,16 +118,41 @@ export function PinFormSheet({
 
           <div className="mt-4 space-y-3">
             {type === "other" ? (
-              <Field label="Custom type" value={customType} onChange={setCustomType} placeholder="Describe this place" />
+              <Field
+                label="Custom type"
+                value={customType}
+                onChange={setCustomType}
+                placeholder="Describe this place"
+              />
             ) : null}
             {isHouse ? (
               <>
-                <Field label="House ID" value={houseId} onChange={setHouseId} placeholder="e.g. H-1042" />
-                <Field label="House number" value={houseNumber} onChange={setHouseNumber} placeholder="e.g. 12/B" />
-                <Field label="Owner name (optional)" value={ownerName} onChange={setOwnerName} placeholder="Optional" />
+                <Field
+                  label="House ID"
+                  value={houseId}
+                  onChange={setHouseId}
+                  placeholder="e.g. H-1042"
+                />
+                <Field
+                  label="House number"
+                  value={houseNumber}
+                  onChange={setHouseNumber}
+                  placeholder="e.g. 12/B"
+                />
+                <Field
+                  label="Owner name (optional)"
+                  value={ownerName}
+                  onChange={setOwnerName}
+                  placeholder="Optional"
+                />
               </>
             ) : null}
-            <Field label="Notes (optional)" value={notes} onChange={setNotes} placeholder="Anything worth remembering" />
+            <Field
+              label="Notes (optional)"
+              value={notes}
+              onChange={setNotes}
+              placeholder="Anything worth remembering"
+            />
           </div>
 
           <div className="mt-5 flex gap-3">

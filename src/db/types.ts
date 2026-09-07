@@ -15,6 +15,7 @@ export interface Profile {
   email: string | null;
   avatar_url: string | null;
   is_active: boolean | null;
+  analytics_preferences: JsonObject | null;
   created_at: string | null;
   updated_at: string | null;
 }

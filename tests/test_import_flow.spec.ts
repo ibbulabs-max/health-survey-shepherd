@@ -3,20 +3,18 @@ import { test, expect } from "@playwright/test";
 test("Import followup test data and verify UI", async ({ page }) => {
   test.setTimeout(60000);
 
-  // 1. Navigate to import
-  await page.goto("http://localhost:8080/import");
+  await page.goto("http://localhost:8080/");
 
-  // Wait for login or ensure we are logged in - assuming the dev server skips auth or auth is cached?
-  // Let's assume auth is needed. We might need to handle login if we are redirected.
-  if (page.url().includes("/auth")) {
-    await page.fill("input[type='email']", "demo@example.com"); // We will see if it redirects
-    await page.fill("input[type='password']", "password");
-    await page.click("button[type='submit']");
-    await page.waitForURL("**/import");
+  if (page.url() === 'http://localhost:8080/') {
+    await page.fill("#userId", process.env.QA_ADMIN_USER || "admin-placeholder");
+    await page.locator('input[inputmode="numeric"]').fill(process.env.QA_PASSWORD || "000000");
+    await page.waitForURL("**/dashboard", { timeout: 10000 });
   }
 
+  await page.goto("http://localhost:8080/import");
+
   // 2. Upload file
-  const fileInput = await page.$("input[type='file']");
+  const fileInput = await page.waitForSelector("input[type='file']", { state: "attached", timeout: 15000 });
   if (!fileInput) throw new Error("No file input found");
 
   await fileInput.setInputFiles("test_followup_import.csv");

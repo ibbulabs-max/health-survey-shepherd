@@ -33,10 +33,7 @@ test.describe("QA Login and Setup Flow", () => {
     await page.waitForSelector("text=Hello,", { timeout: 30000 });
 
     // Logout
-    if (await page.getByRole("button", { name: "More" }).isVisible()) {
-      await page.getByRole("button", { name: "More" }).click();
-    }
-    await page.getByRole("button", { name: "Sign out" }).click();
+    if (await page.locator('[data-testid="mobile-menu-btn"]').isVisible()) { await page.locator('[data-testid="mobile-menu-btn"]').click(); await page.waitForTimeout(500); } await page.locator('[data-testid="mobile-signout-btn"]').first().click({ force: true });
     // Login Again with 112233
     await page.waitForSelector("#userId", { timeout: 10000 });
     await page.fill("#userId", process.env.QA_ADMIN_USER || "admin-placeholder");

@@ -462,6 +462,14 @@ export function isEligibleMember(member: {
   if (member.eligible !== undefined) return member.eligible;
 
   const memberData = member.data ?? {};
+
+  const ageRaw = memberData["age"];
+  if (ageRaw != null && !isNaN(Number(ageRaw))) {
+    if (Number(ageRaw) < 30) {
+      return false;
+    }
+  }
+
   const eligibleRaw =
     memberData["eligible"] ?? memberData["Eligible (≥30)"] ?? memberData["eligible_30"];
   if (eligibleRaw != null && String(eligibleRaw).trim() !== "") {

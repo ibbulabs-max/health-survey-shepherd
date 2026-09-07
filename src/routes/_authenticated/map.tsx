@@ -15,6 +15,11 @@ import {
   Users,
   X,
   Play,
+  Layers,
+  Radio,
+  Trash2,
+  ShieldAlert,
+  Palette,
 } from "lucide-react";
 import { z } from "zod";
 
@@ -27,10 +32,19 @@ import { getUserDisplayName } from "@/services/userService";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/db/client";
 
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { SharedMap } from "@/components/map/SharedMap";
 import { PIN_TYPES, pinTypeDef, pinTypeLabel, distanceMeters, type Pin } from "@/lib/pin-types";
 import type { RiskLevel, ClinicalRiskState } from "@/config/risk";
 
+import { Button } from "@/components/ui/button";
 import {
   Drawer,
   DrawerContent,
@@ -89,9 +103,12 @@ function MapPage() {
   const houseMatches = useMemo(() => {
     if (!houseTerm.trim()) return [];
     const q = houseTerm.trim().toLowerCase();
-    return houses.filter(h => {
-      const matchHouse = h.house.house_id?.toLowerCase().includes(q) || h.house.house_number?.toLowerCase().includes(q) || h.house.owner_name?.toLowerCase().includes(q);
-      const matchMember = h.members.some(m => m.name?.toLowerCase().includes(q));
+    return houses.filter((h) => {
+      const matchHouse =
+        h.house.house_id?.toLowerCase().includes(q) ||
+        h.house.house_number?.toLowerCase().includes(q) ||
+        h.house.owner_name?.toLowerCase().includes(q);
+      const matchMember = h.members.some((m) => m.name?.toLowerCase().includes(q));
       return matchHouse || matchMember;
     });
   }, [houses, houseTerm]);
@@ -100,6 +117,178 @@ function MapPage() {
   const [placing, setPlacing] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
   const [editMode, setEditMode] = useState(false);
+
+  // Territory Area and Drawing State
+  const [areas, setAreas] = useState<any[]>(() => {
+    try {
+      const stored = localStorage.getItem("NCD_TERRITORY_AREAS");
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [territoriesPanelOpen, setTerritoriesPanelOpen] = useState(false);
+  const [drawingMode, setDrawingMode] = useState<"polygon" | "polyline" | null>(null);
+  const [drawingPoints, setDrawingPoints] = useState<{ lat: number; lng: number }[]>([]);
+  const [newAreaName, setNewAreaName] = useState("");
+  const [newAreaColor, setNewAreaColor] = useState("#2563eb");
+  const [newAreaCHW, setNewAreaCHW] = useState<string>("");
+  const [saveAreaDialogOpen, setSaveAreaDialogOpen] = useState(false);
+
+  // GPS Sharing & Geofencing
+  const [gpsSharingEnabled, setGpsSharingEnabled] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem("NCD_GPS_SHARING") === "true";
+    } catch {
+      return false;
+    }
+  });
+  const [gpsPromptOpen, setGpsPromptOpen] = useState(false);
+  const [lastGeofenceAlert, setLastGeofenceAlert] = useState<number>(0);
+
+  // Load territory areas from Supabase if available
+  useEffect(() => {
+    async function loadAreas() {
+      try {
+        const { data: dbAreas, error } = await supabase.from("map_areas").select("*");
+        if (!error && dbAreas && dbAreas.length > 0) {
+          setAreas(dbAreas);
+          localStorage.setItem("NCD_TERRITORY_AREAS", JSON.stringify(dbAreas));
+        }
+      } catch {
+        // Fallback to local storage
+      }
+    }
+    loadAreas();
+  }, []);
+
+  const handleAddDrawingPoint = useCallback((pt: { lat: number; lng: number }) => {
+    setDrawingPoints((prev) => [...prev, pt]);
+  }, []);
+
+  const cancelDrawing = () => {
+    setDrawingMode(null);
+    setDrawingPoints([]);
+  };
+
+  const handleSaveArea = async () => {
+    if (!newAreaName.trim()) {
+      toast.error("Enter a name for this territory sector.");
+      return;
+    }
+    if (drawingPoints.length < (drawingMode === "polygon" ? 3 : 2)) {
+      toast.error(`At least ${drawingMode === "polygon" ? 3 : 2} points required.`);
+      return;
+    }
+
+    let geometry: any;
+    if (drawingMode === "polygon") {
+      const closed = [
+        ...drawingPoints.map((p) => [p.lng, p.lat]),
+        [drawingPoints[0]!.lng, drawingPoints[0]!.lat],
+      ];
+      geometry = {
+        type: "Polygon",
+        coordinates: [closed],
+      };
+    } else {
+      geometry = {
+        type: "LineString",
+        coordinates: drawingPoints.map((p) => [p.lng, p.lat]),
+      };
+    }
+
+    const newArea = {
+      id: crypto.randomUUID(),
+      name: newAreaName.trim(),
+      color: newAreaColor,
+      geometry,
+      assigned_chw_id: newAreaCHW || null,
+      created_at: new Date().toISOString(),
+    };
+
+    const updated = [...areas, newArea];
+    setAreas(updated);
+    localStorage.setItem("NCD_TERRITORY_AREAS", JSON.stringify(updated));
+
+    try {
+      await supabase.from("map_areas").insert({
+        id: newArea.id,
+        name: newArea.name,
+        color: newArea.color,
+        geometry: newArea.geometry,
+        assigned_chw_id: newArea.assigned_chw_id,
+        organization_id:
+          (user?.profile as any)?.organization_id || "00000000-0000-0000-0000-000000000000",
+      });
+    } catch {
+      // Offline fallback preserved
+    }
+
+    toast.success(`Territory sector "${newArea.name}" created!`);
+    setSaveAreaDialogOpen(false);
+    setDrawingMode(null);
+    setDrawingPoints([]);
+    setNewAreaName("");
+    setNewAreaCHW("");
+  };
+
+  const handleDeleteArea = async (id: string) => {
+    const updated = areas.filter((a) => a.id !== id);
+    setAreas(updated);
+    localStorage.setItem("NCD_TERRITORY_AREAS", JSON.stringify(updated));
+    try {
+      const { error } = await supabase.from("map_areas").delete().eq("id", id);
+      if (error) console.error("Failed to delete map area:", error);
+    } catch {
+      // Offline fallback
+    }
+    toast.info("Territory removed");
+  };
+
+  // Geofencing verification
+  useEffect(() => {
+    if (!position || areas.length === 0) return;
+    const now = Date.now();
+    if (now - lastGeofenceAlert < 5 * 60 * 1000) return; // Debounce 5 min
+
+    // If user is a CHW, check if assigned to any territory
+    const myAssignedAreas = areas.filter(
+      (a) => a.assigned_chw_id === user?.userId && a.geometry?.type === "Polygon",
+    );
+    if (myAssignedAreas.length > 0) {
+      let isInsideAny = false;
+      const pt = { lat: position.lat, lng: position.lng };
+      for (const a of myAssignedAreas) {
+        const ring = a.geometry?.coordinates?.[0] ?? [];
+        if (ring.length >= 3) {
+          // Point in polygon
+          let inside = false;
+          for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+            const xi = ring[i][0],
+              yi = ring[i][1];
+            const xj = ring[j][0],
+              yj = ring[j][1];
+            const intersect =
+              yi > pt.lat !== yj > pt.lat && pt.lng < ((xj - xi) * (pt.lat - yi)) / (yj - yi) + xi;
+            if (intersect) inside = !inside;
+          }
+          if (inside) {
+            isInsideAny = true;
+            break;
+          }
+        }
+      }
+
+      if (!isInsideAny) {
+        setLastGeofenceAlert(now);
+        toast.warning(
+          "Geofence Alert: Current GPS location is outside your assigned survey territory.",
+          { duration: 6000 },
+        );
+      }
+    }
+  }, [position, areas, user?.userId, lastGeofenceAlert]);
 
   const [draft, setDraft] = useState<{ lat: number; lng: number } | null>(null);
   const [newPinType, setNewPinType] = useState<string>("house");
@@ -258,14 +447,22 @@ function MapPage() {
     runRouting();
   }, [search.filter, pins, position]);
 
-  // Handle locate search param to start house mapping flow
-  useEffect(() => {
-    if (search.locate && search.houseId && houses.length > 0) {
-      if (!locatingHouse || locatingHouse.house.id !== search.houseId) {
-        startHouseLocation(search.houseId);
+  const nearestPinId = useMemo(() => {
+    if (search.filter !== "today_followups" || pins.length === 0 || !position) return null;
+    let closestId: string | null = null;
+    let minDist = Infinity;
+    for (const p of pins) {
+      // Haversine distance or simple euclidean is enough for local approximation
+      const dx = p.latitude - position.lat;
+      const dy = (p.longitude - position.lng) * Math.cos(position.lat * (Math.PI / 180));
+      const dist = dx * dx + dy * dy;
+      if (dist < minDist) {
+        minDist = dist;
+        closestId = p.id;
       }
     }
-  }, [search.locate, search.houseId, houses, locatingHouse, startHouseLocation]);
+    return closestId;
+  }, [search.filter, pins, position]);
 
   const riskByHouse = useMemo(() => {
     const out: Record<string, ClinicalRiskState> = {};
@@ -335,6 +532,15 @@ function MapPage() {
     [houses, position],
   );
 
+  // Handle locate search param to start house mapping flow
+  useEffect(() => {
+    if (search.locate && search.houseId && houses.length > 0) {
+      if (!locatingHouse || locatingHouse.house.id !== search.houseId) {
+        startHouseLocation(search.houseId);
+      }
+    }
+  }, [search.locate, search.houseId, houses, locatingHouse, startHouseLocation]);
+
   async function confirmHouseLocation() {
     if (!locatingHouse || !draft) return;
     setSavingHouse(true);
@@ -363,6 +569,33 @@ function MapPage() {
   async function confirmNewPin(pinDraft: PinDraft) {
     if (!draft) return;
     setSavingHouse(true);
+    
+    let assignedAreaId: string | undefined = undefined;
+    
+    // Find which territory this pin falls into
+    if (areas.length > 0) {
+      const pt = { lat: pinDraft.latitude, lng: pinDraft.longitude };
+      for (const a of areas) {
+        if (a.geometry?.type === "Polygon") {
+          const ring = a.geometry?.coordinates?.[0] ?? [];
+          if (ring.length >= 3) {
+            let inside = false;
+            for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+              const xi = ring[i][0], yi = ring[i][1];
+              const xj = ring[j][0], yj = ring[j][1];
+              const intersect = ((yi > pt.lat) !== (yj > pt.lat))
+                  && (pt.lng < (xj - xi) * (pt.lat - yi) / (yj - yi) + xi);
+              if (intersect) inside = !inside;
+            }
+            if (inside) {
+              assignedAreaId = a.id;
+              break; // Found the area
+            }
+          }
+        }
+      }
+    }
+
     try {
       const { error } = await supabase.from("houses").insert({
         house_id: pinDraft.house_id || `PIN-${Math.floor(Math.random() * 10000)}`,
@@ -375,6 +608,8 @@ function MapPage() {
         owner_name: pinDraft.owner_name,
         address: pinDraft.notes || "Added from Map",
         mapped_by: user?.userId,
+        area_id: assignedAreaId,
+        created_by: user?.userId,
       });
 
       if (error) throw error;
@@ -438,8 +673,8 @@ function MapPage() {
   }
 
   return (
-    <div className="relative h-dvh w-full overflow-hidden bg-muted">
-      <div className="absolute bottom-0 left-0 right-0 top-0 z-0 md:left-60">
+    <div className="relative h-[calc(100dvh-57px)] lg:h-screen w-full overflow-hidden bg-muted">
+      <div className="absolute bottom-0 left-0 right-0 top-0 z-0">
         <SharedMap
           pins={pins}
           showPins={showPins}
@@ -447,10 +682,15 @@ function MapPage() {
           heading={heading}
           draft={draft}
           focus={focus}
-          addMode={Boolean(locatingHouse)}
+          addMode={Boolean(locatingHouse) || Boolean(drawingMode)}
           editMode={editMode}
           riskByHouse={riskByHouse}
           route={route}
+          nearestPinId={nearestPinId}
+          areas={areas}
+          drawingMode={drawingMode}
+          drawingPoints={drawingPoints}
+          onAddDrawingPoint={handleAddDrawingPoint}
           canMove={canMove}
           onMapTap={handleTap}
           onDraftMove={setDraft}
@@ -460,8 +700,8 @@ function MapPage() {
         />
       </div>
 
-      <div className="pointer-events-none absolute left-0 right-0 top-0 z-20 flex max-h-dvh flex-col overflow-y-auto px-4 pt-[max(0.75rem,env(safe-area-inset-top))] pb-40 md:left-60 md:right-auto md:w-[22rem] md:pb-8">
-        <div className="card-surface ios-glass pointer-events-auto flex items-center justify-between rounded-3xl px-4 py-3 bg-background/80 backdrop-blur-xl border border-white/40 shadow-sm">
+      <div className="pointer-events-none absolute left-0 right-0 top-0 z-20 flex max-h-full flex-col overflow-y-auto px-4 pt-[max(0.75rem,env(safe-area-inset-top))] pb-40 md:right-auto md:w-[22rem] md:pb-8">
+        <div className="card-surface ios-glass pointer-events-auto flex items-center justify-between rounded-3xl px-4 py-3 bg-background/80 backdrop-blur-xl border border-white/40 shadow-sm mt-2 lg:mt-6">
           <div>
             <p className="text-[15px] font-semibold leading-tight text-foreground">Survey Map</p>
             <p className="text-[12px] text-muted-foreground font-mono">
@@ -522,14 +762,18 @@ function MapPage() {
                   className="press flex w-full items-center justify-between gap-2 rounded-xl bg-card/70 px-3 py-2 text-left border border-white/10"
                 >
                   <span className="min-w-0">
-                    <span className="block truncate text-[12px] font-semibold text-foreground">{h.house.house_id}</span>
+                    <span className="block truncate text-[12px] font-semibold text-foreground">
+                      {h.house.house_id}
+                    </span>
                     <span className="block truncate text-[10px] text-muted-foreground">
                       House No. {h.house.house_number || "—"} · {h.members?.length ?? 0} members
                     </span>
                   </span>
                   <span
                     className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ${
-                      !h.hasLocation || h.house.latitude === null ? "bg-amber-500/15 text-amber-600" : "bg-primary/10 text-primary"
+                      !h.hasLocation || h.house.latitude === null
+                        ? "bg-amber-500/15 text-amber-600"
+                        : "bg-primary/10 text-primary"
                     }`}
                   >
                     {!h.hasLocation || h.house.latitude === null ? "Not mapped" : "Mapped"}
@@ -766,12 +1010,49 @@ function MapPage() {
         <button
           type="button"
           onClick={() => navigate({ to: "/map", search: { filter: "today_followups" } })}
-          className="press absolute bottom-[21rem] right-4 z-30 md:bottom-56 grid h-12 px-5 place-items-center rounded-2xl shadow-lg border bg-background/80 backdrop-blur-xl border-white/40 text-primary font-bold text-sm flex items-center gap-2"
+          className="press absolute bottom-[27.5rem] right-4 z-30 md:bottom-72 grid h-12 px-5 place-items-center rounded-2xl shadow-lg border bg-background/80 backdrop-blur-xl border-white/40 text-primary font-bold text-sm flex items-center gap-2"
         >
           <Play className="size-4 fill-primary" />
           RUN
         </button>
       )}
+
+      {/* Territory Areas Management Toggle */}
+      {isAdmin && (
+        <button
+          type="button"
+          onClick={() => setTerritoriesPanelOpen(true)}
+          className="press glass absolute bottom-[23rem] right-4 z-30 md:bottom-56 grid size-12 place-items-center rounded-2xl text-primary bg-background/85 border border-white/20 shadow-md"
+          aria-label="Territory areas"
+          title="Territory Areas & Geofences"
+        >
+          <Layers className="size-5" />
+        </button>
+      )}
+
+      {/* GPS Sharing Toggle */}
+      <button
+        type="button"
+        onClick={() => {
+          if (!gpsSharingEnabled) {
+            setGpsPromptOpen(true);
+          } else {
+            setGpsSharingEnabled(false);
+            localStorage.setItem("NCD_GPS_SHARING", "false");
+            toast.info("Live GPS sharing paused.");
+          }
+        }}
+        className={cn(
+          "press glass absolute bottom-[19rem] right-4 z-30 md:bottom-40 grid size-12 place-items-center rounded-2xl border border-white/20 shadow-md transition-all",
+          gpsSharingEnabled
+            ? "bg-emerald-600 text-white shadow-emerald-500/20 animate-pulse"
+            : "text-muted-foreground bg-background/85",
+        )}
+        aria-label="Live GPS Sharing"
+        title={gpsSharingEnabled ? "Live GPS Sharing Active" : "Enable Live GPS Sharing"}
+      >
+        <Radio className="size-5" />
+      </button>
 
       <button
         type="button"
@@ -780,7 +1061,7 @@ function MapPage() {
           setMove(null);
           setEditMode((v) => !v);
         }}
-        className={`press glass absolute bottom-60 right-4 z-30 md:bottom-40 grid size-12 place-items-center rounded-2xl ${
+        className={`press glass absolute bottom-60 right-4 z-30 md:bottom-24 grid size-12 place-items-center rounded-2xl ${
           editMode
             ? "bg-primary text-primary-foreground shadow-md"
             : "text-primary bg-background/85 border border-white/20"
@@ -793,7 +1074,7 @@ function MapPage() {
       <button
         type="button"
         onClick={() => position && setFocus({ lat: position.lat, lng: position.lng })}
-        className="press glass absolute bottom-44 right-4 z-30 md:bottom-24 grid size-12 place-items-center rounded-2xl text-primary bg-background/85 border border-white/20 shadow-md"
+        className="press glass absolute bottom-44 right-4 z-30 md:bottom-8 grid size-12 place-items-center rounded-2xl text-primary bg-background/85 border border-white/20 shadow-md"
         aria-label="Center on my location"
       >
         <Crosshair className="size-5" />
@@ -806,11 +1087,238 @@ function MapPage() {
           setPlacing(true);
           setDraft(position ? { lat: position.lat, lng: position.lng } : { lat: 0, lng: 0 });
         }}
-        className="press glass-strong absolute bottom-28 right-4 z-30 md:bottom-6 grid size-16 place-items-center rounded-full text-primary bg-background/95 border border-white/20 shadow-xl"
+        className="press glass-strong absolute bottom-28 right-4 z-30 md:bottom-8 md:right-20 grid size-14 place-items-center rounded-full text-primary bg-background/95 border border-white/20 shadow-xl"
         aria-label="Add pin"
       >
         <Plus className="size-7" strokeWidth={2.6} />
       </button>
+
+      {/* Active Drawing Mode Toolbar */}
+      {drawingMode && (
+        <div className="card-surface ios-glass pointer-events-auto absolute top-4 left-1/2 -translate-x-1/2 z-40 flex items-center gap-3 rounded-2xl px-5 py-3 bg-background/95 backdrop-blur-xl border border-primary/30 shadow-2xl">
+          <div className="flex items-center gap-2">
+            <span className="size-3 rounded-full bg-primary animate-ping" />
+            <p className="text-xs font-semibold text-foreground">
+              Drawing {drawingMode === "polygon" ? "Territory Polygon" : "Boundary Polyline"}:{" "}
+              {drawingPoints.length} point{drawingPoints.length !== 1 ? "s" : ""}
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={cancelDrawing}
+              className="h-8 rounded-xl text-xs"
+            >
+              Cancel
+            </Button>
+            <Button
+              size="sm"
+              disabled={drawingPoints.length < (drawingMode === "polygon" ? 3 : 2)}
+              onClick={() => setSaveAreaDialogOpen(true)}
+              className="h-8 rounded-xl text-xs bg-primary text-primary-foreground font-semibold"
+            >
+              <Check className="size-3.5 mr-1" />
+              Save Territory
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Territory Areas Drawer */}
+      <Drawer open={territoriesPanelOpen} onOpenChange={setTerritoriesPanelOpen}>
+        <DrawerContent className="max-h-[80vh] p-4 sm:p-6 rounded-t-3xl bg-background/95 backdrop-blur-2xl">
+          <DrawerHeader className="p-0 pb-3">
+            <DrawerTitle className="text-lg font-bold">Territories & Geofencing</DrawerTitle>
+            <DrawerDescription className="text-xs text-muted-foreground">
+              Define survey sectors, boundaries, and assign them to Community Health Workers.
+            </DrawerDescription>
+          </DrawerHeader>
+
+          <div className="mt-3 flex items-center gap-2">
+            <Button
+              size="sm"
+              onClick={() => {
+                setTerritoriesPanelOpen(false);
+                setDrawingMode("polygon");
+                setDrawingPoints([]);
+                toast.info("Tap the map to place polygon vertices. Need at least 3 points.");
+              }}
+              className="flex-1 rounded-xl text-xs font-semibold"
+            >
+              <Plus className="size-3.5 mr-1.5" /> Draw Polygon Sector
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                setTerritoriesPanelOpen(false);
+                setDrawingMode("polyline");
+                setDrawingPoints([]);
+                toast.info("Tap the map to place line points.");
+              }}
+              className="flex-1 rounded-xl text-xs font-semibold"
+            >
+              <Plus className="size-3.5 mr-1.5" /> Draw Boundary Line
+            </Button>
+          </div>
+
+          <div className="mt-4 space-y-2 overflow-y-auto max-h-60 pr-1">
+            {areas.length === 0 ? (
+              <div className="p-6 text-center text-xs text-muted-foreground rounded-2xl border border-dashed border-border/50">
+                No territory sectors created yet.
+              </div>
+            ) : (
+              areas.map((a) => {
+                const assignedUser = teamMembers.find((m) => m.id === a.assigned_chw_id);
+                return (
+                  <div
+                    key={a.id}
+                    className="flex items-center justify-between p-3 rounded-2xl bg-card/60 border border-border/50"
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <span
+                        className="size-3.5 rounded-full shrink-0 shadow-xs"
+                        style={{ backgroundColor: a.color || "#2563eb" }}
+                      />
+                      <div className="min-w-0">
+                        <p className="text-xs font-bold text-foreground truncate">{a.name}</p>
+                        <p className="text-[11px] text-muted-foreground truncate">
+                          {assignedUser ? `Assigned to: ${assignedUser.name}` : "Unassigned"} ·{" "}
+                          {a.geometry?.type || "Polygon"}
+                        </p>
+                      </div>
+                    </div>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      onClick={() => handleDeleteArea(a.id)}
+                      className="size-8 text-destructive/80 hover:text-destructive hover:bg-destructive/10 rounded-xl"
+                    >
+                      <Trash2 className="size-4" />
+                    </Button>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </DrawerContent>
+      </Drawer>
+
+      {/* Save Territory Dialog */}
+      <Dialog open={saveAreaDialogOpen} onOpenChange={setSaveAreaDialogOpen}>
+        <DialogContent className="sm:max-w-md rounded-3xl bg-background/95 backdrop-blur-2xl">
+          <DialogHeader>
+            <DialogTitle>Save Territory Sector</DialogTitle>
+            <DialogDescription>
+              Assign a name, display color, and assign this survey territory to a team member.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-foreground">Sector Name</label>
+              <input
+                type="text"
+                placeholder="e.g., Ward 4 North Sector"
+                value={newAreaName}
+                onChange={(e) => setNewAreaName(e.target.value)}
+                className="w-full h-10 px-3 rounded-xl bg-card border border-border/70 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-foreground">Assigned CHW</label>
+              <select
+                value={newAreaCHW}
+                onChange={(e) => setNewAreaCHW(e.target.value)}
+                className="w-full h-10 px-3 rounded-xl bg-card border border-border/70 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
+              >
+                <option value="">Unassigned (Open Sector)</option>
+                {teamMembers.map((tm) => (
+                  <option key={tm.id} value={tm.id}>
+                    {tm.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-foreground">Sector Color</label>
+              <div className="flex items-center gap-2">
+                {["#2563eb", "#059669", "#d97706", "#dc2626", "#7c3aed", "#0891b2"].map((col) => (
+                  <button
+                    key={col}
+                    type="button"
+                    onClick={() => setNewAreaColor(col)}
+                    className={cn(
+                      "size-7 rounded-full transition-all border-2",
+                      newAreaColor === col
+                        ? "border-foreground scale-110"
+                        : "border-transparent opacity-80 hover:opacity-100",
+                    )}
+                    style={{ backgroundColor: col }}
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              variant="outline"
+              onClick={() => setSaveAreaDialogOpen(false)}
+              className="rounded-xl"
+            >
+              Cancel
+            </Button>
+            <Button onClick={handleSaveArea} className="rounded-xl font-semibold">
+              Save Sector
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* GPS Sharing Permission Prompt Dialog */}
+      <Dialog open={gpsPromptOpen} onOpenChange={setGpsPromptOpen}>
+        <DialogContent className="sm:max-w-md rounded-3xl bg-background/95 backdrop-blur-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-foreground">
+              <Radio className="size-5 text-emerald-600 animate-pulse" />
+              Enable Live GPS Location Sharing
+            </DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground mt-1">
+              Your real-time GPS position will be shared with supervisors and team administrators
+              during active household survey sessions to coordinate field coverage and safety.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="p-3.5 rounded-2xl bg-primary/5 border border-primary/20 text-xs text-foreground space-y-1.5">
+            <p className="font-semibold text-primary">Privacy & Safety Notice:</p>
+            <p className="text-muted-foreground text-[11px]">
+              Location coordinates are only streamed while the PWA is open. You can pause or stop
+              location sharing anytime using the GPS toggle button.
+            </p>
+          </div>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              variant="outline"
+              onClick={() => setGpsPromptOpen(false)}
+              className="rounded-xl text-xs"
+            >
+              Decline
+            </Button>
+            <Button
+              onClick={() => {
+                setGpsSharingEnabled(true);
+                localStorage.setItem("NCD_GPS_SHARING", "true");
+                setGpsPromptOpen(false);
+                toast.success("Live GPS Location Sharing Enabled");
+              }}
+              className="rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white"
+            >
+              Allow & Start Sharing
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {activeHouse && (
         <HouseDetailSheet
@@ -825,9 +1333,9 @@ function MapPage() {
         onOpenChange={(open) => {
           if (open) setFormOpen(true);
           else {
-             setFormOpen(false);
-             setPlacing(false);
-             setDraft(null);
+            setFormOpen(false);
+            setPlacing(false);
+            setDraft(null);
           }
         }}
         coords={draft}

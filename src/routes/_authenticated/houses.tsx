@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { MapPin, Search, Plus } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 
 import { EmptyState, ErrorState, LoadingState } from "@/components/common/EmptyState";
 import { PageHeader } from "@/components/common/PageHeader";
@@ -82,6 +82,29 @@ function HousesPage() {
       toast.error(err.message || "Failed to delete houses.");
     }
   };
+
+  const observerTarget = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          setLimit((prev) => prev + appConfig.pagination.defaultPageSize);
+        }
+      },
+      { threshold: 0.1 },
+    );
+
+    if (observerTarget.current) {
+      observer.observe(observerTarget.current);
+    }
+
+    return () => {
+      if (observerTarget.current) {
+        observer.unobserve(observerTarget.current);
+      }
+    };
+  }, [observerTarget]);
 
   const houses = useMemo(() => {
     const list = data?.houses ?? [];
@@ -246,13 +269,17 @@ function HousesPage() {
             </div>
           ))}
           {houses.length > limit ? (
-            <button
-              onClick={() => setLimit((n) => n + appConfig.pagination.defaultPageSize)}
-              className="mt-1 rounded-xl border border-border bg-surface py-3 text-sm font-medium text-primary hover:bg-surface-muted"
+            <div
+              ref={observerTarget}
+              className="h-8 flex items-center justify-center text-sm text-muted-foreground mt-2"
             >
-              Load more ({houses.length - limit} remaining)
-            </button>
-          ) : null}
+              Loading more houses...
+            </div>
+          ) : (
+            <div className="h-8 flex items-center justify-center text-sm text-muted-foreground/60 mt-2">
+              No more houses to load
+            </div>
+          )}
         </div>
       )}
 

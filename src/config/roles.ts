@@ -4,20 +4,29 @@
  * "CSW / CHW" in the product spec maps to the existing `survey_user` value.
  * Roles are ALWAYS read from the database (user_roles), never from the client.
  */
-export const APP_ROLES = ["super_admin", "admin", "supervisor", "survey_user"] as const;
+export const APP_ROLES = [
+  "master_admin",
+  "super_admin",
+  "admin",
+  "supervisor",
+  "survey_user",
+] as const;
 
 export type AppRole = (typeof APP_ROLES)[number];
 
 export const roleLabels: Record<AppRole, string> = {
+  master_admin: "Master Admin",
   super_admin: "Super Admin",
   admin: "Admin",
   supervisor: "Supervisor",
   survey_user: "CSW / CHW",
 };
 
-export const isAdminLike = (role: AppRole | null) => role === "admin" || role === "super_admin";
+export const isAdminLike = (role: AppRole | null) =>
+  role === "master_admin" || role === "super_admin" || role === "admin";
 
 export type Permission =
+  | "manage_organizations"
   | "manage_users"
   | "manage_settings"
   | "import_data"
@@ -29,6 +38,18 @@ export type Permission =
   | "perform_assessment";
 
 const permissionsByRole: Record<AppRole, Permission[]> = {
+  master_admin: [
+    "manage_organizations",
+    "manage_users",
+    "manage_settings",
+    "import_data",
+    "resolve_conflicts",
+    "view_all_data",
+    "view_team_data",
+    "complete_followups",
+    "view_audit_log",
+    "perform_assessment",
+  ],
   super_admin: [
     "manage_users",
     "manage_settings",
@@ -54,4 +75,4 @@ const permissionsByRole: Record<AppRole, Permission[]> = {
 };
 
 export const roleHasPermission = (role: AppRole | null, permission: Permission) =>
-  !!role && permissionsByRole[role].includes(permission);
+  !!role && permissionsByRole[role]?.includes(permission);

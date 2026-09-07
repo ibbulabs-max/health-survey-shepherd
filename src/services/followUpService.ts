@@ -125,51 +125,87 @@ export async function completeFollowUp(params: {
 }) {
   const { id, notes, vitals, riskLevel } = params;
 
-  // 1. Get current follow-up details
-  const { data: current, error: fetchError } = await supabase
-    .from(tables.followUps)
-    .select("*, house_members(id, data)")
-    .eq("id", id)
-    .single();
-
-  if (fetchError) throw fetchError;
-
+  const isProjected = id.startsWith("projected-");
   const completedAt = new Date().toISOString();
 
-  // 2. Mark current follow-up as completed
-  const { error } = await supabase
-    .from(tables.followUps)
-    .update({
-      status: "completed",
-      notes: notes ?? current.notes ?? null,
-      updated_at: completedAt,
-      completed_at: completedAt,
-    })
-    .eq("id", id);
-  if (error) throw error;
+  let memberUuid = "";
+  let houseUuid = "";
+  let existingRisk: RiskLevel | null = null;
+  let finalNotes: string | null = null;
 
-  // Update associated task status
-  await supabase
-    .from(tables.tasks)
-    .update({
+  if (isProjected) {
+    memberUuid = id.replace("projected-", "");
+    const { data: member, error: memberErr } = await supabase
+      .from(tables.houseMembers)
+      .select("id, house_uuid, data")
+      .eq("id", memberUuid)
+      .single();
+    if (memberErr) throw memberErr;
+
+    houseUuid = member.house_uuid;
+    existingRisk = ((member.data as any)?.["clinical_risk"] as RiskLevel | null) ?? null;
+    finalNotes = notes ?? null;
+
+    // Create the completed follow-up record to store history
+    const { error: insertErr } = await supabase.from(tables.followUps).insert({
+      member_uuid: memberUuid,
+      due_date: new Date().toISOString().split("T")[0],
       status: "completed",
       completed_at: completedAt,
-      updated_at: completedAt,
-    })
-    .eq("follow_up_id", id);
+      notes: finalNotes,
+    });
+    if (insertErr) throw insertErr;
+  } else {
+    // 1. Get current follow-up details
+    const { data: current, error: fetchError } = await supabase
+      .from(tables.followUps)
+      .select("*, house_members(id, data)")
+      .eq("id", id)
+      .single();
+
+    if (fetchError) throw fetchError;
+
+    memberUuid = current.member_uuid;
+    houseUuid = current.house_uuid;
+    existingRisk =
+      (((current.house_members as any)?.data as Record<string, unknown> | undefined)?.[
+        "clinical_risk"
+      ] as RiskLevel | null) ?? null;
+    finalNotes = notes ?? current.notes ?? null;
+
+    // 2. Mark current follow-up as completed
+    const { error } = await supabase
+      .from(tables.followUps)
+      .update({
+        status: "completed",
+        notes: finalNotes,
+        updated_at: completedAt,
+        completed_at: completedAt,
+      })
+      .eq("id", id);
+    if (error) throw error;
+
+    // Update associated task status
+    await supabase
+      .from(tables.tasks)
+      .update({
+        status: "completed",
+        completed_at: completedAt,
+        updated_at: completedAt,
+      })
+      .eq("follow_up_id", id);
+  }
 
   // 3. Determine canonical current risk
   // RULE: Use the user's explicitly selected riskLevel.
   //       If not provided, preserve the existing risk from house_members.data.clinical_risk.
   //       NEVER derive risk from vitals or assessment fallbacks.
-  const memberData = (current.house_members as any)?.data as Record<string, unknown> | undefined;
-  const existingRisk = (memberData?.["clinical_risk"] as RiskLevel | null) ?? null;
   const currentRisk: RiskLevel | null = riskLevel ?? existingRisk;
 
   const { data: latestAssessment } = await supabase
     .from(tables.memberAssessments)
     .select("*")
-    .eq("member_uuid", current.member_uuid)
+    .eq("member_uuid", memberUuid)
     .order("assessed_at", { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -196,10 +232,9 @@ export async function completeFollowUp(params: {
         .update(assessmentUpdate)
         .eq("id", latestAssessment.id);
     } else {
-      // No existing assessment — create one with what we have
       await supabase.from(tables.memberAssessments).insert({
-        member_uuid: current.member_uuid,
-        house_uuid: current.house_uuid,
+        member_uuid: memberUuid,
+        house_uuid: houseUuid,
         ...(riskLevel ? { risk_level: riskLevel } : {}),
         ...(vitals
           ? {
@@ -213,37 +248,48 @@ export async function completeFollowUp(params: {
     }
 
     // ── CANONICAL CLINICAL RISK PERSISTENCE ──────────────────────────
-    // If the CHW explicitly selects a new Risk Level during follow-up,
-    // we MUST save it as the new canonical source of truth in house_members.
-    if (riskLevel && current.member_uuid) {
-      const updatedData = { ...((current.house_members as any)?.data || {}) };
+    if (riskLevel && memberUuid) {
+      const { data: member } = await supabase
+        .from(tables.houseMembers)
+        .select("data")
+        .eq("id", memberUuid)
+        .single();
+      const updatedData = { ...((member?.data as any) || {}) };
       updatedData.clinical_risk = riskLevel;
 
       await supabase
         .from(tables.houseMembers)
         .update({ data: updatedData, updated_at: completedAt })
-        .eq("id", current.member_uuid);
+        .eq("id", memberUuid);
     }
-    // ──────────────────────────────────────────────────────────────────
   }
 
-  // 4. Check eligibility — Excel field first ONLY
+  // 4. Check eligibility
+  const { data: member } = await supabase
+    .from(tables.houseMembers)
+    .select("data")
+    .eq("id", memberUuid)
+    .single();
+  const memberData = (member?.data ?? {}) as Record<string, any>;
+
   let eligible = false;
-  const eligibleRaw =
-    memberData?.["eligible"] ?? memberData?.["Eligible (≥30)"] ?? memberData?.["eligible_30"];
-  if (eligibleRaw != null && String(eligibleRaw).trim() !== "") {
-    eligible = String(eligibleRaw).trim().toLowerCase() === "yes";
-  } else {
-    // If eligibility is missing, treat it as missing/data-quality information. Do not silently assume Yes.
+  const ageRaw = memberData?.["age"];
+  if (ageRaw != null && !isNaN(Number(ageRaw)) && Number(ageRaw) < 30) {
     eligible = false;
+  } else {
+    const eligibleRaw =
+      memberData?.["eligible"] ?? memberData?.["Eligible (≥30)"] ?? memberData?.["eligible_30"];
+    if (eligibleRaw != null && String(eligibleRaw).trim() !== "") {
+      eligible = String(eligibleRaw).trim().toLowerCase() === "yes";
+    }
   }
 
   // 5. Automatically generate next recurring follow-up if eligible
-  if (eligible && current.house_uuid && current.member_uuid && currentRisk) {
+  if (eligible && houseUuid && memberUuid && currentRisk) {
     const { data: existingPending } = await supabase
       .from(tables.followUps)
       .select("id")
-      .eq("member_uuid", current.member_uuid)
+      .eq("member_uuid", memberUuid)
       .eq("status", "pending")
       .limit(1)
       .maybeSingle();
@@ -258,11 +304,8 @@ export async function completeFollowUp(params: {
         const { fetchHolidays } = await import("@/services/holidayService");
         const holidaysList = await fetchHolidays();
         holidaysSet = new Set(holidaysList.map((h) => h.holiday_date));
-      } catch (e) {
-        // Fall back to static config if fetch fails
-      }
+      } catch (e) {}
 
-      // Next follow-up is anchored from the actual completion date
       const nextDateKey = calculateNextFollowUpDate(
         completedAt,
         currentRisk,
@@ -274,26 +317,24 @@ export async function completeFollowUp(params: {
       const { data: newFup } = await supabase
         .from(tables.followUps)
         .insert({
-          house_uuid: current.house_uuid,
-          member_uuid: current.member_uuid,
+          house_uuid: houseUuid,
+          member_uuid: memberUuid,
           due_date: nextDateKey,
           reason: `Routine ${currentRisk} risk follow-up`,
           risk_level: currentRisk,
           status: "pending",
-          created_by: current.created_by,
         })
         .select("id")
         .single();
 
       if (newFup) {
         await supabase.from(tables.tasks).insert({
-          house_uuid: current.house_uuid,
-          member_uuid: current.member_uuid,
+          house_uuid: houseUuid,
+          member_uuid: memberUuid,
           follow_up_id: newFup.id,
           task_type: "follow_up",
           status: "pending",
           due_date: nextDateKey,
-          created_by: current.created_by,
         });
       }
     }
@@ -308,6 +349,24 @@ export async function completeFollowUp(params: {
 export async function postponeFollowUp(id: string, date: Date | string, notes?: string) {
   const dateKey = toDateKeySafe(date);
   const updatedAt = new Date().toISOString();
+
+  if (id.startsWith("projected-")) {
+    const memberUuid = id.replace("projected-", "");
+    const { data: member } = await supabase
+      .from(tables.houseMembers)
+      .select("house_uuid")
+      .eq("id", memberUuid)
+      .single();
+    await supabase.from(tables.followUps).insert({
+      member_uuid: memberUuid,
+      house_uuid: member?.house_uuid,
+      due_date: dateKey,
+      status: "pending",
+      notes: notes ?? null,
+      reason: "Projected follow-up scheduled",
+    });
+    return;
+  }
 
   const { error } = await supabase
     .from(tables.followUps)
@@ -374,16 +433,19 @@ export async function recalculatePendingFollowUp(memberUuid: string) {
     .single();
   if (memErr) throw memErr;
 
-  // Check eligibility — Excel field ONLY
+  // Check eligibility
   const memberData = (member?.data ?? {}) as Record<string, any>;
-  const eligibleRaw =
-    memberData["eligible"] ?? memberData["Eligible (≥30)"] ?? memberData["eligible_30"];
+
   let eligible = false;
-  if (eligibleRaw != null && String(eligibleRaw).trim() !== "") {
-    eligible = String(eligibleRaw).trim().toLowerCase() === "yes";
-  } else {
-    // Do not fallback to age if missing
+  const ageRaw = memberData["age"];
+  if (ageRaw != null && !isNaN(Number(ageRaw)) && Number(ageRaw) < 30) {
     eligible = false;
+  } else {
+    const eligibleRaw =
+      memberData["eligible"] ?? memberData["Eligible (≥30)"] ?? memberData["eligible_30"];
+    if (eligibleRaw != null && String(eligibleRaw).trim() !== "") {
+      eligible = String(eligibleRaw).trim().toLowerCase() === "yes";
+    }
   }
 
   if (!eligible) return; // Not eligible — no follow-up
@@ -545,13 +607,17 @@ export async function updateLastFollowUpDate(
 
   // 4. Check eligibility before scheduling next
   const memberData = (member?.data ?? {}) as Record<string, any>;
-  const eligibleRaw =
-    memberData["eligible"] ?? memberData["Eligible (≥30)"] ?? memberData["eligible_30"];
+
   let eligible = false;
-  if (eligibleRaw != null && String(eligibleRaw).trim() !== "") {
-    eligible = String(eligibleRaw).trim().toLowerCase() === "yes";
-  } else {
+  const ageRaw = memberData["age"];
+  if (ageRaw != null && !isNaN(Number(ageRaw)) && Number(ageRaw) < 30) {
     eligible = false;
+  } else {
+    const eligibleRaw =
+      memberData["eligible"] ?? memberData["Eligible (≥30)"] ?? memberData["eligible_30"];
+    if (eligibleRaw != null && String(eligibleRaw).trim() !== "") {
+      eligible = String(eligibleRaw).trim().toLowerCase() === "yes";
+    }
   }
 
   if (eligible) {

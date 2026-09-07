@@ -7,17 +7,30 @@ import type { RiskLevel, ClinicalRiskState } from "@/config/risk";
 
 const LeafletMap = lazy(() => import("@/components/map/LeafletMap"));
 
+type MapArea = {
+  id: string;
+  name: string;
+  color: string;
+  geometry: any;
+  assigned_chw_id?: string | null;
+};
+
 type SharedMapProps = {
   pins: Pin[];
   showPins: boolean;
   position: GeoPosition | null;
   heading: number | null;
   draft: { lat: number; lng: number } | null;
-  focus: { lat: number; lng: number } | null;
+  focus: { lat: number; lng: number; id?: string } | null;
   addMode: boolean;
   editMode: boolean;
   riskByHouse?: Record<string, ClinicalRiskState> | undefined;
   route?: { lat: number; lng: number }[] | undefined;
+  nearestPinId?: string | null;
+  areas?: MapArea[] | undefined;
+  drawingMode?: "polygon" | "polyline" | null | undefined;
+  drawingPoints?: { lat: number; lng: number }[] | undefined;
+  onAddDrawingPoint?: ((pt: { lat: number; lng: number }) => void) | undefined;
   canMove: (pin: Pin) => boolean;
   onMapTap: (latlng: { lat: number; lng: number }) => void;
   onDraftMove: (latlng: { lat: number; lng: number }) => void;

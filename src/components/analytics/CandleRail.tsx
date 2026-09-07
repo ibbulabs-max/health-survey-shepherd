@@ -1,5 +1,5 @@
-import React from "react";
-import { Info } from "lucide-react";
+import React, { useRef } from "react";
+import { Info, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export interface CandleRailProps {
@@ -23,10 +23,24 @@ export function CandleRail({
   hasData = true,
   className,
 }: CandleRailProps) {
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  const scrollLeft = () => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollBy({ left: -220, behavior: "smooth" });
+    }
+  };
+
+  const scrollRight = () => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollBy({ left: 220, behavior: "smooth" });
+    }
+  };
+
   return (
     <div
       className={cn(
-        "bg-surface rounded-2xl border border-border/70 shadow-xs p-4 flex flex-col justify-between min-h-[220px] transition-all",
+        "group relative bg-surface rounded-2xl border border-border/70 shadow-xs p-4 flex flex-col justify-between min-h-[220px] transition-all",
         className,
       )}
     >
@@ -47,15 +61,38 @@ export function CandleRail({
           )}
         </div>
 
-        {onViewMembers && hasData && (
-          <button
-            type="button"
-            onClick={onViewMembers}
-            className="text-[11px] font-semibold text-primary hover:text-primary/80 bg-primary/5 hover:bg-primary/10 border border-primary/20 px-2.5 py-1 rounded-full transition-colors shrink-0"
-          >
-            View Members
-          </button>
-        )}
+        <div className="flex items-center gap-1.5">
+          {hasData && (
+            <div className="hidden sm:flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+              <button
+                type="button"
+                onClick={scrollLeft}
+                aria-label="Scroll left"
+                className="size-6 rounded-lg bg-surface-muted border border-border/60 hover:bg-surface flex items-center justify-center text-muted-foreground hover:text-foreground"
+              >
+                <ChevronLeft className="size-3.5" />
+              </button>
+              <button
+                type="button"
+                onClick={scrollRight}
+                aria-label="Scroll right"
+                className="size-6 rounded-lg bg-surface-muted border border-border/60 hover:bg-surface flex items-center justify-center text-muted-foreground hover:text-foreground"
+              >
+                <ChevronRight className="size-3.5" />
+              </button>
+            </div>
+          )}
+
+          {onViewMembers && hasData && (
+            <button
+              type="button"
+              onClick={onViewMembers}
+              className="text-[11px] font-semibold text-primary hover:text-primary/80 bg-primary/5 hover:bg-primary/10 border border-primary/20 px-2.5 py-1 rounded-full transition-colors shrink-0"
+            >
+              View Members
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Content / Candle Rail */}
@@ -64,7 +101,10 @@ export function CandleRail({
           {emptyMessage}
         </div>
       ) : (
-        <div className="flex-1 w-full overflow-x-auto scrollbar-none snap-x snap-mandatory flex items-end gap-1.5 pb-1 pt-2">
+        <div
+          ref={scrollContainerRef}
+          className="flex-1 w-full overflow-x-auto scrollbar-none snap-x snap-mandatory flex items-end gap-1.5 pb-1 pt-2 scroll-smooth"
+        >
           {children}
         </div>
       )}

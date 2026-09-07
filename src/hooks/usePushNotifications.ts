@@ -24,7 +24,7 @@ export function usePushNotifications() {
     if ("serviceWorker" in navigator && "PushManager" in window) {
       setIsSupported(true);
       setPermission(Notification.permission);
-      
+
       // Register service worker if not already registered
       navigator.serviceWorker.register("/sw.js").catch(console.error);
     }
@@ -40,7 +40,7 @@ export function usePushNotifications() {
       if (perm !== "granted") return false;
 
       const registration = await navigator.serviceWorker.ready;
-      
+
       const vapidPublicKey = import.meta.env["VITE_VAPID_PUBLIC_KEY"];
       if (!vapidPublicKey) {
         console.warn("VITE_VAPID_PUBLIC_KEY not set.");
@@ -56,7 +56,7 @@ export function usePushNotifications() {
         data: {
           userId: user.id,
           subscription: subscription.toJSON(),
-        }
+        },
       });
 
       return true;

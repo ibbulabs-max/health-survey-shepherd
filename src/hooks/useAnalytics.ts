@@ -6,6 +6,7 @@ import type { CandleTone } from "@/components/analytics/AnalyticsCandle";
 
 export interface ActiveFilters {
   age: number | null;
+  binnedAge: string | null;
   gender: string | null;
   risk: RiskLevel | null;
   bp: string | null;
@@ -17,11 +18,13 @@ export interface ActiveFilters {
   referralStatus: string | null;
   assessmentStatus: string | null;
   dataQuality: string | null;
+  extraField: { key: string; value: string } | null;
   search: string;
 }
 
 export const initialFilters: ActiveFilters = {
   age: null,
+  binnedAge: null,
   gender: null,
   risk: null,
   bp: null,
@@ -33,6 +36,7 @@ export const initialFilters: ActiveFilters = {
   referralStatus: null,
   assessmentStatus: null,
   dataQuality: null,
+  extraField: null,
   search: "",
 };
 
@@ -98,7 +102,9 @@ export function useAnalytics() {
     let missingAgeCount = 0;
     let missingGenderCount = 0;
     let invalidRecordsCount = 0;
-    let duplicateRecordsCount = 0;
+    let missingHeightCount = 0;
+    let missingWeightCount = 0;
+    let missingHeightAndWeightCount = 0;
 
     scopedMembers.forEach((m) => {
       // Age (only distinct exact ages)
@@ -234,8 +240,19 @@ export function useAnalytics() {
 
       // Data Quality issues
       if (m.dataIssues && m.dataIssues.length > 0) invalidRecordsCount++;
-      if (m.dataIssues && m.dataIssues.includes("Possible duplicate record"))
-        duplicateRecordsCount++;
+
+      const w = m.extraFields["weight_kg"] ? Number(m.extraFields["weight_kg"]) : null;
+      const h = m.extraFields["height_cm"] ? Number(m.extraFields["height_cm"]) : null;
+      const isMissingW = !w || w <= 0;
+      const isMissingH = !h || h <= 0;
+
+      if (isMissingW && isMissingH) {
+        missingHeightAndWeightCount++;
+      } else if (isMissingW) {
+        missingWeightCount++;
+      } else if (isMissingH) {
+        missingHeightCount++;
+      }
     });
 
     // Follow-up status aggregation
@@ -455,9 +472,112 @@ export function useAnalytics() {
       filterValue: month,
     }));
 
+    // Binned Age aggregation
+    const binnedAgeMap: Record<string, MemberView[]> = {
+      "<30": [],
+      "30–44": [],
+      "45–59": [],
+      "60–74": [],
+      "75+": [],
+    };
+    scopedMembers.forEach((m) => {
+      if (m.age != null && m.age >= 0) {
+        if (m.age < 30) binnedAgeMap["<30"]!.push(m);
+        else if (m.age <= 44) binnedAgeMap["30–44"]!.push(m);
+        else if (m.age <= 59) binnedAgeMap["45–59"]!.push(m);
+        else if (m.age <= 74) binnedAgeMap["60–74"]!.push(m);
+        else binnedAgeMap["75+"]!.push(m);
+      }
+    });
+    const binnedAgeItems: AnalyticsItem[] = Object.entries(binnedAgeMap)
+      .filter(([_, list]) => list.length > 0)
+      .map(([bin, list]) => ({
+        label: bin,
+        value: bin,
+        count: list.length,
+        tone: "blue" as CandleTone,
+        filterKey: "binnedAge" as keyof ActiveFilters,
+        filterValue: bin,
+      }));
+
+    // Dynamic Extra Fields Discovery
+    const standardKeys = new Set([
+      "created_by",
+      "uploaded_by",
+      "weight_kg",
+      "height_cm",
+      "smoking",
+      "alcohol",
+      "tobacco",
+      "physical_activity",
+      "activity",
+      "gender",
+      "age",
+      "blood_sugar",
+      "systolic",
+      "diastolic",
+      "house_id",
+      "house_number",
+      "door_no",
+    ]);
+    const extraKeys = new Set<string>();
+    scopedMembers.forEach((m) => {
+      if (m.extraFields) {
+        Object.keys(m.extraFields).forEach((k) => {
+          if (!standardKeys.has(k.toLowerCase()) && !k.startsWith("_")) {
+            extraKeys.add(k);
+          }
+        });
+      }
+    });
+
+    const dynamicCategories: { key: string; title: string; items: AnalyticsItem[] }[] = [];
+    const toneList: CandleTone[] = ["teal", "purple", "blue", "orange", "green"];
+
+    Array.from(extraKeys).forEach((key, kIdx) => {
+      const valMap = new Map<string, MemberView[]>();
+      scopedMembers.forEach((m) => {
+        const raw = m.extraFields?.[key];
+        if (raw != null && String(raw).trim() !== "" && String(raw).trim() !== "—") {
+          const clean = String(raw).trim();
+          valMap.set(clean, [...(valMap.get(clean) ?? []), m]);
+        }
+      });
+
+      if (valMap.size >= 2 && valMap.size <= 15) {
+        const items: AnalyticsItem[] = Array.from(valMap.entries())
+          .map(([val, list]) => ({
+            label: val,
+            value: val,
+            count: list.length,
+            tone: toneList[kIdx % toneList.length]!,
+            filterKey: "extraField" as any,
+            filterValue: val,
+          }))
+          .sort((a, b) => b.count - a.count);
+
+        const formattedTitle = key.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+
+        dynamicCategories.push({
+          key,
+          title: `${formattedTitle} Analytics`,
+          items,
+        });
+      }
+    });
+
     // 4. Stacking filtered members list for the right-side drawer
     const filteredMembers = scopedMembers.filter((m) => {
       if (filters.age != null && m.age !== filters.age) return false;
+
+      if (filters.binnedAge != null) {
+        if (m.age == null) return false;
+        if (filters.binnedAge === "<30" && m.age >= 30) return false;
+        if (filters.binnedAge === "30–44" && (m.age < 30 || m.age > 44)) return false;
+        if (filters.binnedAge === "45–59" && (m.age < 45 || m.age > 59)) return false;
+        if (filters.binnedAge === "60–74" && (m.age < 60 || m.age > 74)) return false;
+        if (filters.binnedAge === "75+" && m.age < 75) return false;
+      }
 
       if (filters.gender != null) {
         const g = String(m.gender ?? m.extraFields["gender"] ?? "")
@@ -491,6 +611,11 @@ export function useAnalytics() {
         if (key === "tobacco" && !String(m.extraFields["tobacco"]).includes("yes")) return false;
       }
 
+      if (filters.extraField != null) {
+        const rawVal = m.extraFields?.[filters.extraField.key];
+        if (String(rawVal ?? "").trim() !== filters.extraField.value) return false;
+      }
+
       if (filters.dataQuality != null) {
         if (filters.dataQuality === "missing_bp" && m.systolic != null && m.diastolic != null)
           return false;
@@ -499,11 +624,16 @@ export function useAnalytics() {
         if (filters.dataQuality === "missing_gender" && m.gender != null) return false;
         if (filters.dataQuality === "invalid" && (!m.dataIssues || m.dataIssues.length === 0))
           return false;
-        if (
-          filters.dataQuality === "duplicate" &&
-          (!m.dataIssues || !m.dataIssues.includes("Possible duplicate record"))
-        )
-          return false;
+        if (filters.dataQuality === "missing_height")
+          return !m.extraFields["height_cm"] || Number(m.extraFields["height_cm"]) <= 0;
+        if (filters.dataQuality === "missing_weight")
+          return !m.extraFields["weight_kg"] || Number(m.extraFields["weight_kg"]) <= 0;
+        if (filters.dataQuality === "missing_height_weight") {
+          return (
+            (!m.extraFields["height_cm"] || Number(m.extraFields["height_cm"]) <= 0) &&
+            (!m.extraFields["weight_kg"] || Number(m.extraFields["weight_kg"]) <= 0)
+          );
+        }
       }
 
       if (filters.search) {
@@ -536,6 +666,7 @@ export function useAnalytics() {
         missingRisk: riskMap["missing"]?.length ?? 0,
       },
       ages: ageItems,
+      binnedAges: binnedAgeItems,
       genders: genderItems,
       risks: riskItems,
       bps: bpItems,
@@ -547,13 +678,16 @@ export function useAnalytics() {
       referrals: referralItems,
       assessments: assessmentItems,
       trends: trendItems,
+      dynamicCategories,
       quality: {
         missingBp: missingBpCount,
         missingSugar: missingSugarCount,
         missingAge: missingAgeCount,
         missingGender: missingGenderCount,
+        missingHeight: missingHeightCount,
+        missingWeight: missingWeightCount,
+        missingHeightAndWeight: missingHeightAndWeightCount,
         invalidRecords: invalidRecordsCount,
-        duplicateRecords: duplicateRecordsCount,
       },
       filteredMembers,
     };

@@ -1,0 +1,27 @@
+-- Add missing configuration columns for Master Admin to global_settings table
+
+ALTER TABLE public.global_settings
+ADD COLUMN IF NOT EXISTS login_card_blur TEXT DEFAULT 'md',
+ADD COLUMN IF NOT EXISTS login_card_transparency TEXT DEFAULT '80',
+ADD COLUMN IF NOT EXISTS login_card_border_opacity TEXT DEFAULT '80',
+ADD COLUMN IF NOT EXISTS login_card_shadow TEXT DEFAULT '2xl',
+ADD COLUMN IF NOT EXISTS login_card_radius TEXT DEFAULT '3xl',
+ADD COLUMN IF NOT EXISTS login_button_style TEXT DEFAULT 'default',
+ADD COLUMN IF NOT EXISTS whatsapp_enabled BOOLEAN DEFAULT true,
+ADD COLUMN IF NOT EXISTS whatsapp_default_message TEXT DEFAULT 'Hello, I need assistance with the Health Survey Shepherd platform.',
+ADD COLUMN IF NOT EXISTS whatsapp_contact_message TEXT DEFAULT 'Hello, I have a general query.',
+ADD COLUMN IF NOT EXISTS whatsapp_help_message TEXT DEFAULT 'Hello, I need technical support.',
+ADD COLUMN IF NOT EXISTS whatsapp_feedback_message TEXT DEFAULT 'Hello, I have some feedback.',
+ADD COLUMN IF NOT EXISTS privacy_policy_enabled BOOLEAN DEFAULT true,
+ADD COLUMN IF NOT EXISTS privacy_policy_body TEXT,
+ADD COLUMN IF NOT EXISTS terms_conditions_enabled BOOLEAN DEFAULT true,
+ADD COLUMN IF NOT EXISTS terms_conditions_body TEXT,
+ADD COLUMN IF NOT EXISTS faq_enabled BOOLEAN DEFAULT true,
+ADD COLUMN IF NOT EXISTS faq_body TEXT,
+ADD COLUMN IF NOT EXISTS about_enabled BOOLEAN DEFAULT true,
+ADD COLUMN IF NOT EXISTS about_body TEXT,
+ADD COLUMN IF NOT EXISTS map_default_center_lat NUMERIC DEFAULT 0,
+ADD COLUMN IF NOT EXISTS map_default_center_lng NUMERIC DEFAULT 0,
+ADD COLUMN IF NOT EXISTS map_default_zoom INTEGER DEFAULT 14,
+ADD COLUMN IF NOT EXISTS map_pin_visibility JSONB DEFAULT '{"house": true, "facility": true, "landmark": true}'::jsonb,
+ADD COLUMN IF NOT EXISTS analytics_layout JSONB DEFAULT '[]'::jsonb;

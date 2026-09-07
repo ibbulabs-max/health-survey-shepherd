@@ -574,10 +574,13 @@ export async function buildPreview(
   };
 }
 
-import { startImportJob, processImportChunkFn, finalizeImportBatchFn } from "@/services/importBackendService";
+import {
+  startImportJob,
+  processImportChunkFn,
+  finalizeImportBatchFn,
+} from "@/services/importBackendService";
 
 export interface CommitOptions {
-  /** memberKey -> decision chosen by the user for "review" matches. */
   decisions?: Record<string, "insert" | "merge">;
   assignedTo?: string | null;
   assignedToName?: string | null;
@@ -589,13 +592,8 @@ export interface CommitOptions {
     batch?: number;
     totalBatches?: number;
   }) => void;
-  signal?: AbortSignal;
 }
 
-/**
- * Triggers server-side background execution for the import job.
- * Returns immediately with batchId and status: 'processing'.
- */
 export async function commitImport(
   preview: ImportPreview,
   options: CommitOptions = {},
@@ -606,36 +604,13 @@ export async function commitImport(
   if (!userId) throw new Error("Must be logged in to import data.");
 
   options.onProgress?.({
-    stage: "Starting import...",
+    stage: "Starting job...",
     current: 0,
     total: preview.totals.rows,
   });
 
-  const housesPayload = preview.houses.map((h) => ({
-    key: h.key,
-    houseId: h.houseId,
-    fields: h.fields,
-    extra: h.extra,
-    existingId: h.existingId,
-    action: h.action,
-    sourceFiles: h.sourceFiles,
-    hasLocation: h.hasLocation,
-    hasInvalidCoordinates: h.hasInvalidCoordinates,
-    members: h.members.map((m) => ({
-      key: m.key,
-      name: m.name,
-      memberId: m.memberId,
-      fields: m.fields,
-      extra: m.extra,
-      existingId: m.existingId,
-      matchConfidence: m.matchConfidence,
-      action: m.action,
-      sourceFiles: m.sourceFiles,
-    })),
-  }));
-
-  // 1. Initialize Batch
-  const initResult = await startImportJob({
+  // 1. Start the job in the backend
+  const startJob = await startImportJob({
     data: {
       fileNames: preview.files,
       userId,
@@ -644,76 +619,83 @@ export async function commitImport(
       assignedToName: options.assignedToName ?? null,
       supervisorId: options.supervisorId ?? null,
       totalRows: preview.totals.rows,
-      uniqueHouses: preview.totals.houses,
+      uniqueHouses: preview.totals.housesNew + preview.totals.housesExisting,
       newFields: preview.newFields,
     },
   });
-  
-  const batchId = initResult.batchId;
 
-  // 2. Process Chunks
-  const CHUNK_SIZE = 50;
-  const totalHouses = housesPayload.length;
-  let totalProcessed = 0;
-  
+  const batchId = startJob.batchId;
+
+  // 2. Process in chunks
+  const CHUNK_SIZE = 10;
+  const totalHouses = preview.houses.length;
+  let processedHouses = 0;
+
   let housesAdded = 0;
   let housesUpdated = 0;
   let membersAdded = 0;
   let membersMerged = 0;
-  const errorSummary: any[] = [];
-  
+  let hasErrors = false;
+
   const numBatches = Math.ceil(totalHouses / CHUNK_SIZE);
 
   for (let i = 0; i < totalHouses; i += CHUNK_SIZE) {
-    if (options.signal?.aborted) {
-      break;
-    }
+    const chunk = preview.houses.slice(i, i + CHUNK_SIZE);
 
-    const chunk = housesPayload.slice(i, i + CHUNK_SIZE);
-    const currentBatchNum = Math.floor(i / CHUNK_SIZE) + 1;
-    
     options.onProgress?.({
-      stage: `Importing records (Batch ${currentBatchNum} of ${numBatches})`,
-      current: totalProcessed,
-      total: preview.totals.rows,
-      batch: currentBatchNum,
+      stage: `Uploading chunk ${Math.floor(i / CHUNK_SIZE) + 1} of ${numBatches}...`,
+      current: Math.min(i + CHUNK_SIZE, totalHouses),
+      total: totalHouses,
+      batch: Math.floor(i / CHUNK_SIZE) + 1,
       totalBatches: numBatches,
     });
 
-    try {
-      const { result } = await processImportChunkFn({
-        data: {
-          batchId,
-          houses: chunk,
-          decisions: options.decisions,
-          uploadedBy: userId,
-          assignedTo: options.assignedTo ?? null,
-          supervisorId: options.supervisorId ?? null,
+    let chunkResult: any = null;
+    let attempts = 0;
+    const maxAttempts = 3;
+
+    while (attempts < maxAttempts) {
+      try {
+        chunkResult = await processImportChunkFn({
+          data: {
+            batchId,
+            houses: chunk,
+            decisions: options.decisions,
+            uploadedBy: userId,
+            assignedTo: options.assignedTo ?? null,
+            supervisorId: options.supervisorId ?? null,
+          },
+        });
+        break; // Success
+      } catch (err) {
+        attempts++;
+        if (attempts >= maxAttempts) {
+          throw err;
         }
-      });
-      
-      housesAdded += result.housesAdded;
-      housesUpdated += result.housesUpdated;
-      membersAdded += result.membersAdded;
-      membersMerged += result.membersMerged;
-      errorSummary.push(...result.errorSummary);
-    } catch (err: any) {
-      console.error("Error processing chunk:", err);
-      errorSummary.push({ row: 0, item: "Chunk Error", error: err.message });
+        await new Promise((res) => setTimeout(res, 2000 * attempts)); // exponential backoff
+      }
     }
 
-    // Estimate rows processed by just treating members as rows
-    const chunkRows = chunk.reduce((sum, h) => sum + h.members.length, 0);
-    totalProcessed += chunkRows || 1;
+    if (chunkResult.success && chunkResult.result) {
+      housesAdded += chunkResult.result.housesAdded;
+      housesUpdated += chunkResult.result.housesUpdated;
+      membersAdded += chunkResult.result.membersAdded;
+      membersMerged += chunkResult.result.membersMerged;
+      if (chunkResult.result.errorSummary && chunkResult.result.errorSummary.length > 0) {
+        hasErrors = true;
+      }
+    } else {
+      hasErrors = true;
+    }
   }
-  
+
   options.onProgress?.({
     stage: "Finalizing...",
     current: preview.totals.rows,
     total: preview.totals.rows,
   });
 
-  // 3. Finalize Batch
+  // 3. Finalize the job
   await finalizeImportBatchFn({
     data: {
       batchId,
@@ -721,12 +703,12 @@ export async function commitImport(
       housesUpdated,
       membersAdded,
       membersMerged,
-      conflicts: preview.conflicts.length, // Client could just push conflicts to DB if needed
-      hasErrors: errorSummary.length > 0 || options.signal?.aborted === true,
-    }
+      conflicts: preview.conflicts.length,
+      hasErrors,
+    },
   });
 
-  return { success: true, batchId, status: options.signal?.aborted ? "cancelled" : "completed" };
+  return { success: true, batchId, status: hasErrors ? "completed_with_errors" : "completed" };
 }
 
 export async function loadImportBatches(limit = 50) {

@@ -15,6 +15,14 @@ const RISK_META: Record<string, { color: string }> = {
 };
 import type { GeoPosition } from "@/hooks/useGeolocation";
 
+type MapArea = {
+  id: string;
+  name: string;
+  color: string;
+  geometry: any;
+  assigned_chw_id?: string | null;
+};
+
 type Props = {
   pins: Pin[];
   showPins: boolean;
@@ -30,6 +38,13 @@ type Props = {
   riskByHouse?: Record<string, ClinicalRiskState> | undefined;
   /** Optional array of coordinates to draw a route/polyline through (e.g. for TSP RUN mode) */
   route?: { lat: number; lng: number }[] | undefined;
+  nearestPinId?: string | null;
+  /** Territory map areas */
+  areas?: MapArea[] | undefined;
+  /** Territory drawing mode */
+  drawingMode?: "polygon" | "polyline" | null | undefined;
+  drawingPoints?: { lat: number; lng: number }[] | undefined;
+  onAddDrawingPoint?: ((pt: { lat: number; lng: number }) => void) | undefined;
   canMove: (pin: Pin) => boolean;
   onMapTap: (latlng: { lat: number; lng: number }) => void;
   onDraftMove: (latlng: { lat: number; lng: number }) => void;
@@ -43,12 +58,15 @@ function riskRing(level: ClinicalRiskState | RiskLevel | undefined) {
   return `box-shadow:0 0 0 3px ${RISK_META[level as string]?.color ?? "transparent"}, 0 6px 16px -4px rgba(10,30,60,0.45);`;
 }
 
-function markerHtml(pin: Pin, dim: boolean, risk?: ClinicalRiskState | RiskLevel) {
+function markerHtml(pin: Pin, dim: boolean, risk?: ClinicalRiskState | RiskLevel, isNearest?: boolean) {
   const def = pinTypeDef(pin.pin_type);
   const icon = renderToStaticMarkup(
     createElement(def.icon, { size: 15, color: "white", strokeWidth: 2.4 }),
   );
-  const ring = riskRing(risk) || "box-shadow:0 6px 16px -4px rgba(10,30,60,0.45);";
+  let ring = riskRing(risk) || "box-shadow:0 6px 16px -4px rgba(10,30,60,0.45);";
+  if (isNearest) {
+    ring = "box-shadow:0 0 0 4px #10b981, 0 0 15px 4px rgba(16,185,129,0.5); z-index: 100;";
+  }
   return `<div style="
       width:34px;height:34px;border-radius:50% 50% 50% 6px;transform:rotate(-45deg);
       display:grid;place-items:center;background:${def.color};opacity:${dim ? 0.45 : 1};
@@ -90,6 +108,11 @@ export default function LeafletMap({
   editMode,
   riskByHouse,
   route,
+  nearestPinId,
+  areas,
+  drawingMode,
+  drawingPoints = [],
+  onAddDrawingPoint,
   canMove,
 
   onMapTap,
@@ -101,6 +124,8 @@ export default function LeafletMap({
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<L.Map | null>(null);
   const layerRef = useRef<L.LayerGroup | null>(null);
+  const areasLayerRef = useRef<L.LayerGroup | null>(null);
+  const drawingLayerRef = useRef<L.LayerGroup | null>(null);
   const polylineRef = useRef<L.Polyline | null>(null);
   const meRef = useRef<{ marker: L.CircleMarker; circle: L.Circle; cone: L.Marker } | null>(null);
   const draftRef = useRef<L.Marker | null>(null);
@@ -118,8 +143,11 @@ export default function LeafletMap({
   const showRef = useRef(showPins);
   const editRef = useRef(editMode);
   const riskRef = useRef(riskByHouse);
-  riskRef.current = riskByHouse;
+  const nearestPinIdRef = useRef(nearestPinId);
+  const drawingModeRef = useRef(drawingMode);
+  const addPointRef = useRef(onAddDrawingPoint);
 
+  riskRef.current = riskByHouse;
   tapRef.current = onMapTap;
   selectRef.current = onSelectPin;
   selectManyRef.current = onSelectMany;
@@ -129,6 +157,9 @@ export default function LeafletMap({
   pinsRef.current = pins;
   showRef.current = showPins;
   editRef.current = editMode;
+  nearestPinIdRef.current = nearestPinId;
+  drawingModeRef.current = drawingMode;
+  addPointRef.current = onAddDrawingPoint;
 
   // ---- map init (once) ----
   useEffect(() => {
@@ -138,57 +169,124 @@ export default function LeafletMap({
       zoom: 5,
       zoomControl: false,
       attributionControl: true,
-      preferCanvas: false,
-      tap: true,
-      zoomAnimation: true,
-      markerZoomAnimation: true,
-    } as L.MapOptions);
+    });
 
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      maxZoom: 19,
-      attribution: "© OpenStreetMap",
-      keepBuffer: 4,
-      updateWhenIdle: false,
+      maxZoom: 20,
+      attribution:
+        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
     }).addTo(map);
 
-    L.control.zoom({ position: "bottomleft" }).addTo(map);
-    layerRef.current = L.layerGroup().addTo(map);
+    const areasGroup = L.layerGroup().addTo(map);
+    areasLayerRef.current = areasGroup;
+
+    const drawGroup = L.layerGroup().addTo(map);
+    drawingLayerRef.current = drawGroup;
+
+    const layer = L.layerGroup().addTo(map);
+    layerRef.current = layer;
 
     map.on("click", (e: L.LeafletMouseEvent) => {
-      tapRef.current({ lat: e.latlng.lat, lng: e.latlng.lng });
+      if (drawingModeRef.current && addPointRef.current) {
+        addPointRef.current({ lat: e.latlng.lat, lng: e.latlng.lng });
+      } else {
+        tapRef.current({ lat: e.latlng.lat, lng: e.latlng.lng });
+      }
     });
 
     mapRef.current = map;
 
-    const invalidate = () => map.invalidateSize();
-    const t = window.setTimeout(invalidate, 120);
-    window.addEventListener("resize", invalidate);
-    window.addEventListener("orientationchange", invalidate);
-
     return () => {
-      window.clearTimeout(t);
-      window.removeEventListener("resize", invalidate);
-      window.removeEventListener("orientationchange", invalidate);
       map.remove();
       mapRef.current = null;
-      layerRef.current = null;
-      polylineRef.current = null;
-      meRef.current = null;
-      draftRef.current = null;
-      centeredRef.current = false;
     };
   }, []);
+
+  // ---- areas layer ----
+  useEffect(() => {
+    const areasGroup = areasLayerRef.current;
+    if (!areasGroup) return;
+    areasGroup.clearLayers();
+
+    if (!areas || areas.length === 0) return;
+
+    for (const area of areas) {
+      if (!area.geometry) continue;
+      try {
+        const layer = L.geoJSON(area.geometry, {
+          style: {
+            color: area.color || "#3b82f6",
+            weight: 3,
+            opacity: 0.8,
+            fillColor: area.color || "#3b82f6",
+            fillOpacity: 0.18,
+          },
+        });
+        layer.bindTooltip(area.name, {
+          permanent: false,
+          direction: "center",
+          className: "area-tooltip",
+        });
+        areasGroup.addLayer(layer);
+      } catch (err) {
+        console.warn("Could not render territory map area:", area.name, err);
+      }
+    }
+  }, [areas]);
+
+  // ---- drawing preview layer ----
+  useEffect(() => {
+    const drawGroup = drawingLayerRef.current;
+    if (!drawGroup) return;
+    drawGroup.clearLayers();
+
+    if (!drawingMode || !drawingPoints || drawingPoints.length === 0) return;
+
+    const latlngs = drawingPoints.map((p) => [p.lat, p.lng] as [number, number]);
+
+    // Draw vertex markers
+    drawingPoints.forEach((pt) => {
+      const vertex = L.circleMarker([pt.lat, pt.lng], {
+        radius: 5,
+        color: "#2563eb",
+        fillColor: "#ffffff",
+        fillOpacity: 1,
+        weight: 2,
+      });
+      drawGroup.addLayer(vertex);
+    });
+
+    if (drawingPoints.length > 1) {
+      if (drawingMode === "polygon" && drawingPoints.length >= 3) {
+        const poly = L.polygon(latlngs, {
+          color: "#2563eb",
+          weight: 2.5,
+          dashArray: "6, 6",
+          fillColor: "#3b82f6",
+          fillOpacity: 0.2,
+        });
+        drawGroup.addLayer(poly);
+      } else {
+        const line = L.polyline(latlngs, {
+          color: "#2563eb",
+          weight: 2.5,
+          dashArray: "6, 6",
+        });
+        drawGroup.addLayer(line);
+      }
+    }
+  }, [drawingMode, drawingPoints]);
 
   // ---- current location (never removed) ----
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !position) return;
-    const latlng = L.latLng(position.lat, position.lng);
+    const latlng: [number, number] = [position.lat, position.lng];
     if (!meRef.current) {
       const circle = L.circle(latlng, {
         radius: position.accuracy,
-        color: "oklch(0.58 0.19 259)",
-        fillColor: "oklch(0.58 0.19 259)",
+        color: "oklch(0.55 0.2 259)",
+        fillColor: "oklch(0.55 0.2 259)",
         fillOpacity: 0.12,
         weight: 1,
         interactive: false,
@@ -246,24 +344,19 @@ export default function LeafletMap({
     const layer = layerRef.current;
     if (!map || !layer) return;
 
-    let frame = 0;
     let lastKey = "";
 
     const draw = () => {
       const zoom = map.getZoom();
       const list = showRef.current ? pinsRef.current : [];
-      // Signature covers every pin id + position + type, so markers are only
-      // rebuilt when the data (or zoom bucket) really changed.
       let sig = `${zoom}|${editRef.current ? "e" : ""}|${list.length}|`;
       for (const p of list) sig += `${p.id}:${p.latitude}:${p.longitude}:${p.pin_type};`;
       if (sig === lastKey) return;
       lastKey = sig;
 
       layer.clearLayers();
-      // Cluster in SCREEN space: any pins whose 34px markers would overlap at the
-      // current zoom are grouped, so clustering reacts naturally to zooming.
       const CELL = 44;
-      const exact = 0.000015; // ~1.5 m
+      const exact = 0.000015;
       const groups = new Map<string, Pin[]>();
       for (const pin of list) {
         const pt = map.project([pin.latitude, pin.longitude], zoom);
@@ -275,8 +368,6 @@ export default function LeafletMap({
 
       for (const group of groups.values()) {
         const first = group[0]!;
-        // Pins sitting on (virtually) the same coordinates can never be separated
-        // by zooming, so they get the stacked marker instead of a cluster.
         const sameSpot =
           group.length > 1 &&
           group.every(
@@ -288,89 +379,76 @@ export default function LeafletMap({
         if (group.length === 1 || stacked) {
           const pin = first;
           const risk = riskRef.current?.[(pin.house_id ?? "").trim().toUpperCase()];
+          const isNearest = nearestPinIdRef.current === pin.id;
           const draggable = editRef.current && group.length === 1 && canMoveRef.current(pin);
           const marker = L.marker([pin.latitude, pin.longitude], {
             draggable,
+            zIndexOffset: isNearest ? 1000 : 0,
             icon: L.divIcon({
-              html: stacked
-                ? stackHtml(group, risk)
-                : markerHtml(pin, editRef.current && !draggable, risk),
               className: "",
               iconSize: [34, 34],
-              iconAnchor: [17, 30],
+              iconAnchor: [17, 34],
+              html: stacked ? stackHtml(group, risk) : markerHtml(pin, false, risk, isNearest),
             }),
-          })
-
-            .on("click", (e) => {
-              L.DomEvent.stopPropagation(e as unknown as Event);
-              if (stacked) selectManyRef.current(group);
-              else selectRef.current(pin);
-            })
-            .addTo(layer);
+          });
+          marker.on("click", (e) => {
+            L.DomEvent.stopPropagation(e as unknown as Event);
+            if (stacked) selectManyRef.current(group);
+            else selectRef.current(pin);
+          });
           if (draggable) {
             marker.on("dragend", () => {
               const p = marker.getLatLng();
               draggedRef.current(pin, { lat: p.lat, lng: p.lng });
             });
           }
+          layer.addLayer(marker);
         } else {
-          const lat = group.reduce((s, p) => s + p.latitude, 0) / group.length;
-          const lng = group.reduce((s, p) => s + p.longitude, 0) / group.length;
-          const size = group.length > 99 ? 48 : group.length > 9 ? 42 : 36;
-          L.marker([lat, lng], {
+          const count = group.length;
+          const size = count > 99 ? 48 : count > 9 ? 42 : 36;
+          const marker = L.marker([first.latitude, first.longitude], {
             icon: L.divIcon({
-              html: clusterHtml(group.length),
               className: "",
               iconSize: [size, size],
               iconAnchor: [size / 2, size / 2],
+              html: clusterHtml(count),
             }),
-          })
-            .on("click", (e) => {
-              L.DomEvent.stopPropagation(e as unknown as Event);
-              const next = Math.min(19, map.getZoom() + 2);
-              if (map.getZoom() >= 19) selectManyRef.current(group);
-              else map.flyTo([lat, lng], next, { duration: 0.6 });
-            })
-            .addTo(layer);
+          });
+          marker.on("click", (e) => {
+            L.DomEvent.stopPropagation(e as unknown as Event);
+            const latlngs = group.map((p) => [p.latitude, p.longitude] as [number, number]);
+            map.fitBounds(L.latLngBounds(latlngs), { padding: [40, 40], maxZoom: 19 });
+          });
+          layer.addLayer(marker);
         }
       }
     };
 
-    const schedule = () => {
-      if (frame) cancelAnimationFrame(frame);
-      frame = requestAnimationFrame(draw);
-    };
+    renderRef.current = draw;
+    draw();
 
-    renderRef.current = () => {
-      schedule();
-    };
-
-    renderRef.current();
-    map.on("zoomend", schedule);
+    map.on("zoomend", draw);
+    map.on("moveend", draw);
     return () => {
-      if (frame) cancelAnimationFrame(frame);
-      map.off("zoomend", schedule);
+      map.off("zoomend", draw);
+      map.off("moveend", draw);
     };
-  }, []);
-
-  // redraw when pin data / visibility / edit mode changes
-  useEffect(() => {
-    renderRef.current();
-  }, [pins, showPins, editMode, riskByHouse]);
+  }, [pins, showPins, editMode, riskByHouse, nearestPinId]);
 
   // ---- draft marker ----
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
     if (!draft) {
-      draftRef.current?.remove();
-      draftRef.current = null;
+      if (draftRef.current) {
+        draftRef.current.remove();
+        draftRef.current = null;
+      }
       return;
     }
     if (!draftRef.current) {
       const marker = L.marker([draft.lat, draft.lng], {
         draggable: true,
-        autoPan: true,
         zIndexOffset: 1000,
         icon: L.divIcon({
           className: "",
@@ -401,8 +479,8 @@ export default function LeafletMap({
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
-    el.classList.toggle("add-pin-mode", addMode);
-  }, [addMode]);
+    el.classList.toggle("add-pin-mode", addMode || Boolean(drawingMode));
+  }, [addMode, drawingMode]);
 
   // ---- route polyline ----
   useEffect(() => {
@@ -420,7 +498,7 @@ export default function LeafletMap({
     const latlngs = route.map((p) => L.latLng(p.lat, p.lng));
     if (!polylineRef.current) {
       polylineRef.current = L.polyline(latlngs, {
-        color: "oklch(0.6 0.22 25)", // match a primary brand color or danger (red)
+        color: "oklch(0.6 0.22 25)",
         weight: 4,
         opacity: 0.8,
         dashArray: "8, 8",

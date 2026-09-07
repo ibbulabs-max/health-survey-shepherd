@@ -224,24 +224,25 @@ export async function updateHealthThresholdSettings(
   }
 
   // Write to dedicated audit trail table (preserves old+new values independently of activity_logs)
-  try {
-    await dbClient.from("health_threshold_settings_audit").insert({
-      settings_id: existingRow?.id ?? null,
-      changed_by: changedBy,
-      previous_values: prev,
-      new_values: next,
-    });
-  } catch (auditErr) {
-    // Non-fatal: don't block settings save if audit insert fails
-    console.warn("Could not write settings audit log:", auditErr);
+  const { error: auditErr } = await dbClient.from("health_threshold_settings_audit").insert({
+    settings_id: existingRow?.id ?? null,
+    changed_by: changedBy,
+    previous_values: prev,
+    new_values: next,
+  });
+  if (auditErr) {
+    console.warn("Non-fatal: could not log settings audit.", auditErr);
   }
 
   // Also keep an activity log entry
-  await dbClient.from(tables.activityLogs).insert({
+  const { error: logErr } = await dbClient.from(tables.activityLogs).insert({
     action: role === "supervisor" ? "system.settings.update.team" : "system.settings.update",
     user_id: changedBy,
     details: { thresholds: next },
   });
+  if (logErr) {
+    console.warn("Failed to log activity", logErr);
+  }
 
   if (error) throw error;
 

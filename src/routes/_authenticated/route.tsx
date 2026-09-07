@@ -1,8 +1,7 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 
 import { AppShell } from "@/components/layout/AppShell";
-import { supabase } from "@/db/client";
-import { autoSignInQA } from "@/services/authService";
+import { autoSignInQA, loadSessionUser, type SessionUser } from "@/services/authService";
 
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
@@ -10,10 +9,10 @@ export const Route = createFileRoute("/_authenticated")({
     if (import.meta.env.DEV) {
       await autoSignInQA();
     }
-    const { data, error } = await supabase.auth.getUser();
-    if (error || !data.user) throw redirect({ to: "/" });
-    if (data.user.user_metadata?.["must_change_pin"]) throw redirect({ to: "/" });
-    return { user: data.user };
+    const sessionUser = await loadSessionUser();
+    if (!sessionUser) throw redirect({ to: "/" });
+    if (sessionUser.mustChangePin) throw redirect({ to: "/" });
+    return { user: sessionUser as SessionUser };
   },
   component: () => (
     <AppShell>

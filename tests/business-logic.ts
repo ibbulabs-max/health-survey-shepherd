@@ -33,19 +33,23 @@ assert.strictEqual(
 );
 
 // 2. Risk Engine & Follow-up Extraction Validation
-console.log("TEST: Follow-up Engine - Not Eligible by Age");
-const underageMember = {
+console.log("TEST: Follow-up Engine - Not Eligible by canonical flag");
+const nonEligibleMember = {
   id: "u1",
   age: 25,
-  systolic: 160, // High risk BP, but underage
+  eligible: false,
+  risk: "high",
+  systolic: 160,
   diastolic: 100,
   bloodSugar: 100,
-} as unknown as Member;
+} as unknown as any;
 
-const summaryUnderage = extractMemberFollowUpSummary(underageMember, undefined, [], 30, {
+const summaryUnderage = extractMemberFollowUpSummary(nonEligibleMember, null, [], {
   high: 2,
   moderate: 4,
   low: 180,
+  missing: 180,
+  invalid: 180,
 });
 assert.strictEqual(summaryUnderage.isEligible, false);
 
@@ -53,28 +57,31 @@ console.log("TEST: Follow-up Engine - High Risk Scheduling");
 const highRiskMember = {
   id: "h1",
   age: 40,
+  eligible: true,
   risk: "high",
   systolic: 160, // High risk
   diastolic: 100,
   bloodSugar: 100,
-} as unknown as Member;
+} as unknown as any;
 
 // Mock assessment with survey date
 const assessment = {
   assessed_at: "2026-08-01T12:00:00Z", // Survey Date
 } as unknown as FollowUpAssessment;
 
-const summaryHighRisk = extractMemberFollowUpSummary(highRiskMember, assessment, [], 30, {
+const summaryHighRisk = extractMemberFollowUpSummary(highRiskMember, assessment, [], {
   high: 2,
   moderate: 4,
   low: 180,
+  missing: 180,
+  invalid: 180,
 });
 assert.strictEqual(summaryHighRisk.isEligible, true);
 assert.strictEqual(summaryHighRisk.surveyDate, "2026-08-01");
 // High risk is +2 days. 08-01 is a Saturday. +2 days is 08-03 (Monday).
 assert.strictEqual(summaryHighRisk.nextFollowUpDate, "2026-08-03");
 
-console.log("TEST: Follow-up Engine - Completed Status");
+console.log("TEST: Follow-up Engine - Completed Status and Last Follow-up Date");
 const completedFollowUp = {
   id: "f1",
   member_uuid: "h1",
@@ -86,9 +93,9 @@ const summaryCompleted = extractMemberFollowUpSummary(
   highRiskMember,
   assessment,
   [completedFollowUp],
-  30,
-  { high: 2, moderate: 4, low: 180 },
+  { high: 2, moderate: 4, low: 180, missing: 180, invalid: 180 },
 );
-assert.strictEqual(summaryCompleted.status, "completed");
+assert.strictEqual(summaryCompleted.lastFollowUpDate, "2026-08-04");
+assert.strictEqual(summaryCompleted.history[0]?.status, "completed");
 
 console.log("All business logic unit tests passed!");

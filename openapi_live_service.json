@@ -1,0 +1,7263 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "description": "",
+    "title": "standard public schema",
+    "version": "14.5"
+  },
+  "host": "wctgaujblzvckvvauchj.supabase.co:443",
+  "basePath": "/",
+  "schemes": [
+    "https"
+  ],
+  "consumes": [
+    "application/json",
+    "application/vnd.pgrst.object+json;nulls=stripped",
+    "application/vnd.pgrst.object+json",
+    "text/csv"
+  ],
+  "produces": [
+    "application/json",
+    "application/vnd.pgrst.object+json;nulls=stripped",
+    "application/vnd.pgrst.object+json",
+    "text/csv"
+  ],
+  "paths": {
+    "/": {
+      "get": {
+        "produces": [
+          "application/openapi+json",
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "summary": "OpenAPI description (this document)",
+        "tags": [
+          "Introspection"
+        ]
+      }
+    },
+    "/import_batches": {
+      "get": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.import_batches.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.import_batches.file_names"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.import_batches.uploaded_by"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.import_batches.uploaded_by_name"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.import_batches.uploaded_role"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.import_batches.assigned_to"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.import_batches.assigned_to_name"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.import_batches.supervisor_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.import_batches.total_rows"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.import_batches.unique_houses"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.import_batches.houses_added"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.import_batches.houses_updated"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.import_batches.members_added"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.import_batches.members_merged"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.import_batches.merged_records"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.import_batches.conflicts"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.import_batches.unmapped_houses"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.import_batches.new_fields"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.import_batches.status"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.import_batches.created_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.import_batches.updated_at"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/order"
+          },
+          {
+            "$ref": "#/parameters/range"
+          },
+          {
+            "$ref": "#/parameters/rangeUnit"
+          },
+          {
+            "$ref": "#/parameters/offset"
+          },
+          {
+            "$ref": "#/parameters/limit"
+          },
+          {
+            "$ref": "#/parameters/preferCount"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/import_batches"
+              },
+              "type": "array"
+            }
+          },
+          "206": {
+            "description": "Partial Content"
+          }
+        },
+        "tags": [
+          "import_batches"
+        ]
+      },
+      "post": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/body.import_batches"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/preferPost"
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created"
+          }
+        },
+        "tags": [
+          "import_batches"
+        ]
+      },
+      "delete": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.import_batches.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.import_batches.file_names"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.import_batches.uploaded_by"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.import_batches.uploaded_by_name"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.import_batches.uploaded_role"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.import_batches.assigned_to"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.import_batches.assigned_to_name"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.import_batches.supervisor_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.import_batches.total_rows"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.import_batches.unique_houses"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.import_batches.houses_added"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.import_batches.houses_updated"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.import_batches.members_added"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.import_batches.members_merged"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.import_batches.merged_records"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.import_batches.conflicts"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.import_batches.unmapped_houses"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.import_batches.new_fields"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.import_batches.status"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.import_batches.created_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.import_batches.updated_at"
+          },
+          {
+            "$ref": "#/parameters/preferReturn"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        },
+        "tags": [
+          "import_batches"
+        ]
+      },
+      "patch": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.import_batches.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.import_batches.file_names"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.import_batches.uploaded_by"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.import_batches.uploaded_by_name"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.import_batches.uploaded_role"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.import_batches.assigned_to"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.import_batches.assigned_to_name"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.import_batches.supervisor_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.import_batches.total_rows"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.import_batches.unique_houses"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.import_batches.houses_added"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.import_batches.houses_updated"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.import_batches.members_added"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.import_batches.members_merged"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.import_batches.merged_records"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.import_batches.conflicts"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.import_batches.unmapped_houses"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.import_batches.new_fields"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.import_batches.status"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.import_batches.created_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.import_batches.updated_at"
+          },
+          {
+            "$ref": "#/parameters/body.import_batches"
+          },
+          {
+            "$ref": "#/parameters/preferReturn"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        },
+        "tags": [
+          "import_batches"
+        ]
+      }
+    },
+    "/push_subscriptions": {
+      "get": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.push_subscriptions.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.push_subscriptions.user_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.push_subscriptions.endpoint"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.push_subscriptions.p256dh"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.push_subscriptions.auth"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.push_subscriptions.created_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.push_subscriptions.updated_at"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/order"
+          },
+          {
+            "$ref": "#/parameters/range"
+          },
+          {
+            "$ref": "#/parameters/rangeUnit"
+          },
+          {
+            "$ref": "#/parameters/offset"
+          },
+          {
+            "$ref": "#/parameters/limit"
+          },
+          {
+            "$ref": "#/parameters/preferCount"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/push_subscriptions"
+              },
+              "type": "array"
+            }
+          },
+          "206": {
+            "description": "Partial Content"
+          }
+        },
+        "tags": [
+          "push_subscriptions"
+        ]
+      },
+      "post": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/body.push_subscriptions"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/preferPost"
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created"
+          }
+        },
+        "tags": [
+          "push_subscriptions"
+        ]
+      },
+      "delete": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.push_subscriptions.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.push_subscriptions.user_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.push_subscriptions.endpoint"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.push_subscriptions.p256dh"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.push_subscriptions.auth"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.push_subscriptions.created_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.push_subscriptions.updated_at"
+          },
+          {
+            "$ref": "#/parameters/preferReturn"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        },
+        "tags": [
+          "push_subscriptions"
+        ]
+      },
+      "patch": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.push_subscriptions.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.push_subscriptions.user_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.push_subscriptions.endpoint"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.push_subscriptions.p256dh"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.push_subscriptions.auth"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.push_subscriptions.created_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.push_subscriptions.updated_at"
+          },
+          {
+            "$ref": "#/parameters/body.push_subscriptions"
+          },
+          {
+            "$ref": "#/parameters/preferReturn"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        },
+        "tags": [
+          "push_subscriptions"
+        ]
+      }
+    },
+    "/pins": {
+      "get": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.pins.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.pins.user_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.pins.username"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.pins.latitude"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.pins.longitude"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.pins.accuracy"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.pins.pin_type"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.pins.custom_type"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.pins.house_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.pins.house_number"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.pins.owner_name"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.pins.notes"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.pins.device_time"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.pins.device_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.pins.surveyor"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.pins.source"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.pins.import_key"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.pins.external_created_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.pins.house_uuid"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.pins.created_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.pins.updated_at"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/order"
+          },
+          {
+            "$ref": "#/parameters/range"
+          },
+          {
+            "$ref": "#/parameters/rangeUnit"
+          },
+          {
+            "$ref": "#/parameters/offset"
+          },
+          {
+            "$ref": "#/parameters/limit"
+          },
+          {
+            "$ref": "#/parameters/preferCount"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/pins"
+              },
+              "type": "array"
+            }
+          },
+          "206": {
+            "description": "Partial Content"
+          }
+        },
+        "tags": [
+          "pins"
+        ]
+      },
+      "post": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/body.pins"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/preferPost"
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created"
+          }
+        },
+        "tags": [
+          "pins"
+        ]
+      },
+      "delete": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.pins.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.pins.user_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.pins.username"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.pins.latitude"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.pins.longitude"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.pins.accuracy"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.pins.pin_type"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.pins.custom_type"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.pins.house_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.pins.house_number"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.pins.owner_name"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.pins.notes"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.pins.device_time"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.pins.device_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.pins.surveyor"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.pins.source"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.pins.import_key"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.pins.external_created_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.pins.house_uuid"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.pins.created_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.pins.updated_at"
+          },
+          {
+            "$ref": "#/parameters/preferReturn"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        },
+        "tags": [
+          "pins"
+        ]
+      },
+      "patch": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.pins.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.pins.user_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.pins.username"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.pins.latitude"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.pins.longitude"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.pins.accuracy"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.pins.pin_type"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.pins.custom_type"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.pins.house_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.pins.house_number"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.pins.owner_name"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.pins.notes"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.pins.device_time"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.pins.device_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.pins.surveyor"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.pins.source"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.pins.import_key"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.pins.external_created_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.pins.house_uuid"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.pins.created_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.pins.updated_at"
+          },
+          {
+            "$ref": "#/parameters/body.pins"
+          },
+          {
+            "$ref": "#/parameters/preferReturn"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        },
+        "tags": [
+          "pins"
+        ]
+      }
+    },
+    "/tasks": {
+      "get": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.tasks.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.tasks.house_uuid"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.tasks.member_uuid"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.tasks.follow_up_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.tasks.task_type"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.tasks.status"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.tasks.due_date"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.tasks.assigned_to"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.tasks.created_by"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.tasks.completed_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.tasks.created_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.tasks.updated_at"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/order"
+          },
+          {
+            "$ref": "#/parameters/range"
+          },
+          {
+            "$ref": "#/parameters/rangeUnit"
+          },
+          {
+            "$ref": "#/parameters/offset"
+          },
+          {
+            "$ref": "#/parameters/limit"
+          },
+          {
+            "$ref": "#/parameters/preferCount"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/tasks"
+              },
+              "type": "array"
+            }
+          },
+          "206": {
+            "description": "Partial Content"
+          }
+        },
+        "tags": [
+          "tasks"
+        ]
+      },
+      "post": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/body.tasks"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/preferPost"
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created"
+          }
+        },
+        "tags": [
+          "tasks"
+        ]
+      },
+      "delete": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.tasks.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.tasks.house_uuid"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.tasks.member_uuid"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.tasks.follow_up_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.tasks.task_type"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.tasks.status"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.tasks.due_date"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.tasks.assigned_to"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.tasks.created_by"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.tasks.completed_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.tasks.created_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.tasks.updated_at"
+          },
+          {
+            "$ref": "#/parameters/preferReturn"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        },
+        "tags": [
+          "tasks"
+        ]
+      },
+      "patch": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.tasks.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.tasks.house_uuid"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.tasks.member_uuid"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.tasks.follow_up_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.tasks.task_type"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.tasks.status"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.tasks.due_date"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.tasks.assigned_to"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.tasks.created_by"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.tasks.completed_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.tasks.created_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.tasks.updated_at"
+          },
+          {
+            "$ref": "#/parameters/body.tasks"
+          },
+          {
+            "$ref": "#/parameters/preferReturn"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        },
+        "tags": [
+          "tasks"
+        ]
+      }
+    },
+    "/profiles": {
+      "get": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.profiles.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.profiles.username"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.profiles.full_name"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.profiles.phone"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.profiles.email"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.profiles.avatar_url"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.profiles.is_active"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.profiles.created_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.profiles.updated_at"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/order"
+          },
+          {
+            "$ref": "#/parameters/range"
+          },
+          {
+            "$ref": "#/parameters/rangeUnit"
+          },
+          {
+            "$ref": "#/parameters/offset"
+          },
+          {
+            "$ref": "#/parameters/limit"
+          },
+          {
+            "$ref": "#/parameters/preferCount"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/profiles"
+              },
+              "type": "array"
+            }
+          },
+          "206": {
+            "description": "Partial Content"
+          }
+        },
+        "tags": [
+          "profiles"
+        ]
+      },
+      "post": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/body.profiles"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/preferPost"
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created"
+          }
+        },
+        "tags": [
+          "profiles"
+        ]
+      },
+      "delete": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.profiles.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.profiles.username"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.profiles.full_name"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.profiles.phone"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.profiles.email"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.profiles.avatar_url"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.profiles.is_active"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.profiles.created_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.profiles.updated_at"
+          },
+          {
+            "$ref": "#/parameters/preferReturn"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        },
+        "tags": [
+          "profiles"
+        ]
+      },
+      "patch": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.profiles.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.profiles.username"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.profiles.full_name"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.profiles.phone"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.profiles.email"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.profiles.avatar_url"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.profiles.is_active"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.profiles.created_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.profiles.updated_at"
+          },
+          {
+            "$ref": "#/parameters/body.profiles"
+          },
+          {
+            "$ref": "#/parameters/preferReturn"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        },
+        "tags": [
+          "profiles"
+        ]
+      }
+    },
+    "/health_threshold_settings_audit": {
+      "get": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.health_threshold_settings_audit.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.health_threshold_settings_audit.settings_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.health_threshold_settings_audit.changed_by"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.health_threshold_settings_audit.previous_values"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.health_threshold_settings_audit.new_values"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.health_threshold_settings_audit.created_at"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/order"
+          },
+          {
+            "$ref": "#/parameters/range"
+          },
+          {
+            "$ref": "#/parameters/rangeUnit"
+          },
+          {
+            "$ref": "#/parameters/offset"
+          },
+          {
+            "$ref": "#/parameters/limit"
+          },
+          {
+            "$ref": "#/parameters/preferCount"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/health_threshold_settings_audit"
+              },
+              "type": "array"
+            }
+          },
+          "206": {
+            "description": "Partial Content"
+          }
+        },
+        "tags": [
+          "health_threshold_settings_audit"
+        ]
+      },
+      "post": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/body.health_threshold_settings_audit"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/preferPost"
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created"
+          }
+        },
+        "tags": [
+          "health_threshold_settings_audit"
+        ]
+      },
+      "delete": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.health_threshold_settings_audit.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.health_threshold_settings_audit.settings_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.health_threshold_settings_audit.changed_by"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.health_threshold_settings_audit.previous_values"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.health_threshold_settings_audit.new_values"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.health_threshold_settings_audit.created_at"
+          },
+          {
+            "$ref": "#/parameters/preferReturn"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        },
+        "tags": [
+          "health_threshold_settings_audit"
+        ]
+      },
+      "patch": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.health_threshold_settings_audit.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.health_threshold_settings_audit.settings_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.health_threshold_settings_audit.changed_by"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.health_threshold_settings_audit.previous_values"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.health_threshold_settings_audit.new_values"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.health_threshold_settings_audit.created_at"
+          },
+          {
+            "$ref": "#/parameters/body.health_threshold_settings_audit"
+          },
+          {
+            "$ref": "#/parameters/preferReturn"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        },
+        "tags": [
+          "health_threshold_settings_audit"
+        ]
+      }
+    },
+    "/activity_logs": {
+      "get": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.activity_logs.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.activity_logs.user_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.activity_logs.username"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.activity_logs.action"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.activity_logs.details"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.activity_logs.created_at"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/order"
+          },
+          {
+            "$ref": "#/parameters/range"
+          },
+          {
+            "$ref": "#/parameters/rangeUnit"
+          },
+          {
+            "$ref": "#/parameters/offset"
+          },
+          {
+            "$ref": "#/parameters/limit"
+          },
+          {
+            "$ref": "#/parameters/preferCount"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/activity_logs"
+              },
+              "type": "array"
+            }
+          },
+          "206": {
+            "description": "Partial Content"
+          }
+        },
+        "tags": [
+          "activity_logs"
+        ]
+      },
+      "post": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/body.activity_logs"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/preferPost"
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created"
+          }
+        },
+        "tags": [
+          "activity_logs"
+        ]
+      },
+      "delete": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.activity_logs.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.activity_logs.user_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.activity_logs.username"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.activity_logs.action"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.activity_logs.details"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.activity_logs.created_at"
+          },
+          {
+            "$ref": "#/parameters/preferReturn"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        },
+        "tags": [
+          "activity_logs"
+        ]
+      },
+      "patch": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.activity_logs.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.activity_logs.user_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.activity_logs.username"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.activity_logs.action"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.activity_logs.details"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.activity_logs.created_at"
+          },
+          {
+            "$ref": "#/parameters/body.activity_logs"
+          },
+          {
+            "$ref": "#/parameters/preferReturn"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        },
+        "tags": [
+          "activity_logs"
+        ]
+      }
+    },
+    "/houses": {
+      "get": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.houses.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.houses.house_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.houses.house_number"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.houses.address"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.houses.owner_name"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.houses.status"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.houses.latitude"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.houses.longitude"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.houses.accuracy"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.houses.location_status"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.houses.location_source"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.houses.mapped_by"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.houses.mapped_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.houses.pin_type"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.houses.custom_type"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.houses.assigned_csw_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.houses.supervisor_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.houses.monthly_income"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.houses.earning_members"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.houses.total_members"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.houses.data"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.houses.created_by"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.houses.uploaded_by"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.houses.uploaded_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.houses.source_files"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.houses.created_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.houses.updated_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.houses.pin_id"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/order"
+          },
+          {
+            "$ref": "#/parameters/range"
+          },
+          {
+            "$ref": "#/parameters/rangeUnit"
+          },
+          {
+            "$ref": "#/parameters/offset"
+          },
+          {
+            "$ref": "#/parameters/limit"
+          },
+          {
+            "$ref": "#/parameters/preferCount"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/houses"
+              },
+              "type": "array"
+            }
+          },
+          "206": {
+            "description": "Partial Content"
+          }
+        },
+        "tags": [
+          "houses"
+        ]
+      },
+      "post": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/body.houses"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/preferPost"
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created"
+          }
+        },
+        "tags": [
+          "houses"
+        ]
+      },
+      "delete": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.houses.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.houses.house_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.houses.house_number"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.houses.address"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.houses.owner_name"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.houses.status"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.houses.latitude"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.houses.longitude"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.houses.accuracy"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.houses.location_status"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.houses.location_source"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.houses.mapped_by"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.houses.mapped_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.houses.pin_type"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.houses.custom_type"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.houses.assigned_csw_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.houses.supervisor_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.houses.monthly_income"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.houses.earning_members"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.houses.total_members"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.houses.data"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.houses.created_by"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.houses.uploaded_by"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.houses.uploaded_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.houses.source_files"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.houses.created_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.houses.updated_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.houses.pin_id"
+          },
+          {
+            "$ref": "#/parameters/preferReturn"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        },
+        "tags": [
+          "houses"
+        ]
+      },
+      "patch": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.houses.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.houses.house_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.houses.house_number"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.houses.address"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.houses.owner_name"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.houses.status"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.houses.latitude"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.houses.longitude"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.houses.accuracy"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.houses.location_status"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.houses.location_source"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.houses.mapped_by"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.houses.mapped_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.houses.pin_type"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.houses.custom_type"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.houses.assigned_csw_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.houses.supervisor_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.houses.monthly_income"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.houses.earning_members"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.houses.total_members"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.houses.data"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.houses.created_by"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.houses.uploaded_by"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.houses.uploaded_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.houses.source_files"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.houses.created_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.houses.updated_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.houses.pin_id"
+          },
+          {
+            "$ref": "#/parameters/body.houses"
+          },
+          {
+            "$ref": "#/parameters/preferReturn"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        },
+        "tags": [
+          "houses"
+        ]
+      }
+    },
+    "/login_attempts": {
+      "get": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.login_attempts.username"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.login_attempts.fail_count"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.login_attempts.locked_until"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.login_attempts.updated_at"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/order"
+          },
+          {
+            "$ref": "#/parameters/range"
+          },
+          {
+            "$ref": "#/parameters/rangeUnit"
+          },
+          {
+            "$ref": "#/parameters/offset"
+          },
+          {
+            "$ref": "#/parameters/limit"
+          },
+          {
+            "$ref": "#/parameters/preferCount"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/login_attempts"
+              },
+              "type": "array"
+            }
+          },
+          "206": {
+            "description": "Partial Content"
+          }
+        },
+        "tags": [
+          "login_attempts"
+        ]
+      },
+      "post": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/body.login_attempts"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/preferPost"
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created"
+          }
+        },
+        "tags": [
+          "login_attempts"
+        ]
+      },
+      "delete": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.login_attempts.username"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.login_attempts.fail_count"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.login_attempts.locked_until"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.login_attempts.updated_at"
+          },
+          {
+            "$ref": "#/parameters/preferReturn"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        },
+        "tags": [
+          "login_attempts"
+        ]
+      },
+      "patch": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.login_attempts.username"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.login_attempts.fail_count"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.login_attempts.locked_until"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.login_attempts.updated_at"
+          },
+          {
+            "$ref": "#/parameters/body.login_attempts"
+          },
+          {
+            "$ref": "#/parameters/preferReturn"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        },
+        "tags": [
+          "login_attempts"
+        ]
+      }
+    },
+    "/member_assessments": {
+      "get": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.member_assessments.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.member_assessments.house_uuid"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.member_assessments.member_uuid"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.member_assessments.available"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.member_assessments.known_history"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.member_assessments.medication"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.member_assessments.medical_details"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.member_assessments.alcohol"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.member_assessments.alcohol_frequency"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.member_assessments.smoking"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.member_assessments.smoking_frequency"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.member_assessments.tobacco"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.member_assessments.tobacco_frequency"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.member_assessments.waist"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.member_assessments.physical_activity"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.member_assessments.height_cm"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.member_assessments.weight_kg"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.member_assessments.bmi"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.member_assessments.bmi_category"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.member_assessments.systolic"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.member_assessments.diastolic"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.member_assessments.bp_symptoms"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.member_assessments.blood_sugar"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.member_assessments.sugar_symptoms"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.member_assessments.referral_needed"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.member_assessments.referral"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.member_assessments.notes"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.member_assessments.risk_level"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.member_assessments.risk_reasons"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.member_assessments.extra"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.member_assessments.assessed_by"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.member_assessments.assessed_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.member_assessments.created_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.member_assessments.updated_at"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/order"
+          },
+          {
+            "$ref": "#/parameters/range"
+          },
+          {
+            "$ref": "#/parameters/rangeUnit"
+          },
+          {
+            "$ref": "#/parameters/offset"
+          },
+          {
+            "$ref": "#/parameters/limit"
+          },
+          {
+            "$ref": "#/parameters/preferCount"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/member_assessments"
+              },
+              "type": "array"
+            }
+          },
+          "206": {
+            "description": "Partial Content"
+          }
+        },
+        "tags": [
+          "member_assessments"
+        ]
+      },
+      "post": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/body.member_assessments"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/preferPost"
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created"
+          }
+        },
+        "tags": [
+          "member_assessments"
+        ]
+      },
+      "delete": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.member_assessments.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.member_assessments.house_uuid"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.member_assessments.member_uuid"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.member_assessments.available"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.member_assessments.known_history"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.member_assessments.medication"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.member_assessments.medical_details"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.member_assessments.alcohol"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.member_assessments.alcohol_frequency"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.member_assessments.smoking"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.member_assessments.smoking_frequency"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.member_assessments.tobacco"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.member_assessments.tobacco_frequency"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.member_assessments.waist"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.member_assessments.physical_activity"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.member_assessments.height_cm"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.member_assessments.weight_kg"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.member_assessments.bmi"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.member_assessments.bmi_category"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.member_assessments.systolic"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.member_assessments.diastolic"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.member_assessments.bp_symptoms"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.member_assessments.blood_sugar"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.member_assessments.sugar_symptoms"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.member_assessments.referral_needed"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.member_assessments.referral"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.member_assessments.notes"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.member_assessments.risk_level"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.member_assessments.risk_reasons"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.member_assessments.extra"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.member_assessments.assessed_by"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.member_assessments.assessed_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.member_assessments.created_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.member_assessments.updated_at"
+          },
+          {
+            "$ref": "#/parameters/preferReturn"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        },
+        "tags": [
+          "member_assessments"
+        ]
+      },
+      "patch": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.member_assessments.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.member_assessments.house_uuid"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.member_assessments.member_uuid"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.member_assessments.available"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.member_assessments.known_history"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.member_assessments.medication"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.member_assessments.medical_details"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.member_assessments.alcohol"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.member_assessments.alcohol_frequency"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.member_assessments.smoking"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.member_assessments.smoking_frequency"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.member_assessments.tobacco"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.member_assessments.tobacco_frequency"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.member_assessments.waist"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.member_assessments.physical_activity"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.member_assessments.height_cm"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.member_assessments.weight_kg"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.member_assessments.bmi"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.member_assessments.bmi_category"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.member_assessments.systolic"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.member_assessments.diastolic"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.member_assessments.bp_symptoms"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.member_assessments.blood_sugar"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.member_assessments.sugar_symptoms"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.member_assessments.referral_needed"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.member_assessments.referral"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.member_assessments.notes"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.member_assessments.risk_level"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.member_assessments.risk_reasons"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.member_assessments.extra"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.member_assessments.assessed_by"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.member_assessments.assessed_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.member_assessments.created_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.member_assessments.updated_at"
+          },
+          {
+            "$ref": "#/parameters/body.member_assessments"
+          },
+          {
+            "$ref": "#/parameters/preferReturn"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        },
+        "tags": [
+          "member_assessments"
+        ]
+      }
+    },
+    "/team_memberships": {
+      "get": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.team_memberships.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.team_memberships.supervisor_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.team_memberships.csw_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.team_memberships.status"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.team_memberships.created_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.team_memberships.updated_at"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/order"
+          },
+          {
+            "$ref": "#/parameters/range"
+          },
+          {
+            "$ref": "#/parameters/rangeUnit"
+          },
+          {
+            "$ref": "#/parameters/offset"
+          },
+          {
+            "$ref": "#/parameters/limit"
+          },
+          {
+            "$ref": "#/parameters/preferCount"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/team_memberships"
+              },
+              "type": "array"
+            }
+          },
+          "206": {
+            "description": "Partial Content"
+          }
+        },
+        "tags": [
+          "team_memberships"
+        ]
+      },
+      "post": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/body.team_memberships"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/preferPost"
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created"
+          }
+        },
+        "tags": [
+          "team_memberships"
+        ]
+      },
+      "delete": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.team_memberships.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.team_memberships.supervisor_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.team_memberships.csw_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.team_memberships.status"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.team_memberships.created_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.team_memberships.updated_at"
+          },
+          {
+            "$ref": "#/parameters/preferReturn"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        },
+        "tags": [
+          "team_memberships"
+        ]
+      },
+      "patch": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.team_memberships.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.team_memberships.supervisor_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.team_memberships.csw_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.team_memberships.status"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.team_memberships.created_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.team_memberships.updated_at"
+          },
+          {
+            "$ref": "#/parameters/body.team_memberships"
+          },
+          {
+            "$ref": "#/parameters/preferReturn"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        },
+        "tags": [
+          "team_memberships"
+        ]
+      }
+    },
+    "/health_threshold_settings": {
+      "get": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.health_threshold_settings.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.health_threshold_settings.minimum_eligible_age"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.health_threshold_settings.systolic_normal_max"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.health_threshold_settings.systolic_moderate_min"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.health_threshold_settings.systolic_high_min"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.health_threshold_settings.diastolic_normal_max"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.health_threshold_settings.diastolic_moderate_min"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.health_threshold_settings.diastolic_high_min"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.health_threshold_settings.sugar_normal_max"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.health_threshold_settings.sugar_moderate_min"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.health_threshold_settings.sugar_moderate_max"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.health_threshold_settings.sugar_high_min"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.health_threshold_settings.interval_high"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.health_threshold_settings.interval_moderate"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.health_threshold_settings.interval_low"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.health_threshold_settings.supervisor_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.health_threshold_settings.vitals_config"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.health_threshold_settings.working_days"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.health_threshold_settings.working_hours"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.health_threshold_settings.created_by"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.health_threshold_settings.created_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.health_threshold_settings.updated_at"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/order"
+          },
+          {
+            "$ref": "#/parameters/range"
+          },
+          {
+            "$ref": "#/parameters/rangeUnit"
+          },
+          {
+            "$ref": "#/parameters/offset"
+          },
+          {
+            "$ref": "#/parameters/limit"
+          },
+          {
+            "$ref": "#/parameters/preferCount"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/health_threshold_settings"
+              },
+              "type": "array"
+            }
+          },
+          "206": {
+            "description": "Partial Content"
+          }
+        },
+        "tags": [
+          "health_threshold_settings"
+        ]
+      },
+      "post": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/body.health_threshold_settings"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/preferPost"
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created"
+          }
+        },
+        "tags": [
+          "health_threshold_settings"
+        ]
+      },
+      "delete": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.health_threshold_settings.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.health_threshold_settings.minimum_eligible_age"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.health_threshold_settings.systolic_normal_max"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.health_threshold_settings.systolic_moderate_min"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.health_threshold_settings.systolic_high_min"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.health_threshold_settings.diastolic_normal_max"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.health_threshold_settings.diastolic_moderate_min"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.health_threshold_settings.diastolic_high_min"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.health_threshold_settings.sugar_normal_max"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.health_threshold_settings.sugar_moderate_min"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.health_threshold_settings.sugar_moderate_max"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.health_threshold_settings.sugar_high_min"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.health_threshold_settings.interval_high"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.health_threshold_settings.interval_moderate"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.health_threshold_settings.interval_low"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.health_threshold_settings.supervisor_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.health_threshold_settings.vitals_config"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.health_threshold_settings.working_days"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.health_threshold_settings.working_hours"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.health_threshold_settings.created_by"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.health_threshold_settings.created_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.health_threshold_settings.updated_at"
+          },
+          {
+            "$ref": "#/parameters/preferReturn"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        },
+        "tags": [
+          "health_threshold_settings"
+        ]
+      },
+      "patch": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.health_threshold_settings.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.health_threshold_settings.minimum_eligible_age"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.health_threshold_settings.systolic_normal_max"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.health_threshold_settings.systolic_moderate_min"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.health_threshold_settings.systolic_high_min"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.health_threshold_settings.diastolic_normal_max"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.health_threshold_settings.diastolic_moderate_min"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.health_threshold_settings.diastolic_high_min"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.health_threshold_settings.sugar_normal_max"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.health_threshold_settings.sugar_moderate_min"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.health_threshold_settings.sugar_moderate_max"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.health_threshold_settings.sugar_high_min"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.health_threshold_settings.interval_high"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.health_threshold_settings.interval_moderate"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.health_threshold_settings.interval_low"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.health_threshold_settings.supervisor_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.health_threshold_settings.vitals_config"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.health_threshold_settings.working_days"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.health_threshold_settings.working_hours"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.health_threshold_settings.created_by"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.health_threshold_settings.created_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.health_threshold_settings.updated_at"
+          },
+          {
+            "$ref": "#/parameters/body.health_threshold_settings"
+          },
+          {
+            "$ref": "#/parameters/preferReturn"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        },
+        "tags": [
+          "health_threshold_settings"
+        ]
+      }
+    },
+    "/import_conflicts": {
+      "get": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.import_conflicts.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.import_conflicts.batch_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.import_conflicts.house_uuid"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.import_conflicts.house_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.import_conflicts.entity"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.import_conflicts.member_ref"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.import_conflicts.field"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.import_conflicts.existing_value"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.import_conflicts.new_value"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.import_conflicts.source_file"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.import_conflicts.status"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.import_conflicts.resolved_by"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.import_conflicts.resolved_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.import_conflicts.created_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.import_conflicts.updated_at"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/order"
+          },
+          {
+            "$ref": "#/parameters/range"
+          },
+          {
+            "$ref": "#/parameters/rangeUnit"
+          },
+          {
+            "$ref": "#/parameters/offset"
+          },
+          {
+            "$ref": "#/parameters/limit"
+          },
+          {
+            "$ref": "#/parameters/preferCount"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/import_conflicts"
+              },
+              "type": "array"
+            }
+          },
+          "206": {
+            "description": "Partial Content"
+          }
+        },
+        "tags": [
+          "import_conflicts"
+        ]
+      },
+      "post": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/body.import_conflicts"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/preferPost"
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created"
+          }
+        },
+        "tags": [
+          "import_conflicts"
+        ]
+      },
+      "delete": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.import_conflicts.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.import_conflicts.batch_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.import_conflicts.house_uuid"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.import_conflicts.house_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.import_conflicts.entity"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.import_conflicts.member_ref"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.import_conflicts.field"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.import_conflicts.existing_value"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.import_conflicts.new_value"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.import_conflicts.source_file"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.import_conflicts.status"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.import_conflicts.resolved_by"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.import_conflicts.resolved_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.import_conflicts.created_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.import_conflicts.updated_at"
+          },
+          {
+            "$ref": "#/parameters/preferReturn"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        },
+        "tags": [
+          "import_conflicts"
+        ]
+      },
+      "patch": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.import_conflicts.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.import_conflicts.batch_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.import_conflicts.house_uuid"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.import_conflicts.house_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.import_conflicts.entity"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.import_conflicts.member_ref"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.import_conflicts.field"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.import_conflicts.existing_value"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.import_conflicts.new_value"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.import_conflicts.source_file"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.import_conflicts.status"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.import_conflicts.resolved_by"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.import_conflicts.resolved_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.import_conflicts.created_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.import_conflicts.updated_at"
+          },
+          {
+            "$ref": "#/parameters/body.import_conflicts"
+          },
+          {
+            "$ref": "#/parameters/preferReturn"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        },
+        "tags": [
+          "import_conflicts"
+        ]
+      }
+    },
+    "/house_members": {
+      "get": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.house_members.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.house_members.house_uuid"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.house_members.member_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.house_members.member_name"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.house_members.data"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.house_members.source_files"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.house_members.uploaded_by"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.house_members.uploaded_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.house_members.possible_duplicate"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.house_members.created_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.house_members.updated_at"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/order"
+          },
+          {
+            "$ref": "#/parameters/range"
+          },
+          {
+            "$ref": "#/parameters/rangeUnit"
+          },
+          {
+            "$ref": "#/parameters/offset"
+          },
+          {
+            "$ref": "#/parameters/limit"
+          },
+          {
+            "$ref": "#/parameters/preferCount"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/house_members"
+              },
+              "type": "array"
+            }
+          },
+          "206": {
+            "description": "Partial Content"
+          }
+        },
+        "tags": [
+          "house_members"
+        ]
+      },
+      "post": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/body.house_members"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/preferPost"
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created"
+          }
+        },
+        "tags": [
+          "house_members"
+        ]
+      },
+      "delete": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.house_members.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.house_members.house_uuid"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.house_members.member_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.house_members.member_name"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.house_members.data"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.house_members.source_files"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.house_members.uploaded_by"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.house_members.uploaded_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.house_members.possible_duplicate"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.house_members.created_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.house_members.updated_at"
+          },
+          {
+            "$ref": "#/parameters/preferReturn"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        },
+        "tags": [
+          "house_members"
+        ]
+      },
+      "patch": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.house_members.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.house_members.house_uuid"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.house_members.member_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.house_members.member_name"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.house_members.data"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.house_members.source_files"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.house_members.uploaded_by"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.house_members.uploaded_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.house_members.possible_duplicate"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.house_members.created_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.house_members.updated_at"
+          },
+          {
+            "$ref": "#/parameters/body.house_members"
+          },
+          {
+            "$ref": "#/parameters/preferReturn"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        },
+        "tags": [
+          "house_members"
+        ]
+      }
+    },
+    "/holidays": {
+      "get": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.holidays.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.holidays.holiday_date"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.holidays.name"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.holidays.created_by"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.holidays.created_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.holidays.updated_at"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/order"
+          },
+          {
+            "$ref": "#/parameters/range"
+          },
+          {
+            "$ref": "#/parameters/rangeUnit"
+          },
+          {
+            "$ref": "#/parameters/offset"
+          },
+          {
+            "$ref": "#/parameters/limit"
+          },
+          {
+            "$ref": "#/parameters/preferCount"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/holidays"
+              },
+              "type": "array"
+            }
+          },
+          "206": {
+            "description": "Partial Content"
+          }
+        },
+        "tags": [
+          "holidays"
+        ]
+      },
+      "post": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/body.holidays"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/preferPost"
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created"
+          }
+        },
+        "tags": [
+          "holidays"
+        ]
+      },
+      "delete": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.holidays.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.holidays.holiday_date"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.holidays.name"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.holidays.created_by"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.holidays.created_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.holidays.updated_at"
+          },
+          {
+            "$ref": "#/parameters/preferReturn"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        },
+        "tags": [
+          "holidays"
+        ]
+      },
+      "patch": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.holidays.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.holidays.holiday_date"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.holidays.name"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.holidays.created_by"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.holidays.created_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.holidays.updated_at"
+          },
+          {
+            "$ref": "#/parameters/body.holidays"
+          },
+          {
+            "$ref": "#/parameters/preferReturn"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        },
+        "tags": [
+          "holidays"
+        ]
+      }
+    },
+    "/user_roles": {
+      "get": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.user_roles.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.user_roles.user_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.user_roles.role"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/order"
+          },
+          {
+            "$ref": "#/parameters/range"
+          },
+          {
+            "$ref": "#/parameters/rangeUnit"
+          },
+          {
+            "$ref": "#/parameters/offset"
+          },
+          {
+            "$ref": "#/parameters/limit"
+          },
+          {
+            "$ref": "#/parameters/preferCount"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/user_roles"
+              },
+              "type": "array"
+            }
+          },
+          "206": {
+            "description": "Partial Content"
+          }
+        },
+        "tags": [
+          "user_roles"
+        ]
+      },
+      "post": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/body.user_roles"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/preferPost"
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created"
+          }
+        },
+        "tags": [
+          "user_roles"
+        ]
+      },
+      "delete": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.user_roles.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.user_roles.user_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.user_roles.role"
+          },
+          {
+            "$ref": "#/parameters/preferReturn"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        },
+        "tags": [
+          "user_roles"
+        ]
+      },
+      "patch": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.user_roles.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.user_roles.user_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.user_roles.role"
+          },
+          {
+            "$ref": "#/parameters/body.user_roles"
+          },
+          {
+            "$ref": "#/parameters/preferReturn"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        },
+        "tags": [
+          "user_roles"
+        ]
+      }
+    },
+    "/follow_ups": {
+      "get": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.follow_ups.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.follow_ups.house_uuid"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.follow_ups.member_uuid"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.follow_ups.due_date"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.follow_ups.reason"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.follow_ups.status"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.follow_ups.risk_level"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.follow_ups.notes"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.follow_ups.created_by"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.follow_ups.created_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.follow_ups.updated_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.follow_ups.completed_by"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.follow_ups.completed_at"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/order"
+          },
+          {
+            "$ref": "#/parameters/range"
+          },
+          {
+            "$ref": "#/parameters/rangeUnit"
+          },
+          {
+            "$ref": "#/parameters/offset"
+          },
+          {
+            "$ref": "#/parameters/limit"
+          },
+          {
+            "$ref": "#/parameters/preferCount"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/follow_ups"
+              },
+              "type": "array"
+            }
+          },
+          "206": {
+            "description": "Partial Content"
+          }
+        },
+        "tags": [
+          "follow_ups"
+        ]
+      },
+      "post": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/body.follow_ups"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/preferPost"
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created"
+          }
+        },
+        "tags": [
+          "follow_ups"
+        ]
+      },
+      "delete": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.follow_ups.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.follow_ups.house_uuid"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.follow_ups.member_uuid"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.follow_ups.due_date"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.follow_ups.reason"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.follow_ups.status"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.follow_ups.risk_level"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.follow_ups.notes"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.follow_ups.created_by"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.follow_ups.created_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.follow_ups.updated_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.follow_ups.completed_by"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.follow_ups.completed_at"
+          },
+          {
+            "$ref": "#/parameters/preferReturn"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        },
+        "tags": [
+          "follow_ups"
+        ]
+      },
+      "patch": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.follow_ups.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.follow_ups.house_uuid"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.follow_ups.member_uuid"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.follow_ups.due_date"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.follow_ups.reason"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.follow_ups.status"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.follow_ups.risk_level"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.follow_ups.notes"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.follow_ups.created_by"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.follow_ups.created_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.follow_ups.updated_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.follow_ups.completed_by"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.follow_ups.completed_at"
+          },
+          {
+            "$ref": "#/parameters/body.follow_ups"
+          },
+          {
+            "$ref": "#/parameters/preferReturn"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        },
+        "tags": [
+          "follow_ups"
+        ]
+      }
+    },
+    "/notifications": {
+      "get": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.notifications.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.notifications.user_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.notifications.sender_user_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.notifications.title"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.notifications.message"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.notifications.is_read"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.notifications.metadata"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.notifications.type"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.notifications.related_entity_type"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.notifications.related_entity_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.notifications.read_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.notifications.created_at"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/order"
+          },
+          {
+            "$ref": "#/parameters/range"
+          },
+          {
+            "$ref": "#/parameters/rangeUnit"
+          },
+          {
+            "$ref": "#/parameters/offset"
+          },
+          {
+            "$ref": "#/parameters/limit"
+          },
+          {
+            "$ref": "#/parameters/preferCount"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/notifications"
+              },
+              "type": "array"
+            }
+          },
+          "206": {
+            "description": "Partial Content"
+          }
+        },
+        "tags": [
+          "notifications"
+        ]
+      },
+      "post": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/body.notifications"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/preferPost"
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created"
+          }
+        },
+        "tags": [
+          "notifications"
+        ]
+      },
+      "delete": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.notifications.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.notifications.user_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.notifications.sender_user_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.notifications.title"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.notifications.message"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.notifications.is_read"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.notifications.metadata"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.notifications.type"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.notifications.related_entity_type"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.notifications.related_entity_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.notifications.read_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.notifications.created_at"
+          },
+          {
+            "$ref": "#/parameters/preferReturn"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        },
+        "tags": [
+          "notifications"
+        ]
+      },
+      "patch": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.notifications.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.notifications.user_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.notifications.sender_user_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.notifications.title"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.notifications.message"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.notifications.is_read"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.notifications.metadata"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.notifications.type"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.notifications.related_entity_type"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.notifications.related_entity_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.notifications.read_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.notifications.created_at"
+          },
+          {
+            "$ref": "#/parameters/body.notifications"
+          },
+          {
+            "$ref": "#/parameters/preferReturn"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        },
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
+    "/rpc/rls_auto_enable": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) rls_auto_enable"
+        ]
+      }
+    },
+    "/rpc/is_admin_like": {
+      "get": {
+        "parameters": [
+          {
+            "format": "uuid",
+            "in": "query",
+            "name": "_user_id",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) is_admin_like"
+        ]
+      },
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "properties": {
+                "_user_id": {
+                  "format": "uuid",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "_user_id"
+              ],
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) is_admin_like"
+        ]
+      }
+    },
+    "/rpc/is_supervisor_of": {
+      "get": {
+        "parameters": [
+          {
+            "format": "uuid",
+            "in": "query",
+            "name": "_supervisor_id",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "format": "uuid",
+            "in": "query",
+            "name": "_csw_id",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) is_supervisor_of"
+        ]
+      },
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "properties": {
+                "_csw_id": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "_supervisor_id": {
+                  "format": "uuid",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "_supervisor_id",
+                "_csw_id"
+              ],
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) is_supervisor_of"
+        ]
+      }
+    },
+    "/rpc/has_role": {
+      "get": {
+        "parameters": [
+          {
+            "format": "uuid",
+            "in": "query",
+            "name": "_user_id",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "format": "public.app_role",
+            "in": "query",
+            "name": "_role",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) has_role"
+        ]
+      },
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "properties": {
+                "_role": {
+                  "format": "public.app_role",
+                  "type": "string"
+                },
+                "_user_id": {
+                  "format": "uuid",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "_user_id",
+                "_role"
+              ],
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) has_role"
+        ]
+      }
+    },
+    "/rpc/can_access_house": {
+      "get": {
+        "parameters": [
+          {
+            "format": "uuid",
+            "in": "query",
+            "name": "_house",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "format": "uuid",
+            "in": "query",
+            "name": "_user",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) can_access_house"
+        ]
+      },
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "properties": {
+                "_house": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "_user": {
+                  "format": "uuid",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "_house",
+                "_user"
+              ],
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) can_access_house"
+        ]
+      }
+    }
+  },
+  "definitions": {
+    "import_batches": {
+      "required": [
+        "id",
+        "file_names",
+        "uploaded_by",
+        "total_rows",
+        "unique_houses",
+        "houses_added",
+        "houses_updated",
+        "members_added",
+        "members_merged",
+        "merged_records",
+        "conflicts",
+        "unmapped_houses",
+        "new_fields",
+        "status",
+        "created_at",
+        "updated_at"
+      ],
+      "properties": {
+        "id": {
+          "default": "gen_random_uuid()",
+          "description": "Note:\nThis is a Primary Key.<pk/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "file_names": {
+          "format": "jsonb"
+        },
+        "uploaded_by": {
+          "description": "Note:\nThis is a Foreign Key to `profiles.id`.<fk table='profiles' column='id'/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "uploaded_by_name": {
+          "format": "text",
+          "type": "string"
+        },
+        "uploaded_role": {
+          "enum": [
+            "admin",
+            "survey_user",
+            "super_admin",
+            "supervisor",
+            "master_admin"
+          ],
+          "format": "public.app_role",
+          "type": "string"
+        },
+        "assigned_to": {
+          "description": "Note:\nThis is a Foreign Key to `profiles.id`.<fk table='profiles' column='id'/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "assigned_to_name": {
+          "format": "text",
+          "type": "string"
+        },
+        "supervisor_id": {
+          "description": "Note:\nThis is a Foreign Key to `profiles.id`.<fk table='profiles' column='id'/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "total_rows": {
+          "default": 0,
+          "format": "integer",
+          "type": "integer"
+        },
+        "unique_houses": {
+          "default": 0,
+          "format": "integer",
+          "type": "integer"
+        },
+        "houses_added": {
+          "default": 0,
+          "format": "integer",
+          "type": "integer"
+        },
+        "houses_updated": {
+          "default": 0,
+          "format": "integer",
+          "type": "integer"
+        },
+        "members_added": {
+          "default": 0,
+          "format": "integer",
+          "type": "integer"
+        },
+        "members_merged": {
+          "default": 0,
+          "format": "integer",
+          "type": "integer"
+        },
+        "merged_records": {
+          "default": 0,
+          "format": "integer",
+          "type": "integer"
+        },
+        "conflicts": {
+          "default": 0,
+          "format": "integer",
+          "type": "integer"
+        },
+        "unmapped_houses": {
+          "default": 0,
+          "format": "integer",
+          "type": "integer"
+        },
+        "new_fields": {
+          "format": "jsonb"
+        },
+        "status": {
+          "default": "completed",
+          "format": "text",
+          "type": "string"
+        },
+        "created_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "updated_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "push_subscriptions": {
+      "required": [
+        "id",
+        "user_id",
+        "endpoint",
+        "p256dh",
+        "auth",
+        "created_at",
+        "updated_at"
+      ],
+      "properties": {
+        "id": {
+          "default": "gen_random_uuid()",
+          "description": "Note:\nThis is a Primary Key.<pk/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "user_id": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "endpoint": {
+          "format": "text",
+          "type": "string"
+        },
+        "p256dh": {
+          "format": "text",
+          "type": "string"
+        },
+        "auth": {
+          "format": "text",
+          "type": "string"
+        },
+        "created_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "updated_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "pins": {
+      "required": [
+        "id",
+        "user_id",
+        "username",
+        "latitude",
+        "longitude",
+        "pin_type",
+        "source",
+        "created_at",
+        "updated_at"
+      ],
+      "properties": {
+        "id": {
+          "default": "gen_random_uuid()",
+          "description": "Note:\nThis is a Primary Key.<pk/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "user_id": {
+          "default": "auth.uid()",
+          "description": "Note:\nThis is a Foreign Key to `profiles.id`.<fk table='profiles' column='id'/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "username": {
+          "format": "text",
+          "type": "string"
+        },
+        "latitude": {
+          "format": "double precision",
+          "type": "number"
+        },
+        "longitude": {
+          "format": "double precision",
+          "type": "number"
+        },
+        "accuracy": {
+          "format": "double precision",
+          "type": "number"
+        },
+        "pin_type": {
+          "default": "house",
+          "format": "text",
+          "type": "string"
+        },
+        "custom_type": {
+          "format": "text",
+          "type": "string"
+        },
+        "house_id": {
+          "format": "text",
+          "type": "string"
+        },
+        "house_number": {
+          "format": "text",
+          "type": "string"
+        },
+        "owner_name": {
+          "format": "text",
+          "type": "string"
+        },
+        "notes": {
+          "format": "text",
+          "type": "string"
+        },
+        "device_time": {
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "device_id": {
+          "format": "text",
+          "type": "string"
+        },
+        "surveyor": {
+          "format": "text",
+          "type": "string"
+        },
+        "source": {
+          "default": "manual",
+          "format": "text",
+          "type": "string"
+        },
+        "import_key": {
+          "format": "text",
+          "type": "string"
+        },
+        "external_created_at": {
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "house_uuid": {
+          "description": "Note:\nThis is a Foreign Key to `houses.id`.<fk table='houses' column='id'/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "created_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "updated_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "tasks": {
+      "required": [
+        "id",
+        "task_type",
+        "status",
+        "due_date"
+      ],
+      "properties": {
+        "id": {
+          "default": "gen_random_uuid()",
+          "description": "Note:\nThis is a Primary Key.<pk/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "house_uuid": {
+          "description": "Note:\nThis is a Foreign Key to `houses.id`.<fk table='houses' column='id'/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "member_uuid": {
+          "description": "Note:\nThis is a Foreign Key to `house_members.id`.<fk table='house_members' column='id'/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "follow_up_id": {
+          "description": "Note:\nThis is a Foreign Key to `follow_ups.id`.<fk table='follow_ups' column='id'/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "task_type": {
+          "default": "follow_up",
+          "format": "text",
+          "type": "string"
+        },
+        "status": {
+          "default": "pending",
+          "format": "text",
+          "type": "string"
+        },
+        "due_date": {
+          "format": "date",
+          "type": "string"
+        },
+        "assigned_to": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "created_by": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "completed_at": {
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "created_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "updated_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "profiles": {
+      "required": [
+        "id",
+        "username",
+        "is_active",
+        "created_at",
+        "updated_at"
+      ],
+      "properties": {
+        "id": {
+          "description": "Note:\nThis is a Primary Key.<pk/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "username": {
+          "format": "text",
+          "type": "string"
+        },
+        "full_name": {
+          "format": "text",
+          "type": "string"
+        },
+        "phone": {
+          "format": "text",
+          "type": "string"
+        },
+        "email": {
+          "format": "text",
+          "type": "string"
+        },
+        "avatar_url": {
+          "format": "text",
+          "type": "string"
+        },
+        "is_active": {
+          "default": true,
+          "format": "boolean",
+          "type": "boolean"
+        },
+        "created_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "updated_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "health_threshold_settings_audit": {
+      "required": [
+        "id",
+        "created_at"
+      ],
+      "properties": {
+        "id": {
+          "default": "gen_random_uuid()",
+          "description": "Note:\nThis is a Primary Key.<pk/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "settings_id": {
+          "description": "Note:\nThis is a Foreign Key to `health_threshold_settings.id`.<fk table='health_threshold_settings' column='id'/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "changed_by": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "previous_values": {
+          "format": "jsonb"
+        },
+        "new_values": {
+          "format": "jsonb"
+        },
+        "created_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "activity_logs": {
+      "required": [
+        "id",
+        "action",
+        "details",
+        "created_at"
+      ],
+      "properties": {
+        "id": {
+          "default": "gen_random_uuid()",
+          "description": "Note:\nThis is a Primary Key.<pk/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "user_id": {
+          "description": "Note:\nThis is a Foreign Key to `profiles.id`.<fk table='profiles' column='id'/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "username": {
+          "format": "text",
+          "type": "string"
+        },
+        "action": {
+          "format": "text",
+          "type": "string"
+        },
+        "details": {
+          "format": "jsonb"
+        },
+        "created_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "houses": {
+      "required": [
+        "id",
+        "house_id",
+        "location_status",
+        "pin_type",
+        "data",
+        "created_by",
+        "source_files",
+        "created_at",
+        "updated_at"
+      ],
+      "properties": {
+        "id": {
+          "default": "gen_random_uuid()",
+          "description": "Note:\nThis is a Primary Key.<pk/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "house_id": {
+          "format": "text",
+          "type": "string"
+        },
+        "house_number": {
+          "format": "text",
+          "type": "string"
+        },
+        "address": {
+          "format": "text",
+          "type": "string"
+        },
+        "owner_name": {
+          "format": "text",
+          "type": "string"
+        },
+        "status": {
+          "format": "text",
+          "type": "string"
+        },
+        "latitude": {
+          "format": "double precision",
+          "type": "number"
+        },
+        "longitude": {
+          "format": "double precision",
+          "type": "number"
+        },
+        "accuracy": {
+          "format": "double precision",
+          "type": "number"
+        },
+        "location_status": {
+          "default": "not_mapped",
+          "format": "text",
+          "type": "string"
+        },
+        "location_source": {
+          "format": "text",
+          "type": "string"
+        },
+        "mapped_by": {
+          "description": "Note:\nThis is a Foreign Key to `profiles.id`.<fk table='profiles' column='id'/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "mapped_at": {
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "pin_type": {
+          "default": "house",
+          "format": "text",
+          "type": "string"
+        },
+        "custom_type": {
+          "format": "text",
+          "type": "string"
+        },
+        "assigned_csw_id": {
+          "description": "Note:\nThis is a Foreign Key to `profiles.id`.<fk table='profiles' column='id'/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "supervisor_id": {
+          "description": "Note:\nThis is a Foreign Key to `profiles.id`.<fk table='profiles' column='id'/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "monthly_income": {
+          "format": "numeric",
+          "type": "number"
+        },
+        "earning_members": {
+          "format": "integer",
+          "type": "integer"
+        },
+        "total_members": {
+          "format": "integer",
+          "type": "integer"
+        },
+        "data": {
+          "format": "jsonb"
+        },
+        "created_by": {
+          "default": "auth.uid()",
+          "description": "Note:\nThis is a Foreign Key to `profiles.id`.<fk table='profiles' column='id'/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "uploaded_by": {
+          "description": "Note:\nThis is a Foreign Key to `profiles.id`.<fk table='profiles' column='id'/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "uploaded_at": {
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "source_files": {
+          "format": "jsonb"
+        },
+        "created_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "updated_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "pin_id": {
+          "description": "Note:\nThis is a Foreign Key to `pins.id`.<fk table='pins' column='id'/>",
+          "format": "uuid",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "login_attempts": {
+      "required": [
+        "username",
+        "fail_count",
+        "updated_at"
+      ],
+      "properties": {
+        "username": {
+          "description": "Note:\nThis is a Primary Key.<pk/>",
+          "format": "text",
+          "type": "string"
+        },
+        "fail_count": {
+          "default": 0,
+          "format": "integer",
+          "type": "integer"
+        },
+        "locked_until": {
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "updated_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "member_assessments": {
+      "required": [
+        "id",
+        "house_uuid",
+        "member_uuid",
+        "available",
+        "known_history",
+        "medication",
+        "bp_symptoms",
+        "sugar_symptoms",
+        "referral_needed",
+        "referral",
+        "risk_level",
+        "risk_reasons",
+        "extra",
+        "assessed_at",
+        "created_at",
+        "updated_at"
+      ],
+      "properties": {
+        "id": {
+          "default": "gen_random_uuid()",
+          "description": "Note:\nThis is a Primary Key.<pk/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "house_uuid": {
+          "description": "Note:\nThis is a Foreign Key to `houses.id`.<fk table='houses' column='id'/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "member_uuid": {
+          "description": "Note:\nThis is a Foreign Key to `house_members.id`.<fk table='house_members' column='id'/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "available": {
+          "default": true,
+          "format": "boolean",
+          "type": "boolean"
+        },
+        "known_history": {
+          "format": "jsonb"
+        },
+        "medication": {
+          "format": "jsonb"
+        },
+        "medical_details": {
+          "format": "text",
+          "type": "string"
+        },
+        "alcohol": {
+          "format": "text",
+          "type": "string"
+        },
+        "alcohol_frequency": {
+          "format": "text",
+          "type": "string"
+        },
+        "smoking": {
+          "format": "text",
+          "type": "string"
+        },
+        "smoking_frequency": {
+          "format": "text",
+          "type": "string"
+        },
+        "tobacco": {
+          "format": "text",
+          "type": "string"
+        },
+        "tobacco_frequency": {
+          "format": "text",
+          "type": "string"
+        },
+        "waist": {
+          "format": "text",
+          "type": "string"
+        },
+        "physical_activity": {
+          "format": "text",
+          "type": "string"
+        },
+        "height_cm": {
+          "format": "numeric",
+          "type": "number"
+        },
+        "weight_kg": {
+          "format": "numeric",
+          "type": "number"
+        },
+        "bmi": {
+          "format": "numeric",
+          "type": "number"
+        },
+        "bmi_category": {
+          "format": "text",
+          "type": "string"
+        },
+        "systolic": {
+          "format": "integer",
+          "type": "integer"
+        },
+        "diastolic": {
+          "format": "integer",
+          "type": "integer"
+        },
+        "bp_symptoms": {
+          "format": "jsonb"
+        },
+        "blood_sugar": {
+          "format": "numeric",
+          "type": "number"
+        },
+        "sugar_symptoms": {
+          "format": "jsonb"
+        },
+        "referral_needed": {
+          "default": false,
+          "format": "boolean",
+          "type": "boolean"
+        },
+        "referral": {
+          "format": "jsonb"
+        },
+        "notes": {
+          "format": "text",
+          "type": "string"
+        },
+        "risk_level": {
+          "default": "unknown",
+          "format": "text",
+          "type": "string"
+        },
+        "risk_reasons": {
+          "format": "jsonb"
+        },
+        "extra": {
+          "format": "jsonb"
+        },
+        "assessed_by": {
+          "description": "Note:\nThis is a Foreign Key to `profiles.id`.<fk table='profiles' column='id'/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "assessed_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "created_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "updated_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "team_memberships": {
+      "required": [
+        "id",
+        "supervisor_id",
+        "csw_id",
+        "status",
+        "created_at",
+        "updated_at"
+      ],
+      "properties": {
+        "id": {
+          "default": "gen_random_uuid()",
+          "description": "Note:\nThis is a Primary Key.<pk/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "supervisor_id": {
+          "description": "Note:\nThis is a Foreign Key to `profiles.id`.<fk table='profiles' column='id'/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "csw_id": {
+          "description": "Note:\nThis is a Foreign Key to `profiles.id`.<fk table='profiles' column='id'/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "status": {
+          "default": "active",
+          "format": "text",
+          "type": "string"
+        },
+        "created_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "updated_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "health_threshold_settings": {
+      "required": [
+        "id",
+        "minimum_eligible_age",
+        "systolic_normal_max",
+        "systolic_moderate_min",
+        "systolic_high_min",
+        "diastolic_normal_max",
+        "diastolic_moderate_min",
+        "diastolic_high_min",
+        "sugar_normal_max",
+        "sugar_moderate_min",
+        "sugar_moderate_max",
+        "sugar_high_min",
+        "interval_high",
+        "interval_moderate",
+        "interval_low",
+        "vitals_config",
+        "working_days",
+        "working_hours",
+        "created_at",
+        "updated_at"
+      ],
+      "properties": {
+        "id": {
+          "default": "gen_random_uuid()",
+          "description": "Note:\nThis is a Primary Key.<pk/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "minimum_eligible_age": {
+          "default": 30,
+          "format": "integer",
+          "type": "integer"
+        },
+        "systolic_normal_max": {
+          "default": 130,
+          "format": "integer",
+          "type": "integer"
+        },
+        "systolic_moderate_min": {
+          "default": 140,
+          "format": "integer",
+          "type": "integer"
+        },
+        "systolic_high_min": {
+          "default": 150,
+          "format": "integer",
+          "type": "integer"
+        },
+        "diastolic_normal_max": {
+          "default": 80,
+          "format": "integer",
+          "type": "integer"
+        },
+        "diastolic_moderate_min": {
+          "default": 90,
+          "format": "integer",
+          "type": "integer"
+        },
+        "diastolic_high_min": {
+          "default": 100,
+          "format": "integer",
+          "type": "integer"
+        },
+        "sugar_normal_max": {
+          "default": 135,
+          "format": "integer",
+          "type": "integer"
+        },
+        "sugar_moderate_min": {
+          "default": 136,
+          "format": "integer",
+          "type": "integer"
+        },
+        "sugar_moderate_max": {
+          "default": 160,
+          "format": "integer",
+          "type": "integer"
+        },
+        "sugar_high_min": {
+          "default": 161,
+          "format": "integer",
+          "type": "integer"
+        },
+        "interval_high": {
+          "default": 15,
+          "format": "integer",
+          "type": "integer"
+        },
+        "interval_moderate": {
+          "default": 30,
+          "format": "integer",
+          "type": "integer"
+        },
+        "interval_low": {
+          "default": 180,
+          "format": "integer",
+          "type": "integer"
+        },
+        "supervisor_id": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "vitals_config": {
+          "format": "jsonb"
+        },
+        "working_days": {
+          "format": "jsonb"
+        },
+        "working_hours": {
+          "format": "jsonb"
+        },
+        "created_by": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "created_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "updated_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "import_conflicts": {
+      "required": [
+        "id",
+        "house_id",
+        "entity",
+        "field",
+        "status",
+        "created_at",
+        "updated_at"
+      ],
+      "properties": {
+        "id": {
+          "default": "gen_random_uuid()",
+          "description": "Note:\nThis is a Primary Key.<pk/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "batch_id": {
+          "description": "Note:\nThis is a Foreign Key to `import_batches.id`.<fk table='import_batches' column='id'/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "house_uuid": {
+          "description": "Note:\nThis is a Foreign Key to `houses.id`.<fk table='houses' column='id'/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "house_id": {
+          "format": "text",
+          "type": "string"
+        },
+        "entity": {
+          "default": "house",
+          "format": "text",
+          "type": "string"
+        },
+        "member_ref": {
+          "format": "text",
+          "type": "string"
+        },
+        "field": {
+          "format": "text",
+          "type": "string"
+        },
+        "existing_value": {
+          "format": "text",
+          "type": "string"
+        },
+        "new_value": {
+          "format": "text",
+          "type": "string"
+        },
+        "source_file": {
+          "format": "text",
+          "type": "string"
+        },
+        "status": {
+          "default": "pending",
+          "format": "text",
+          "type": "string"
+        },
+        "resolved_by": {
+          "description": "Note:\nThis is a Foreign Key to `profiles.id`.<fk table='profiles' column='id'/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "resolved_at": {
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "created_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "updated_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "house_members": {
+      "required": [
+        "id",
+        "house_uuid",
+        "data",
+        "source_files",
+        "possible_duplicate",
+        "created_at",
+        "updated_at"
+      ],
+      "properties": {
+        "id": {
+          "default": "gen_random_uuid()",
+          "description": "Note:\nThis is a Primary Key.<pk/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "house_uuid": {
+          "description": "Note:\nThis is a Foreign Key to `houses.id`.<fk table='houses' column='id'/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "member_id": {
+          "format": "text",
+          "type": "string"
+        },
+        "member_name": {
+          "format": "text",
+          "type": "string"
+        },
+        "data": {
+          "format": "jsonb"
+        },
+        "source_files": {
+          "format": "jsonb"
+        },
+        "uploaded_by": {
+          "description": "Note:\nThis is a Foreign Key to `profiles.id`.<fk table='profiles' column='id'/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "uploaded_at": {
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "possible_duplicate": {
+          "default": false,
+          "format": "boolean",
+          "type": "boolean"
+        },
+        "created_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "updated_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "holidays": {
+      "required": [
+        "id",
+        "holiday_date"
+      ],
+      "properties": {
+        "id": {
+          "default": "gen_random_uuid()",
+          "description": "Note:\nThis is a Primary Key.<pk/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "holiday_date": {
+          "format": "date",
+          "type": "string"
+        },
+        "name": {
+          "format": "text",
+          "type": "string"
+        },
+        "created_by": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "created_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "updated_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "user_roles": {
+      "required": [
+        "id",
+        "user_id",
+        "role"
+      ],
+      "properties": {
+        "id": {
+          "default": "gen_random_uuid()",
+          "description": "Note:\nThis is a Primary Key.<pk/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "user_id": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "role": {
+          "default": "survey_user",
+          "enum": [
+            "admin",
+            "survey_user",
+            "super_admin",
+            "supervisor",
+            "master_admin"
+          ],
+          "format": "public.app_role",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "follow_ups": {
+      "required": [
+        "id",
+        "house_uuid",
+        "due_date",
+        "status",
+        "created_at",
+        "updated_at"
+      ],
+      "properties": {
+        "id": {
+          "default": "gen_random_uuid()",
+          "description": "Note:\nThis is a Primary Key.<pk/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "house_uuid": {
+          "description": "Note:\nThis is a Foreign Key to `houses.id`.<fk table='houses' column='id'/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "member_uuid": {
+          "description": "Note:\nThis is a Foreign Key to `house_members.id`.<fk table='house_members' column='id'/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "due_date": {
+          "format": "date",
+          "type": "string"
+        },
+        "reason": {
+          "format": "text",
+          "type": "string"
+        },
+        "status": {
+          "default": "pending",
+          "format": "text",
+          "type": "string"
+        },
+        "risk_level": {
+          "format": "text",
+          "type": "string"
+        },
+        "notes": {
+          "format": "text",
+          "type": "string"
+        },
+        "created_by": {
+          "description": "Note:\nThis is a Foreign Key to `profiles.id`.<fk table='profiles' column='id'/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "created_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "updated_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "completed_by": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "completed_at": {
+          "format": "timestamp with time zone",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "notifications": {
+      "required": [
+        "id",
+        "user_id",
+        "title",
+        "message",
+        "is_read",
+        "created_at"
+      ],
+      "properties": {
+        "id": {
+          "default": "gen_random_uuid()",
+          "description": "Note:\nThis is a Primary Key.<pk/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "user_id": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "sender_user_id": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "title": {
+          "format": "text",
+          "type": "string"
+        },
+        "message": {
+          "format": "text",
+          "type": "string"
+        },
+        "is_read": {
+          "default": false,
+          "format": "boolean",
+          "type": "boolean"
+        },
+        "metadata": {
+          "format": "jsonb"
+        },
+        "type": {
+          "format": "text",
+          "type": "string"
+        },
+        "related_entity_type": {
+          "format": "text",
+          "type": "string"
+        },
+        "related_entity_id": {
+          "format": "text",
+          "type": "string"
+        },
+        "read_at": {
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "created_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    }
+  },
+  "parameters": {
+    "preferParams": {
+      "name": "Prefer",
+      "description": "Preference",
+      "required": false,
+      "in": "header",
+      "type": "string"
+    },
+    "preferReturn": {
+      "name": "Prefer",
+      "description": "Preference",
+      "required": false,
+      "enum": [
+        "return=representation",
+        "return=minimal",
+        "return=none"
+      ],
+      "in": "header",
+      "type": "string"
+    },
+    "preferCount": {
+      "name": "Prefer",
+      "description": "Preference",
+      "required": false,
+      "enum": [
+        "count=none"
+      ],
+      "in": "header",
+      "type": "string"
+    },
+    "preferPost": {
+      "name": "Prefer",
+      "description": "Preference",
+      "required": false,
+      "enum": [
+        "return=representation",
+        "return=minimal",
+        "return=none",
+        "resolution=ignore-duplicates",
+        "resolution=merge-duplicates"
+      ],
+      "in": "header",
+      "type": "string"
+    },
+    "select": {
+      "name": "select",
+      "description": "Filtering Columns",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "on_conflict": {
+      "name": "on_conflict",
+      "description": "On Conflict",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "order": {
+      "name": "order",
+      "description": "Ordering",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "range": {
+      "name": "Range",
+      "description": "Limiting and Pagination",
+      "required": false,
+      "in": "header",
+      "type": "string"
+    },
+    "rangeUnit": {
+      "name": "Range-Unit",
+      "description": "Limiting and Pagination",
+      "required": false,
+      "default": "items",
+      "in": "header",
+      "type": "string"
+    },
+    "offset": {
+      "name": "offset",
+      "description": "Limiting and Pagination",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "limit": {
+      "name": "limit",
+      "description": "Limiting and Pagination",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "body.import_batches": {
+      "name": "import_batches",
+      "description": "import_batches",
+      "required": false,
+      "in": "body",
+      "schema": {
+        "$ref": "#/definitions/import_batches"
+      }
+    },
+    "rowFilter.import_batches.id": {
+      "name": "id",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.import_batches.file_names": {
+      "name": "file_names",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.import_batches.uploaded_by": {
+      "name": "uploaded_by",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.import_batches.uploaded_by_name": {
+      "name": "uploaded_by_name",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.import_batches.uploaded_role": {
+      "name": "uploaded_role",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.import_batches.assigned_to": {
+      "name": "assigned_to",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.import_batches.assigned_to_name": {
+      "name": "assigned_to_name",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.import_batches.supervisor_id": {
+      "name": "supervisor_id",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.import_batches.total_rows": {
+      "name": "total_rows",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.import_batches.unique_houses": {
+      "name": "unique_houses",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.import_batches.houses_added": {
+      "name": "houses_added",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.import_batches.houses_updated": {
+      "name": "houses_updated",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.import_batches.members_added": {
+      "name": "members_added",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.import_batches.members_merged": {
+      "name": "members_merged",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.import_batches.merged_records": {
+      "name": "merged_records",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.import_batches.conflicts": {
+      "name": "conflicts",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.import_batches.unmapped_houses": {
+      "name": "unmapped_houses",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.import_batches.new_fields": {
+      "name": "new_fields",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.import_batches.status": {
+      "name": "status",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.import_batches.created_at": {
+      "name": "created_at",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.import_batches.updated_at": {
+      "name": "updated_at",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "body.push_subscriptions": {
+      "name": "push_subscriptions",
+      "description": "push_subscriptions",
+      "required": false,
+      "in": "body",
+      "schema": {
+        "$ref": "#/definitions/push_subscriptions"
+      }
+    },
+    "rowFilter.push_subscriptions.id": {
+      "name": "id",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.push_subscriptions.user_id": {
+      "name": "user_id",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.push_subscriptions.endpoint": {
+      "name": "endpoint",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.push_subscriptions.p256dh": {
+      "name": "p256dh",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.push_subscriptions.auth": {
+      "name": "auth",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.push_subscriptions.created_at": {
+      "name": "created_at",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.push_subscriptions.updated_at": {
+      "name": "updated_at",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "body.pins": {
+      "name": "pins",
+      "description": "pins",
+      "required": false,
+      "in": "body",
+      "schema": {
+        "$ref": "#/definitions/pins"
+      }
+    },
+    "rowFilter.pins.id": {
+      "name": "id",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.pins.user_id": {
+      "name": "user_id",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.pins.username": {
+      "name": "username",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.pins.latitude": {
+      "name": "latitude",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.pins.longitude": {
+      "name": "longitude",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.pins.accuracy": {
+      "name": "accuracy",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.pins.pin_type": {
+      "name": "pin_type",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.pins.custom_type": {
+      "name": "custom_type",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.pins.house_id": {
+      "name": "house_id",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.pins.house_number": {
+      "name": "house_number",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.pins.owner_name": {
+      "name": "owner_name",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.pins.notes": {
+      "name": "notes",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.pins.device_time": {
+      "name": "device_time",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.pins.device_id": {
+      "name": "device_id",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.pins.surveyor": {
+      "name": "surveyor",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.pins.source": {
+      "name": "source",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.pins.import_key": {
+      "name": "import_key",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.pins.external_created_at": {
+      "name": "external_created_at",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.pins.house_uuid": {
+      "name": "house_uuid",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.pins.created_at": {
+      "name": "created_at",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.pins.updated_at": {
+      "name": "updated_at",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "body.tasks": {
+      "name": "tasks",
+      "description": "tasks",
+      "required": false,
+      "in": "body",
+      "schema": {
+        "$ref": "#/definitions/tasks"
+      }
+    },
+    "rowFilter.tasks.id": {
+      "name": "id",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.tasks.house_uuid": {
+      "name": "house_uuid",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.tasks.member_uuid": {
+      "name": "member_uuid",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.tasks.follow_up_id": {
+      "name": "follow_up_id",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.tasks.task_type": {
+      "name": "task_type",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.tasks.status": {
+      "name": "status",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.tasks.due_date": {
+      "name": "due_date",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.tasks.assigned_to": {
+      "name": "assigned_to",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.tasks.created_by": {
+      "name": "created_by",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.tasks.completed_at": {
+      "name": "completed_at",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.tasks.created_at": {
+      "name": "created_at",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.tasks.updated_at": {
+      "name": "updated_at",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "body.profiles": {
+      "name": "profiles",
+      "description": "profiles",
+      "required": false,
+      "in": "body",
+      "schema": {
+        "$ref": "#/definitions/profiles"
+      }
+    },
+    "rowFilter.profiles.id": {
+      "name": "id",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.profiles.username": {
+      "name": "username",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.profiles.full_name": {
+      "name": "full_name",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.profiles.phone": {
+      "name": "phone",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.profiles.email": {
+      "name": "email",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.profiles.avatar_url": {
+      "name": "avatar_url",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.profiles.is_active": {
+      "name": "is_active",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.profiles.created_at": {
+      "name": "created_at",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.profiles.updated_at": {
+      "name": "updated_at",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "body.health_threshold_settings_audit": {
+      "name": "health_threshold_settings_audit",
+      "description": "health_threshold_settings_audit",
+      "required": false,
+      "in": "body",
+      "schema": {
+        "$ref": "#/definitions/health_threshold_settings_audit"
+      }
+    },
+    "rowFilter.health_threshold_settings_audit.id": {
+      "name": "id",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.health_threshold_settings_audit.settings_id": {
+      "name": "settings_id",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.health_threshold_settings_audit.changed_by": {
+      "name": "changed_by",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.health_threshold_settings_audit.previous_values": {
+      "name": "previous_values",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.health_threshold_settings_audit.new_values": {
+      "name": "new_values",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.health_threshold_settings_audit.created_at": {
+      "name": "created_at",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "body.activity_logs": {
+      "name": "activity_logs",
+      "description": "activity_logs",
+      "required": false,
+      "in": "body",
+      "schema": {
+        "$ref": "#/definitions/activity_logs"
+      }
+    },
+    "rowFilter.activity_logs.id": {
+      "name": "id",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.activity_logs.user_id": {
+      "name": "user_id",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.activity_logs.username": {
+      "name": "username",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.activity_logs.action": {
+      "name": "action",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.activity_logs.details": {
+      "name": "details",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.activity_logs.created_at": {
+      "name": "created_at",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "body.houses": {
+      "name": "houses",
+      "description": "houses",
+      "required": false,
+      "in": "body",
+      "schema": {
+        "$ref": "#/definitions/houses"
+      }
+    },
+    "rowFilter.houses.id": {
+      "name": "id",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.houses.house_id": {
+      "name": "house_id",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.houses.house_number": {
+      "name": "house_number",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.houses.address": {
+      "name": "address",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.houses.owner_name": {
+      "name": "owner_name",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.houses.status": {
+      "name": "status",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.houses.latitude": {
+      "name": "latitude",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.houses.longitude": {
+      "name": "longitude",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.houses.accuracy": {
+      "name": "accuracy",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.houses.location_status": {
+      "name": "location_status",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.houses.location_source": {
+      "name": "location_source",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.houses.mapped_by": {
+      "name": "mapped_by",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.houses.mapped_at": {
+      "name": "mapped_at",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.houses.pin_type": {
+      "name": "pin_type",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.houses.custom_type": {
+      "name": "custom_type",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.houses.assigned_csw_id": {
+      "name": "assigned_csw_id",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.houses.supervisor_id": {
+      "name": "supervisor_id",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.houses.monthly_income": {
+      "name": "monthly_income",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.houses.earning_members": {
+      "name": "earning_members",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.houses.total_members": {
+      "name": "total_members",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.houses.data": {
+      "name": "data",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.houses.created_by": {
+      "name": "created_by",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.houses.uploaded_by": {
+      "name": "uploaded_by",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.houses.uploaded_at": {
+      "name": "uploaded_at",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.houses.source_files": {
+      "name": "source_files",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.houses.created_at": {
+      "name": "created_at",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.houses.updated_at": {
+      "name": "updated_at",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.houses.pin_id": {
+      "name": "pin_id",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "body.login_attempts": {
+      "name": "login_attempts",
+      "description": "login_attempts",
+      "required": false,
+      "in": "body",
+      "schema": {
+        "$ref": "#/definitions/login_attempts"
+      }
+    },
+    "rowFilter.login_attempts.username": {
+      "name": "username",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.login_attempts.fail_count": {
+      "name": "fail_count",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.login_attempts.locked_until": {
+      "name": "locked_until",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.login_attempts.updated_at": {
+      "name": "updated_at",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "body.member_assessments": {
+      "name": "member_assessments",
+      "description": "member_assessments",
+      "required": false,
+      "in": "body",
+      "schema": {
+        "$ref": "#/definitions/member_assessments"
+      }
+    },
+    "rowFilter.member_assessments.id": {
+      "name": "id",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.member_assessments.house_uuid": {
+      "name": "house_uuid",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.member_assessments.member_uuid": {
+      "name": "member_uuid",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.member_assessments.available": {
+      "name": "available",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.member_assessments.known_history": {
+      "name": "known_history",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.member_assessments.medication": {
+      "name": "medication",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.member_assessments.medical_details": {
+      "name": "medical_details",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.member_assessments.alcohol": {
+      "name": "alcohol",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.member_assessments.alcohol_frequency": {
+      "name": "alcohol_frequency",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.member_assessments.smoking": {
+      "name": "smoking",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.member_assessments.smoking_frequency": {
+      "name": "smoking_frequency",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.member_assessments.tobacco": {
+      "name": "tobacco",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.member_assessments.tobacco_frequency": {
+      "name": "tobacco_frequency",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.member_assessments.waist": {
+      "name": "waist",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.member_assessments.physical_activity": {
+      "name": "physical_activity",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.member_assessments.height_cm": {
+      "name": "height_cm",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.member_assessments.weight_kg": {
+      "name": "weight_kg",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.member_assessments.bmi": {
+      "name": "bmi",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.member_assessments.bmi_category": {
+      "name": "bmi_category",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.member_assessments.systolic": {
+      "name": "systolic",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.member_assessments.diastolic": {
+      "name": "diastolic",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.member_assessments.bp_symptoms": {
+      "name": "bp_symptoms",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.member_assessments.blood_sugar": {
+      "name": "blood_sugar",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.member_assessments.sugar_symptoms": {
+      "name": "sugar_symptoms",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.member_assessments.referral_needed": {
+      "name": "referral_needed",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.member_assessments.referral": {
+      "name": "referral",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.member_assessments.notes": {
+      "name": "notes",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.member_assessments.risk_level": {
+      "name": "risk_level",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.member_assessments.risk_reasons": {
+      "name": "risk_reasons",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.member_assessments.extra": {
+      "name": "extra",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.member_assessments.assessed_by": {
+      "name": "assessed_by",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.member_assessments.assessed_at": {
+      "name": "assessed_at",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.member_assessments.created_at": {
+      "name": "created_at",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.member_assessments.updated_at": {
+      "name": "updated_at",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "body.team_memberships": {
+      "name": "team_memberships",
+      "description": "team_memberships",
+      "required": false,
+      "in": "body",
+      "schema": {
+        "$ref": "#/definitions/team_memberships"
+      }
+    },
+    "rowFilter.team_memberships.id": {
+      "name": "id",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.team_memberships.supervisor_id": {
+      "name": "supervisor_id",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.team_memberships.csw_id": {
+      "name": "csw_id",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.team_memberships.status": {
+      "name": "status",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.team_memberships.created_at": {
+      "name": "created_at",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.team_memberships.updated_at": {
+      "name": "updated_at",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "body.health_threshold_settings": {
+      "name": "health_threshold_settings",
+      "description": "health_threshold_settings",
+      "required": false,
+      "in": "body",
+      "schema": {
+        "$ref": "#/definitions/health_threshold_settings"
+      }
+    },
+    "rowFilter.health_threshold_settings.id": {
+      "name": "id",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.health_threshold_settings.minimum_eligible_age": {
+      "name": "minimum_eligible_age",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.health_threshold_settings.systolic_normal_max": {
+      "name": "systolic_normal_max",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.health_threshold_settings.systolic_moderate_min": {
+      "name": "systolic_moderate_min",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.health_threshold_settings.systolic_high_min": {
+      "name": "systolic_high_min",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.health_threshold_settings.diastolic_normal_max": {
+      "name": "diastolic_normal_max",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.health_threshold_settings.diastolic_moderate_min": {
+      "name": "diastolic_moderate_min",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.health_threshold_settings.diastolic_high_min": {
+      "name": "diastolic_high_min",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.health_threshold_settings.sugar_normal_max": {
+      "name": "sugar_normal_max",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.health_threshold_settings.sugar_moderate_min": {
+      "name": "sugar_moderate_min",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.health_threshold_settings.sugar_moderate_max": {
+      "name": "sugar_moderate_max",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.health_threshold_settings.sugar_high_min": {
+      "name": "sugar_high_min",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.health_threshold_settings.interval_high": {
+      "name": "interval_high",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.health_threshold_settings.interval_moderate": {
+      "name": "interval_moderate",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.health_threshold_settings.interval_low": {
+      "name": "interval_low",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.health_threshold_settings.supervisor_id": {
+      "name": "supervisor_id",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.health_threshold_settings.vitals_config": {
+      "name": "vitals_config",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.health_threshold_settings.working_days": {
+      "name": "working_days",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.health_threshold_settings.working_hours": {
+      "name": "working_hours",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.health_threshold_settings.created_by": {
+      "name": "created_by",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.health_threshold_settings.created_at": {
+      "name": "created_at",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.health_threshold_settings.updated_at": {
+      "name": "updated_at",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "body.import_conflicts": {
+      "name": "import_conflicts",
+      "description": "import_conflicts",
+      "required": false,
+      "in": "body",
+      "schema": {
+        "$ref": "#/definitions/import_conflicts"
+      }
+    },
+    "rowFilter.import_conflicts.id": {
+      "name": "id",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.import_conflicts.batch_id": {
+      "name": "batch_id",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.import_conflicts.house_uuid": {
+      "name": "house_uuid",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.import_conflicts.house_id": {
+      "name": "house_id",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.import_conflicts.entity": {
+      "name": "entity",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.import_conflicts.member_ref": {
+      "name": "member_ref",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.import_conflicts.field": {
+      "name": "field",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.import_conflicts.existing_value": {
+      "name": "existing_value",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.import_conflicts.new_value": {
+      "name": "new_value",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.import_conflicts.source_file": {
+      "name": "source_file",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.import_conflicts.status": {
+      "name": "status",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.import_conflicts.resolved_by": {
+      "name": "resolved_by",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.import_conflicts.resolved_at": {
+      "name": "resolved_at",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.import_conflicts.created_at": {
+      "name": "created_at",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.import_conflicts.updated_at": {
+      "name": "updated_at",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "body.house_members": {
+      "name": "house_members",
+      "description": "house_members",
+      "required": false,
+      "in": "body",
+      "schema": {
+        "$ref": "#/definitions/house_members"
+      }
+    },
+    "rowFilter.house_members.id": {
+      "name": "id",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.house_members.house_uuid": {
+      "name": "house_uuid",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.house_members.member_id": {
+      "name": "member_id",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.house_members.member_name": {
+      "name": "member_name",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.house_members.data": {
+      "name": "data",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.house_members.source_files": {
+      "name": "source_files",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.house_members.uploaded_by": {
+      "name": "uploaded_by",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.house_members.uploaded_at": {
+      "name": "uploaded_at",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.house_members.possible_duplicate": {
+      "name": "possible_duplicate",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.house_members.created_at": {
+      "name": "created_at",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.house_members.updated_at": {
+      "name": "updated_at",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "body.holidays": {
+      "name": "holidays",
+      "description": "holidays",
+      "required": false,
+      "in": "body",
+      "schema": {
+        "$ref": "#/definitions/holidays"
+      }
+    },
+    "rowFilter.holidays.id": {
+      "name": "id",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.holidays.holiday_date": {
+      "name": "holiday_date",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.holidays.name": {
+      "name": "name",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.holidays.created_by": {
+      "name": "created_by",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.holidays.created_at": {
+      "name": "created_at",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.holidays.updated_at": {
+      "name": "updated_at",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "body.user_roles": {
+      "name": "user_roles",
+      "description": "user_roles",
+      "required": false,
+      "in": "body",
+      "schema": {
+        "$ref": "#/definitions/user_roles"
+      }
+    },
+    "rowFilter.user_roles.id": {
+      "name": "id",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.user_roles.user_id": {
+      "name": "user_id",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.user_roles.role": {
+      "name": "role",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "body.follow_ups": {
+      "name": "follow_ups",
+      "description": "follow_ups",
+      "required": false,
+      "in": "body",
+      "schema": {
+        "$ref": "#/definitions/follow_ups"
+      }
+    },
+    "rowFilter.follow_ups.id": {
+      "name": "id",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.follow_ups.house_uuid": {
+      "name": "house_uuid",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.follow_ups.member_uuid": {
+      "name": "member_uuid",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.follow_ups.due_date": {
+      "name": "due_date",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.follow_ups.reason": {
+      "name": "reason",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.follow_ups.status": {
+      "name": "status",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.follow_ups.risk_level": {
+      "name": "risk_level",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.follow_ups.notes": {
+      "name": "notes",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.follow_ups.created_by": {
+      "name": "created_by",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.follow_ups.created_at": {
+      "name": "created_at",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.follow_ups.updated_at": {
+      "name": "updated_at",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.follow_ups.completed_by": {
+      "name": "completed_by",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.follow_ups.completed_at": {
+      "name": "completed_at",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "body.notifications": {
+      "name": "notifications",
+      "description": "notifications",
+      "required": false,
+      "in": "body",
+      "schema": {
+        "$ref": "#/definitions/notifications"
+      }
+    },
+    "rowFilter.notifications.id": {
+      "name": "id",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.notifications.user_id": {
+      "name": "user_id",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.notifications.sender_user_id": {
+      "name": "sender_user_id",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.notifications.title": {
+      "name": "title",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.notifications.message": {
+      "name": "message",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.notifications.is_read": {
+      "name": "is_read",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.notifications.metadata": {
+      "name": "metadata",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.notifications.type": {
+      "name": "type",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.notifications.related_entity_type": {
+      "name": "related_entity_type",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.notifications.related_entity_id": {
+      "name": "related_entity_id",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.notifications.read_at": {
+      "name": "read_at",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.notifications.created_at": {
+      "name": "created_at",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    }
+  },
+  "externalDocs": {
+    "description": "PostgREST Documentation",
+    "url": "https://postgrest.org/en/v14/references/api.html"
+  }
+}

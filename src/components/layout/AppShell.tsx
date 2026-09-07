@@ -12,6 +12,7 @@ import {
   BarChart3,
   ShieldCheck,
   Activity,
+  ShieldAlert,
 } from "lucide-react";
 
 import { ErrorState } from "@/components/common/EmptyState";
@@ -30,19 +31,27 @@ import {
 } from "@/components/ui/drawer";
 import { cn } from "@/lib/utils";
 import { NotificationBell } from "@/components/layout/NotificationBell";
+import { useAreaAlerts } from "@/hooks/useAreaAlerts";
+import { RoleSwitcher } from "@/components/layout/RoleSwitcher";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   React.useEffect(() => {
     useSettings.getState().loadSettings();
   }, []);
 
-  const { user, role, can, signOut } = useAuth();
+  useAreaAlerts();
+
+  const { user, role, actualRole, isTestMode, can, signOut } = useAuth();
+  const globalSettings = useSettings((s) => s.globalSettings);
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const router = useRouter();
 
   const [moreDrawerOpen, setMoreDrawerOpen] = useState(false);
 
   const visible = navItems.filter((item) => {
+    if (item.to === "/master-admin") {
+      return actualRole === "master_admin";
+    }
     if (item.permission && !can(item.permission)) return false;
     if (item.roles && role && !item.roles.includes(role)) return false;
     return true;
@@ -69,13 +78,22 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   );
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="mx-auto flex w-full max-w-[1920px]">
+    <div className="min-h-screen bg-background flex flex-col">
+      {isTestMode && (
+        <div className="w-full bg-red-600 text-white text-center py-1.5 px-4 text-sm font-bold flex justify-center items-center gap-4 z-50 sticky top-0 shadow-sm">
+          <ShieldAlert className="w-4 h-4" />
+          TEST MODE ACTIVE — Simulating {roleLabels[role as keyof typeof roleLabels] || role}
+          <Link to="/master-admin" className="underline opacity-80 hover:opacity-100 text-xs ml-2">
+            Exit Test Mode
+          </Link>
+        </div>
+      )}
+      <div className="mx-auto flex w-full max-w-[1920px] flex-1">
         {/* Desktop Navigation Tree */}
         <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-r border-border bg-surface px-4 py-6 lg:flex">
           <div className="px-2">
-            <p className="font-display text-lg font-bold text-foreground">{appConfig.name}</p>
-            <p className="text-xs text-muted-foreground">{appConfig.builtBy}</p>
+            <p className="font-display text-lg font-bold text-foreground">{globalSettings?.app_name || appConfig.name}</p>
+            <p className="text-xs text-muted-foreground">{globalSettings?.organization_name || appConfig.builtBy}</p>
           </div>
 
           {role === "survey_user" && (
@@ -139,7 +157,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <p className="truncate text-sm font-semibold text-foreground pr-8">
               {user?.profile?.full_name ?? user?.userId}
             </p>
-            <p className="text-xs text-muted-foreground">{role ? roleLabels[role] : "No role"}</p>
+            <div className="flex items-center gap-2 mt-1">
+              <p className="text-xs text-muted-foreground">{role ? roleLabels[role] : "No role"}</p>
+              <RoleSwitcher />
+            </div>
             <Button
               variant="ghost"
               size="sm"
@@ -152,19 +173,30 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </aside>
 
         {/* Main Content Area (Shared) */}
-        <div className="flex min-h-screen w-full min-w-0 flex-col">
+        <div className="flex min-h-screen w-full min-w-0 flex-col relative">
+          
+          {isTestMode && (
+            <div className="bg-destructive text-destructive-foreground font-bold text-center py-1.5 px-4 text-xs tracking-widest z-50 sticky top-0 flex justify-center items-center gap-2">
+              <span>MASTER ADMIN · TEST MODE · {roleLabels[role as keyof typeof roleLabels]}</span>
+              <Link to="/master-admin" className="underline ml-4 text-[10px] font-normal hover:text-white/80">
+                Exit
+              </Link>
+            </div>
+          )}
+
           {/* Mobile Top Header */}
-          <header className="sticky top-0 z-30 border-b border-border ios-glass-panel lg:hidden">
+          <header className={cn("sticky z-30 border-b border-border ios-glass-panel lg:hidden", isTestMode ? "top-[28px]" : "top-0")}>
             <div className="flex items-center justify-between px-4 py-3 safe-top">
               <div>
                 <p className="font-display text-base font-bold text-foreground">
-                  {appConfig.shortName}
+                  {globalSettings?.app_name || appConfig.shortName}
                 </p>
                 <p className="text-[11px] text-muted-foreground">
                   {role ? roleLabels[role] : "No role"}
                 </p>
               </div>
               <div className="flex items-center gap-2">
+                <RoleSwitcher />
                 <NotificationBell />
                 {role === "survey_user" && (
                   <Link
@@ -184,7 +216,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </div>
           </header>
 
-          <main className="min-w-0 flex-1 px-4 pb-28 pt-4 lg:px-8 lg:pb-12 lg:pt-8">
+          <main className={cn(
+            "min-w-0 flex-1",
+            pathname.startsWith("/map") 
+              ? "p-0" 
+              : "px-4 pb-28 pt-4 lg:px-8 lg:pb-12 lg:pt-8"
+          )}>
             <CatchBoundary
               getResetKey={() => pathname}
               errorComponent={({ error, reset }) => (
@@ -344,6 +381,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <div className="pt-4 border-t border-border/40">
               <Button
                 variant="outline"
+                data-testid="mobile-signout-btn"
                 className="w-full h-12 rounded-[20px] text-sm font-bold text-destructive active:bg-destructive/10 border-destructive/20 bg-destructive/5 ios-glass-button"
                 onClick={() => {
                   setMoreDrawerOpen(false);

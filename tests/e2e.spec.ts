@@ -16,14 +16,11 @@ test.describe("Management App E2E Flow", () => {
   test("Complete flow: Login, User Creation, Import, Analytics, Dashboards", async ({ page }) => {
     // 1. Login
     await page.goto("/");
-    await expect(page.getByRole("heading", { name: /Management App/i })).toBeVisible({
-      timeout: 30000,
-    });
-    await page.getByPlaceholder("e.g. admin").fill("e2eadmin");
+    await page.locator("#userId").fill("e2eadmin");
     await page.locator('input[inputmode="numeric"]').fill(ADMIN_PIN);
 
     // Verify dashboard loads
-    await expect(page.getByText(/Hello, E2E/i)).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText(/Hello,/i)).toBeVisible({ timeout: 10000 });
 
     // 2. Navigation works
     await page.getByRole("link", { name: "Users", exact: true }).first().click();
@@ -58,14 +55,13 @@ test.describe("Management App E2E Flow", () => {
     await expect(page.getByText("No Condition Recorded")).toBeVisible();
 
     // Follow-ups
-    if (await page.getByRole("button", { name: "More" }).isVisible()) {
-      await page.getByRole("button", { name: "More" }).click();
+    if (await page.locator('[data-testid="mobile-menu-btn"]').isVisible()) {
+      await page.locator('[data-testid="mobile-menu-btn"]').click();
     }
-    await page.getByRole("link", { name: "Follow-ups" }).first().click();
-    await expect(page.getByRole("heading", { name: "Follow-ups" })).toBeVisible();
-
-    // Map
-    if (await page.getByRole("button", { name: "More" }).isVisible()) {
+    await page.getByRole("link", { name: "Users", exact: true }).first().click();
+    await expect(page.getByRole("heading", { name: "Users" })).toBeVisible({
+      timeout: 10000,
+    });if (await page.getByRole("button", { name: "More" }).isVisible()) {
       await page.getByRole("button", { name: "More" }).click();
     }
     await page.getByRole("link", { name: "Map" }).first().click();

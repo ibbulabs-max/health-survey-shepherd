@@ -148,9 +148,7 @@ function ReportsPage() {
       const { deleteImportBatch } = await import("@/services/importBackendService");
       // Note: backend expects batchId, passing filename here will fail if backend expects UUID, but fixing TS error for now
       const result = await deleteImportBatch({ data: { batchId: rollbackFile } as any });
-      toast.success(
-        `Rollback complete: ${result.housesDeleted} houses and ${result.membersDeleted} members deleted.`,
-      );
+      toast.success(`Rollback complete: Import batch deleted.`);
       setRollbackFile("");
       await refetch();
     } catch (e) {

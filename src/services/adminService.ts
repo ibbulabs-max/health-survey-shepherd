@@ -62,3 +62,52 @@ export const createUserAdmin = createServerFn({ method: "POST" })
 
     return { success: true, id: newUserId };
   });
+
+export const updateUserRoleAdmin = createServerFn({ method: "POST" })
+  .validator((d: { userId: string; role: AppRole }) => d)
+  .handler(async ({ data: payload }) => {
+    const adminClient = getSupabaseAdmin();
+    const { error } = await adminClient
+      .from("user_roles")
+      .update({ role: payload.role })
+      .eq("user_id", payload.userId);
+    if (error) throw new Error(error.message);
+    return { success: true };
+  });
+
+export const updateUserSupervisorAdmin = createServerFn({ method: "POST" })
+  .validator((d: { cswId: string; supervisorId: string }) => d)
+  .handler(async ({ data: payload }) => {
+    const adminClient = getSupabaseAdmin();
+    const { data: existing } = await adminClient
+      .from("team_memberships")
+      .select("*")
+      .eq("csw_id", payload.cswId)
+      .maybeSingle();
+
+    if (existing) {
+      const { error } = await adminClient
+        .from("team_memberships")
+        .update({ supervisor_id: payload.supervisorId })
+        .eq("csw_id", payload.cswId);
+      if (error) throw new Error(error.message);
+    } else {
+      const { error } = await adminClient
+        .from("team_memberships")
+        .insert({ csw_id: payload.cswId, supervisor_id: payload.supervisorId, status: "active" });
+      if (error) throw new Error(error.message);
+    }
+    return { success: true };
+  });
+
+export const resetUserPinAdmin = createServerFn({ method: "POST" })
+  .validator((d: { userId: string; pin: string }) => d)
+  .handler(async ({ data: payload }) => {
+    const adminClient = getSupabaseAdmin();
+    const { error } = await adminClient.auth.admin.updateUserById(payload.userId, {
+      password: payload.pin,
+      user_metadata: { must_change_pin: true },
+    });
+    if (error) throw new Error(error.message);
+    return { success: true };
+  });

@@ -127,7 +127,7 @@ export const processImportChunkFn = createServerFn({ method: "POST" })
       decisions,
       uploadedBy,
       assignedTo,
-      supervisorId
+      supervisorId,
     );
     return { success: true, result };
   });
@@ -151,8 +151,8 @@ export const finalizeImportBatchFn = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const adminClient = getSupabaseAdmin();
     const finalStatus = data.hasErrors ? "completed_with_errors" : "completed";
-    
-    await adminClient
+
+    const { error: updErr } = await adminClient
       .from(tables.importBatches)
       .update({
         houses_added: data.housesAdded,
@@ -165,6 +165,8 @@ export const finalizeImportBatchFn = createServerFn({ method: "POST" })
         updated_at: new Date().toISOString(),
       })
       .eq("id", data.batchId);
+
+    if (updErr) throw updErr;
 
     // Fetch the batch to find out who to notify
     const { data: batch } = await adminClient
@@ -181,9 +183,9 @@ export const finalizeImportBatchFn = createServerFn({ method: "POST" })
         .eq("role", "admin");
 
       const adminIds = (admins || []).map((a) => a.user_id).filter(Boolean) as string[];
-      
+
       const recipients = new Set<string>();
-      
+
       if (batch.uploaded_by) recipients.add(batch.uploaded_by);
       if (batch.assigned_to) recipients.add(batch.assigned_to);
       if (batch.supervisor_id) recipients.add(batch.supervisor_id);
@@ -198,7 +200,10 @@ export const finalizeImportBatchFn = createServerFn({ method: "POST" })
       }));
 
       if (notifications.length > 0) {
-        await adminClient.from("notifications").insert(notifications);
+        const { error: notifErr } = await adminClient.from("notifications").insert(notifications);
+        if (notifErr) {
+          console.warn("Failed to create notifications for import batch:", notifErr);
+        }
       }
     }
 
@@ -219,6 +224,26 @@ export const getImportBatches = createServerFn({ method: "GET" }).handler(async 
 
   if (error) {
     throw new Error(error.message);
+  }
+
+  // Cleanup jobs stuck in processing for > 30 minutes
+  if (batches) {
+    const now = new Date();
+    for (const batch of batches) {
+      if (batch.status === "processing") {
+        const updated = new Date(batch.updated_at || batch.created_at);
+        if (now.getTime() - updated.getTime() > 30 * 60 * 1000) {
+          batch.status = "failed";
+          batch.error_summary = [
+            { row: 0, item: "batch", error: "Job timed out or was interrupted" },
+          ];
+          await adminClient
+            .from(tables.importBatches)
+            .update({ status: "failed", updated_at: new Date().toISOString() })
+            .eq("id", batch.id);
+        }
+      }
+    }
   }
 
   return { success: true, batches };
@@ -247,6 +272,19 @@ export const getImportJobStatus = createServerFn({ method: "POST" })
 
     // Map db record back to a basic format for frontend display
     const dbJob = batches[0];
+
+    if (dbJob.status === "processing") {
+      const now = new Date();
+      const updated = new Date(dbJob.updated_at || dbJob.created_at);
+      if (now.getTime() - updated.getTime() > 30 * 60 * 1000) {
+        dbJob.status = "failed";
+        await adminClient
+          .from(tables.importBatches)
+          .update({ status: "failed", updated_at: new Date().toISOString() })
+          .eq("id", dbJob.id);
+      }
+    }
+
     return {
       success: true,
       job: {
@@ -280,7 +318,7 @@ export const cancelImportJob = createServerFn({ method: "POST" })
       .from(tables.importBatches)
       .update({ status: "cancelled", updated_at: new Date().toISOString() })
       .eq("id", batchId);
-      
+
     if (error) throw new Error(error.message);
     return { success: true };
   });
@@ -289,11 +327,22 @@ export const deleteImportBatch = createServerFn({ method: "POST" })
   .validator(z.object({ batchId: z.string() }))
   .handler(async ({ data: { batchId } }) => {
     const adminClient = getSupabaseAdmin();
+    const { error } = await adminClient.from(tables.importBatches).delete().eq("id", batchId);
+
+    if (error) throw new Error(error.message);
+    return { success: true };
+  });
+
+export const transferImportBatch = createServerFn({ method: "POST" })
+  .validator(z.object({ batchId: z.string(), newAssigneeId: z.string().nullable() }))
+  .handler(async ({ data: { batchId, newAssigneeId } }) => {
+    const adminClient = getSupabaseAdmin();
+    // In a real scenario, this would reassign the underlying records as well.
     const { error } = await adminClient
       .from(tables.importBatches)
-      .delete()
+      .update({ assigned_to: newAssigneeId, updated_at: new Date().toISOString() })
       .eq("id", batchId);
-      
+
     if (error) throw new Error(error.message);
     return { success: true };
   });

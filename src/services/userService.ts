@@ -48,3 +48,15 @@ export function getUserDisplayName(user?: UserView | null): string {
   if (!user) return "Unknown User";
   return user.profile.full_name || user.profile.username || "Unknown User";
 }
+
+export async function updateAnalyticsPreferences(
+  userId: string,
+  preferences: Record<string, any>,
+): Promise<void> {
+  const { error } = await supabase
+    .from(tables.profiles)
+    .update({ analytics_preferences: preferences })
+    .eq("id", userId);
+
+  if (error) throw error;
+}

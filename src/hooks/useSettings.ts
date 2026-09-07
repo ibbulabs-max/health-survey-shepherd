@@ -9,7 +9,9 @@ interface SettingsState {
   followUpIntervals: Record<RiskLevel, number>;
   dailyTarget: number;
   thresholds: any | null; // You can type this better later if needed
+  globalSettings: any | null;
   updateDailyTarget: (target: number) => Promise<void>;
+  updateGlobalSettings: (updates: Partial<any>) => Promise<void>;
   loadSettings: (userId?: string, role?: string, supervisorId?: string) => Promise<void>;
 }
 
@@ -17,6 +19,7 @@ export const useSettings = create<SettingsState>()((set, get) => ({
   followUpIntervals: { ...followUpConfig.intervalDays },
   dailyTarget: followUpConfig.defaultDailyTarget,
   thresholds: null,
+  globalSettings: null,
 
   loadSettings: async (userId?: string, role?: string, supervisorId?: string) => {
     try {
@@ -46,6 +49,17 @@ export const useSettings = create<SettingsState>()((set, get) => ({
           thresholds: s,
         });
       }
+      // 3. Load global settings
+      const { data: globalData } = await supabase
+        .from("global_settings")
+        .select("*")
+        .eq("singleton_key", true)
+        .maybeSingle()
+        .then(res => res, () => ({ data: null }));
+        
+      if (globalData) {
+        set({ globalSettings: globalData });
+      }
     } catch (e) {
       console.error("Failed to load settings:", e);
     }
@@ -71,6 +85,21 @@ export const useSettings = create<SettingsState>()((set, get) => ({
     } catch (e) {
       console.error("Failed to save daily target to backend:", e);
       set({ dailyTarget: prev });
+      throw e;
+    }
+  },
+  updateGlobalSettings: async (updates: Partial<any>) => {
+    const prev = get().globalSettings;
+    set({ globalSettings: { ...prev, ...updates } });
+    try {
+      const { error } = await supabase
+        .from("global_settings")
+        .update(updates)
+        .eq("singleton_key", true);
+      if (error) throw error;
+    } catch (e) {
+      console.error("Failed to save global settings:", e);
+      set({ globalSettings: prev });
       throw e;
     }
   },

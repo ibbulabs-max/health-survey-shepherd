@@ -10,6 +10,12 @@ export interface SessionUser {
   role: AppRole | null;
   profile: Profile | null;
   mustChangePin: boolean;
+  actualRole: AppRole | null;
+  testSession?: {
+    id: string;
+    simulatedRole: AppRole;
+    simulatedUserId: string | null;
+  } | null;
 }
 
 export const PIN_LENGTH = 6;
@@ -33,23 +39,76 @@ export async function loadSessionUser(): Promise<SessionUser | null> {
   const user = userData.user;
   if (!user) return null;
 
-  const [{ data: profile }, { data: roles }] = await Promise.all([
+  const [{ data: profile }, { data: roles }, { data: testSession }] = await Promise.all([
     supabase.from(tables.profiles).select("*").eq("id", user.id).maybeSingle(),
     supabase.from(tables.userRoles).select("role").eq("user_id", user.id),
+    supabase.from("test_mode_sessions")
+      .select("*")
+      .eq("master_admin_id", user.id)
+      .eq("active", true)
+      .maybeSingle()
+      .then(res => res, () => ({ data: null })), // Catch in case table doesn't exist yet
   ]);
 
-  const roleList = (roles ?? []).map((r) => (r as { role: AppRole }).role);
-  const priority: AppRole[] = ["super_admin", "admin", "supervisor", "survey_user"];
-  const role = priority.find((r) => roleList.includes(r)) ?? null;
+  const roleList = (roles ?? []).map((r: any) => (r as { role: AppRole }).role);
+  const priority: AppRole[] = ["master_admin", "super_admin", "admin", "supervisor", "survey_user"];
+  const actualRole = priority.find((r) => roleList.includes(r)) ?? null;
+  
+  // Apply test session simulation if valid
+  let role = actualRole;
+  let parsedTestSession = null;
+  
+  if (testSession && actualRole === "master_admin") {
+    // Ensure it hasn't expired (handled by DB mostly, but check here too)
+    const isExpired = new Date(testSession.expires_at) < new Date();
+    if (!isExpired) {
+      role = testSession.simulated_role as AppRole;
+      parsedTestSession = {
+        id: testSession.id,
+        simulatedRole: testSession.simulated_role as AppRole,
+        simulatedUserId: testSession.simulated_user_id,
+      };
+    }
+  }
 
   return {
     id: user.id,
     userId: (profile as Profile | null)?.username ?? user.email?.split("@")[0] ?? "",
     email: user.email ?? "",
     role,
+    actualRole,
     profile: (profile as Profile | null) ?? null,
     mustChangePin: Boolean(user.user_metadata?.["must_change_pin"]),
+    testSession: parsedTestSession,
   };
+}
+
+export async function startTestMode(simulatedRole: AppRole, simulatedUserId: string | null = null) {
+  const { data: userData } = await supabase.auth.getUser();
+  if (!userData.user) throw new Error("Not authenticated");
+  
+  // Create or update active test mode session
+  const { error } = await supabase.from("test_mode_sessions").insert({
+    master_admin_id: userData.user.id,
+    simulated_role: simulatedRole,
+    simulated_user_id: simulatedUserId,
+    active: true
+  });
+  
+  if (error) throw new Error(toUserMessage(error, "Could not start test mode."));
+}
+
+export async function endTestMode() {
+  const { data: userData } = await supabase.auth.getUser();
+  if (!userData.user) return;
+  
+  // Deactivate all test sessions for this user
+  const { error } = await supabase.from("test_mode_sessions")
+    .update({ active: false, expires_at: new Date().toISOString() })
+    .eq("master_admin_id", userData.user.id)
+    .eq("active", true);
+    
+  if (error) throw new Error(toUserMessage(error, "Could not end test mode."));
 }
 
 export async function changePin(newPin: string) {
